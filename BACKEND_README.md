@@ -519,4 +519,4 @@ For backend integration questions:
 ---
 
 **Version**: 1.0
-**Last Updated**: May 2024
+**Last Updated**: Feb 2026

@@ -1,0 +1,537 @@
+/* ==========================================================================
+   Dashboard Page Styles
+   MuslimEEN - Dashboard Specific Styles
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Header Adjustments
+   -------------------------------------------------------------------------- */
+.header-menu-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2);
+}
+
+@media (min-width: 768px) {
+  .header-menu-toggle {
+    display: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   2. Sidebar Navigation Styles
+   -------------------------------------------------------------------------- */
+.sidebar-content {
+  padding: var(--space-6);
+}
+
+.sidebar-user {
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--border-light);
+  margin-bottom: var(--space-6);
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.nav-section-title {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-2);
+  padding-left: var(--space-4);
+}
+
+.nav-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.nav-list .nav-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: all var(--transition-fast);
+}
+
+.nav-list .nav-link:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.nav-list .nav-link.active {
+  background-color: var(--color-emerald-50);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+.nav-link-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Pillar Navigation Icons */
+.nav-link-pillar {
+  gap: var(--space-2);
+}
+
+.nav-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  font-family: var(--font-family-arabic);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+}
+
+.nav-icon.earn {
+  background-color: var(--color-sapphire-100);
+  color: var(--color-sapphire-700);
+}
+
+.nav-icon.build {
+  background-color: var(--color-gold-100);
+  color: var(--color-gold-700);
+}
+
+.nav-icon.live {
+  background-color: var(--color-emerald-100);
+  color: var(--color-emerald-700);
+}
+
+.nav-icon.protect {
+  background-color: var(--color-ruby-100);
+  color: var(--color-ruby-700);
+}
+
+/* --------------------------------------------------------------------------
+   3. Welcome Section
+   -------------------------------------------------------------------------- */
+.welcome-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  background: linear-gradient(135deg, var(--color-emerald-600) 0%, var(--color-emerald-700) 100%);
+  border-radius: var(--radius-xl);
+  color: white;
+  margin-bottom: var(--space-8);
+}
+
+@media (min-width: 768px) {
+  .welcome-section {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.welcome-content h1 {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: white;
+  margin-bottom: var(--space-2);
+}
+
+.welcome-subtitle {
+  font-size: var(--font-size-base);
+  color: var(--color-emerald-100);
+  margin: 0;
+}
+
+.trust-highlight {
+  font-weight: var(--font-weight-bold);
+  color: var(--color-gold-300);
+}
+
+.welcome-actions .btn {
+  background-color: white;
+  color: var(--color-emerald-700);
+  border-color: white;
+}
+
+.welcome-actions .btn:hover {
+  background-color: var(--color-emerald-50);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+/* --------------------------------------------------------------------------
+   4. Pillars Section
+   -------------------------------------------------------------------------- */
+.pillars-section {
+  margin-bottom: var(--space-8);
+}
+
+.section-title {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+}
+
+.section-title .arabic-text {
+  font-family: var(--font-family-arabic);
+  font-size: var(--font-size-lg);
+  color: var(--color-primary);
+}
+
+@media (min-width: 768px) {
+  .section-title {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-3);
+  }
+}
+
+.pillars-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+@media (min-width: 640px) {
+  .pillars-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .pillars-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Pillar Cards */
+.pillar-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-6);
+  border-radius: var(--radius-xl);
+  text-decoration: none;
+  overflow: hidden;
+  transition: all var(--transition-base);
+  min-height: 200px;
+}
+
+.pillar-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  text-decoration: none;
+}
+
+.pillar-pattern {
+  position: absolute;
+  inset: 0;
+  opacity: 0.1;
+  background-image: 
+    linear-gradient(45deg, currentColor 25%, transparent 25%),
+    linear-gradient(-45deg, currentColor 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, currentColor 75%),
+    linear-gradient(-45deg, transparent 75%, currentColor 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+}
+
+.pillar-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.pillar-arabic {
+  font-family: var(--font-family-arabic);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-1);
+}
+
+.pillar-title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-2);
+}
+
+.pillar-description {
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--space-4);
+  flex-grow: 1;
+  opacity: 0.9;
+}
+
+.pillar-stats {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  opacity: 0.8;
+}
+
+/* Pillar Variants */
+.pillar-earn {
+  background: linear-gradient(135deg, var(--color-sapphire-500) 0%, var(--color-sapphire-600) 100%);
+  color: white;
+}
+
+.pillar-earn .pillar-title,
+.pillar-earn .pillar-arabic {
+  color: white;
+}
+
+.pillar-build {
+  background: linear-gradient(135deg, var(--color-gold-500) 0%, var(--color-gold-600) 100%);
+  color: white;
+}
+
+.pillar-build .pillar-title,
+.pillar-build .pillar-arabic {
+  color: white;
+}
+
+.pillar-live {
+  background: linear-gradient(135deg, var(--color-emerald-500) 0%, var(--color-emerald-600) 100%);
+  color: white;
+}
+
+.pillar-live .pillar-title,
+.pillar-live .pillar-arabic {
+  color: white;
+}
+
+.pillar-protect {
+  background: linear-gradient(135deg, var(--color-ruby-500) 0%, var(--color-ruby-600) 100%);
+  color: white;
+}
+
+.pillar-protect .pillar-title,
+.pillar-protect .pillar-arabic {
+  color: white;
+}
+
+/* --------------------------------------------------------------------------
+   5. Dashboard Grid Layout
+   -------------------------------------------------------------------------- */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+}
+
+@media (min-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr 320px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   6. Feed Section
+   -------------------------------------------------------------------------- */
+.feed-section {
+  background-color: var(--bg-elevated);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-light);
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.section-header h2 {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+.feed-container {
+  padding: var(--space-4);
+}
+
+/* --------------------------------------------------------------------------
+   7. Dashboard Sidebar Widgets
+   -------------------------------------------------------------------------- */
+.dashboard-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.widget {
+  background-color: var(--bg-elevated);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-light);
+  overflow: hidden;
+}
+
+.widget-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.widget-header h3 {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+}
+
+.widget-body {
+  padding: var(--space-4) var(--space-6);
+}
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.stat-value {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+}
+
+.stat-label {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+/* Suggested Connections */
+.suggested-connections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.suggested-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.suggested-info {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.suggested-name {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.suggested-meta {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Quick Links */
+.quick-links {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.quick-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: background-color var(--transition-fast);
+}
+
+.quick-link:hover {
+  background-color: var(--bg-tertiary);
+  text-decoration: none;
+}
+
+.quick-link-icon {
+  font-size: var(--font-size-xl);
+}
+
+.quick-link-text {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+/* --------------------------------------------------------------------------
+   8. Utility Classes for Dashboard
+   -------------------------------------------------------------------------- */
+.text-link {
+  color: var(--text-link);
+}
+
+.text-link:hover {
+  text-decoration: underline;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+.py-8 {
+  padding-top: var(--space-8);
+  padding-bottom: var(--space-8);
+}
+
+.mt-2 {
+  margin-top: var(--space-2);
+}
+
+.mt-3 {
+  margin-top: var(--space-3);
+}
+
+.hidden {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .md\:inline {
+    display: inline;
+  }
+}

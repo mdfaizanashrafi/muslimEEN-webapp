@@ -1,0 +1,591 @@
+/* ==========================================================================
+   Islamic Finance Page Styles
+   MuslimEEN Design System Extension
+   ========================================================================== */
+
+/* ==========================================================================
+   Page Header
+   ========================================================================== */
+.finance-header {
+  background: linear-gradient(135deg, var(--color-emerald-600) 0%, var(--color-emerald-800) 100%);
+  padding: var(--space-8) var(--space-6);
+  margin: calc(-1 * var(--space-6));
+  margin-bottom: var(--space-6);
+  border-radius: 0 0 var(--radius-2xl) var(--radius-2xl);
+  position: relative;
+  overflow: hidden;
+}
+
+.finance-header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(45deg, rgba(255,255,255,0.1) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(255,255,255,0.1) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.1) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.1) 75%);
+  background-size: 40px 40px;
+  background-position: 0 0, 0 20px, 20px -20px, -20px 0px;
+  opacity: 0.3;
+}
+
+.finance-header-content {
+  position: relative;
+  z-index: 1;
+  max-width: var(--max-content-width);
+}
+
+.finance-titles {
+  text-align: center;
+}
+
+.finance-arabic-title {
+  font-family: var(--font-family-arabic);
+  font-size: var(--font-size-3xl);
+  color: rgba(255, 255, 255, 0.9);
+  display: block;
+  margin-bottom: var(--space-2);
+}
+
+.finance-english-title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: white;
+  margin-bottom: var(--space-2);
+}
+
+.finance-subtitle {
+  font-size: var(--font-size-base);
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 0;
+}
+
+/* ==========================================================================
+   Finance Tabs
+   ========================================================================== */
+.finance-tabs-container {
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-xl);
+  padding: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+
+.finance-tabs {
+  border-bottom: none;
+  gap: var(--space-1);
+}
+
+.finance-tabs .tab {
+  flex: 1;
+  text-align: center;
+  border-radius: var(--radius-lg);
+  border-bottom: none;
+}
+
+.finance-tabs .tab:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.finance-tabs .tab.active {
+  background: linear-gradient(135deg, var(--color-emerald-600) 0%, var(--color-emerald-700) 100%);
+  color: white;
+}
+
+/* ==========================================================================
+   Tab Content
+   ========================================================================== */
+.tab-content-wrapper {
+  min-height: 400px;
+}
+
+/* ==========================================================================
+   Sadaqah Section
+   ========================================================================== */
+.section-intro {
+  text-align: center;
+  margin-bottom: var(--space-8);
+  padding: var(--space-6);
+  background-color: var(--bg-elevated);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-light);
+}
+
+.section-intro h2 {
+  color: var(--color-primary);
+  margin-bottom: var(--space-3);
+}
+
+.section-intro p {
+  color: var(--text-secondary);
+  margin-bottom: 0;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ==========================================================================
+   Campaign Cards
+   ========================================================================== */
+.campaigns-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+  margin-bottom: var(--space-8);
+}
+
+@media (min-width: 768px) {
+  .campaigns-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .campaigns-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.campaign-card {
+  background-color: var(--bg-elevated);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-light);
+  overflow: hidden;
+  transition: all var(--transition-base);
+}
+
+.campaign-card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-4px);
+}
+
+.campaign-card.campaign-red {
+  border-top: 4px solid var(--color-ruby-500);
+}
+
+.campaign-card.campaign-green {
+  border-top: 4px solid var(--color-emerald-500);
+}
+
+.campaign-card.campaign-blue {
+  border-top: 4px solid var(--color-sapphire-500);
+}
+
+.campaign-image {
+  position: relative;
+  height: 160px;
+  background: linear-gradient(135deg, var(--color-slate-200) 0%, var(--color-slate-300) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.campaign-card.campaign-red .campaign-image {
+  background: linear-gradient(135deg, var(--color-ruby-200) 0%, var(--color-ruby-300) 100%);
+}
+
+.campaign-card.campaign-green .campaign-image {
+  background: linear-gradient(135deg, var(--color-emerald-200) 0%, var(--color-emerald-300) 100%);
+}
+
+.campaign-card.campaign-blue .campaign-image {
+  background: linear-gradient(135deg, var(--color-sapphire-200) 0%, var(--color-sapphire-300) 100%);
+}
+
+.campaign-image-placeholder {
+  font-size: 48px;
+}
+
+.campaign-category {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.badge-red {
+  background-color: var(--color-ruby-100);
+  color: var(--color-ruby-800);
+}
+
+.badge-green {
+  background-color: var(--color-emerald-100);
+  color: var(--color-emerald-800);
+}
+
+.badge-blue {
+  background-color: var(--color-sapphire-100);
+  color: var(--color-sapphire-800);
+}
+
+.campaign-content {
+  padding: var(--space-5);
+}
+
+.campaign-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.campaign-description {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-4);
+  line-height: var(--line-height-relaxed);
+}
+
+/* Campaign Progress */
+.campaign-progress {
+  margin-bottom: var(--space-4);
+}
+
+.campaign-progress-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.campaign-raised {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+}
+
+.campaign-goal {
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+}
+
+.progress-bar.campaign-progress-bar {
+  height: 10px;
+  margin-bottom: var(--space-3);
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width var(--transition-slow);
+}
+
+.progress-fill.red {
+  background: linear-gradient(90deg, var(--color-ruby-400), var(--color-ruby-600));
+}
+
+.progress-fill.green {
+  background: linear-gradient(90deg, var(--color-emerald-400), var(--color-emerald-600));
+}
+
+.progress-fill.blue {
+  background: linear-gradient(90deg, var(--color-sapphire-400), var(--color-sapphire-600));
+}
+
+.campaign-progress-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.campaign-progress-footer span {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.campaign-progress-footer svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Campaign Org */
+.campaign-org {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--border-light);
+  margin-bottom: var(--space-4);
+}
+
+.org-avatar {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, var(--color-emerald-500), var(--color-sapphire-500));
+  color: white;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.org-name {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.btn-full {
+  width: 100%;
+}
+
+/* ==========================================================================
+   Donation History
+   ========================================================================== */
+.donation-history-card {
+  background-color: var(--bg-elevated);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-light);
+  overflow: hidden;
+  margin-bottom: var(--space-8);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.card-header h3 {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.text-link {
+  font-size: var(--font-size-sm);
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.text-link:hover {
+  text-decoration: underline;
+}
+
+.card-body {
+  padding: var(--space-6);
+}
+
+.donation-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.donation-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.donation-item:last-child {
+  border-bottom: none;
+}
+
+.donation-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.donation-campaign {
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+}
+
+.donation-date {
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+}
+
+.donation-amount {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-emerald-600);
+}
+
+.donation-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4) var(--space-5);
+  background-color: var(--color-emerald-50);
+  border-radius: var(--radius-lg);
+}
+
+.total-label {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.total-amount {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-emerald-700);
+}
+
+/* ==========================================================================
+   Placeholder Section (for other tabs)
+   ========================================================================== */
+.placeholder-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-16) var(--space-6);
+  background-color: var(--bg-elevated);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-light);
+  text-align: center;
+}
+
+.placeholder-icon {
+  width: 80px;
+  height: 80px;
+  background-color: var(--color-emerald-100);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-6);
+  color: var(--color-emerald-600);
+}
+
+.placeholder-icon svg {
+  width: 40px;
+  height: 40px;
+}
+
+.placeholder-section h2 {
+  color: var(--text-primary);
+  margin-bottom: var(--space-3);
+}
+
+.placeholder-section p {
+  color: var(--text-secondary);
+  margin-bottom: 0;
+}
+
+/* ==========================================================================
+   Quick Tools Section
+   ========================================================================== */
+.quick-tools-section {
+  margin-top: var(--space-8);
+  padding-top: var(--space-8);
+  border-top: 1px solid var(--border-light);
+}
+
+.quick-tools-section .section-title {
+  text-align: center;
+  margin-bottom: var(--space-6);
+  color: var(--text-primary);
+}
+
+.quick-tools-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+@media (min-width: 640px) {
+  .quick-tools-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .quick-tools-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.quick-tool-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--space-6);
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-xl);
+  text-decoration: none;
+  transition: all var(--transition-base);
+}
+
+.quick-tool-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+  text-decoration: none;
+}
+
+.quick-tool-icon {
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, var(--color-emerald-100) 0%, var(--color-sapphire-100) 100%);
+  border-radius: var(--radius-xl);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-4);
+  color: var(--color-emerald-600);
+}
+
+.quick-tool-icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.quick-tool-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.quick-tool-description {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin-bottom: 0;
+  line-height: var(--line-height-relaxed);
+}
+
+/* ==========================================================================
+   Loading Screen
+   ========================================================================== */
+.loading-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-size: var(--font-size-lg);
+  color: var(--text-secondary);
+}
+
+/* ==========================================================================
+   Sidebar Active State for Islamic Finance
+   ========================================================================== */
+.sidebar .nav-link.active {
+  background-color: var(--color-emerald-50);
+  color: var(--color-emerald-600);
+}
+
+.sidebar .nav-link-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+}

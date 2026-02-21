@@ -26,12 +26,15 @@ MuslimEEN operates as a **closed, invitation-only network**:
 ## Technology Stack
 
 ### Frontend
-- **HTML5** - Semantic markup with accessibility focus
+- **Next.js 14** - React framework with App Router
+- **TypeScript** - Type-safe development
 - **CSS3** - Custom design system with CSS variables
-- **Vanilla JavaScript** - Lightweight, framework-free implementation
-- **No external frameworks** (React, Vue, Angular avoided for performance)
-- **Total bundle size**: Under 150KB combined CSS + JS
-- **Load time**: Under 2 seconds on 4G
+- **Static Export** - Pre-rendered HTML for fast loading
+
+### Backend
+- **Node.js + Express** - API server
+- **PostgreSQL** - Database
+- **JWT** - Authentication
 
 ### Design System
 - Islamic geometric patterns (CSS-generated, no images)
@@ -44,78 +47,52 @@ MuslimEEN operates as a **closed, invitation-only network**:
 
 ```
 muslimeen/
-├── frontend/              # All frontend files
-│   ├── index.html
-│   ├── dashboard.html
-│   ├── profile.html
-│   ├── verification.html
-│   ├── connections.html
-│   ├── messages.html
-│   ├── marketplace-*.html
-│   ├── islamic-finance.html
-│   ├── css/
-│   │   └── design-system.css
-│   └── js/
-│       └── app.js
-├            # Security-hardened frontend
-├── backend/               # Complete backend implementation
-│   ├── src/
-│   │   ├── server.js               # Express server
-│   │   ├── config/database.js      # PostgreSQL connection
-│   │   ├── controllers/            # 6 controllers
-│   │   │   ├── authController.js
-│   │   │   ├── userController.js
-│   │   │   ├── marketplaceController.js
-│   │   │   ├── islamicFinanceController.js
-│   │   │   ├── verificationController.js
-│   │   │   └── invitationController.js
-│   │   ├── models/                 # 7 models
-│   │   │   ├── User.js
-│   │   │   ├── TrustScore.js
-│   │   │   ├── Invitation.js
-│   │   │   ├── Connection.js
-│   │   │   ├── Marketplace.js
-│   │   │   ├── IslamicFinance.js
-│   │   │   └── Notification.js
-│   │   ├── routes/index.js         # 40+ API endpoints
-│   │   ├── middleware/
-│   │   │   ├── auth.js             # JWT authentication
-│   │   │   ├── rateLimiter.js      # Rate limiting
-│   │   │   ├── validation.js       # Joi validation
-│   │   │   └── errorHandler.js     # Error handling
-│   │   └── utils/logger.js         # Winston logging
-│   ├── database/migrations/
-│   │   └── 001_initial_schema.sql  # 16 tables
-│   ├── tests/                      # Test structure
+├── frontend/              # Next.js frontend application
+│   ├── app/               # App Router pages
+│   │   ├── (auth)/        # Auth group (login page)
+│   │   ├── dashboard/     # Dashboard page
+│   │   ├── profile/       # Profile page
+│   │   ├── connections/   # Network/connections page
+│   │   ├── messages/      # Messages page
+│   │   ├── verification/  # Verification status page
+│   │   ├── marketplace/   # Marketplace verticals
+│   │   │   └── [vertical]/# Dynamic route for earn/build/live/protect
+│   │   └── islamic-finance/ # Islamic finance tools
+│   ├── styles/            # Page-specific CSS
+│   ├── lib/               # API client and utilities
+│   ├── types/             # TypeScript type definitions
 │   ├── package.json
-│   └── .env.example
-├── BACKEND_README_2.md    # Complete implementation report
-└── SECURITY.md            # Security documentation
-├── README.md              # Project docs (kept at root)
-├── API_CONTRACT.md
-├── BACKEND_README.md
-├── AGENTS.md
-├── ACCESSIBILITY_AUDIT.md
-└── DEPLOYMENT.md
+│   └── next.config.js
+├── backend/               # Express backend API
+│   ├── src/
+│   │   ├── server.js              # Express server
+│   │   ├── config/database.js     # PostgreSQL connection
+│   │   ├── controllers/           # API controllers
+│   │   ├── models/                # Database models
+│   │   ├── routes/                # API routes
+│   │   └── middleware/            # Auth, validation, etc.
+│   ├── database/migrations/       # SQL migrations
+│   └── package.json
+└── README.md              # This file
 ```
 
 ## Pages Overview
 
-### 1. Login Page (index.html)
+### 1. Login Page (/)
 - Invitation code validation
 - Email/password authentication
 - Biometric login option (WebAuthn)
 - "Request Invitation" modal with three access paths
 - Platform immutables display
 
-### 2. Dashboard (dashboard.html)
+### 2. Dashboard (/dashboard)
 - Personalized welcome with trust score
 - Four Pillars navigation (EARN, BUILD, LIVE, PROTECT)
 - Activity feed with job postings and venture opportunities
 - Network stats and suggested connections
 - Islamic Finance quick links
 
-### 3. Profile Page (profile.html)
+### 3. Profile Page (/profile)
 - LinkedIn-style profile layout
 - Verification badges display
 - Trust score visualization with history
@@ -123,38 +100,55 @@ muslimeen/
 - Skills and endorsements
 - Profile completeness indicator
 
-### 4. Verification Status (verification.html)
+### 4. Verification Status (/verification)
 - Current verification tier display
 - Verification progress steps
 - Trust score factors breakdown
 - Witness eligibility status
 - Upgrade options (Business, Institutional)
 
-### 5. Network/Connections (connections.html)
+### 5. Network/Connections (/connections)
 - Connections list with trust scores
 - Pending requests management
 - Suggested connections based on profile
 - Search and filter functionality
 
-### 6. Messages (messages.html)
+### 6. Messages (/messages)
 - Conversation list
 - Real-time chat interface
 - Message history
 - Unread indicators
 
-### 7. Marketplace Pages
+### 7. Marketplace Pages (/marketplace/[vertical])
 Four vertical marketplaces:
-- **EARN**: Jobs, freelancers, professional services
-- **BUILD**: Ventures, partnerships, investment
-- **LIVE**: Housing, food, travel, wellness
-- **PROTECT**: Health, security, insurance, legal
+- **EARN** (/marketplace/earn): Jobs, freelancers, professional services
+- **BUILD** (/marketplace/build): Ventures, partnerships, investment
+- **LIVE** (/marketplace/live): Housing, food, travel, wellness
+- **PROTECT** (/marketplace/protect): Health, security, insurance, legal
 
-### 8. Islamic Finance (islamic-finance.html)
+### 8. Islamic Finance (/islamic-finance)
 - Sadaqah campaigns with donation tracking
 - Waqf discovery and governance
 - Zakat calculator
 - Qard Hasan matching
 - Takaful insurance information
+
+## Quick Start
+
+### Backend
+```bash
+cd backend
+npm install
+npm run dev        # Runs on http://localhost:3001
+```
+
+### Frontend
+```bash
+cd frontend
+npm install
+npm run dev        # Runs on http://localhost:8080
+npm run build      # Build for production (outputs to dist/)
+```
 
 ## Key Features
 
@@ -201,9 +195,9 @@ Four vertical marketplaces:
 - Diamond and hexagon patterns
 - All CSS-generated (no external images)
 
-## API Integration Points
+## API Integration
 
-The frontend is structured to accept the following backend endpoints:
+See `API_CONTRACT.md` for complete API specification.
 
 ### Authentication
 - `POST /api/auth/validate-invitation` - Validate invitation code
@@ -213,18 +207,7 @@ The frontend is structured to accept the following backend endpoints:
 ### User Data
 - `GET /api/user/profile` - Get user profile
 - `PUT /api/user/profile` - Update user profile
-- `GET /api/user/notifications` - Get notifications
 - `GET /api/user/connections` - Get connections list
-- `GET /api/user/trust-score` - Get trust score details
-
-### Marketplace
-- `GET /api/marketplace/{vertical}` - Get marketplace items
-- `POST /api/marketplace/{vertical}` - Post new listing
-
-### Islamic Finance
-- `GET /api/islamic-finance/{tool}` - Get Islamic finance data
-
-See `API_CONTRACT.md` for complete API specification.
 
 ## Browser Support
 
@@ -243,14 +226,6 @@ See `API_CONTRACT.md` for complete API specification.
 - Focus indicators
 - Color contrast WCAG 2.1 AA compliant
 - Screen reader compatible
-
-## Performance Targets
-
-- First Contentful Paint: < 1.5s
-- Largest Contentful Paint: < 2.5s
-- Time to Interactive: < 3.5s
-- Total Bundle Size: < 150KB
-- Lighthouse Score: 90+
 
 ## Security Considerations
 

@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="MuslimEEN - Muslim Economic Empowerment Network. An invitation-only professional network for the Muslim community.">
+  <meta name="theme-color" content="#059669">
+  
+  <title>MuslimEEN - Muslim Economic Empowerment Network</title>
+  
+  <!-- Preconnect to Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/design-system.css">
+  <link rel="stylesheet" href="css/login.css">
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☪️</text></svg>">
+</head>
+<body class="login-page">
+  <!-- Geometric Pattern Background -->
+  <div class="login-background">
+    <div class="pattern-tessellation"></div>
+  </div>
+  
+  <!-- Main Container -->
+  <main class="login-container">
+    <!-- Logo Section -->
+    <div class="login-logo-section">
+      <div class="logo-icon">
+        <svg viewBox="0 0 64 64" width="64" height="64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- 8-point star geometric pattern -->
+          <path d="M32 0L38 24L64 32L38 40L32 64L26 40L0 32L26 24L32 0Z" fill="url(#star-gradient)"/>
+          <circle cx="32" cy="32" r="12" fill="white"/>
+          <defs>
+            <linearGradient id="star-gradient" x1="0" y1="0" x2="64" y2="64">
+              <stop offset="0%" stop-color="#059669"/>
+              <stop offset="100%" stop-color="#047857"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <h1 class="logo-text">MuslimEEN</h1>
+      <p class="logo-subtitle arabic-text">الشبكة الاقتصادية الإسلامية</p>
+      <p class="logo-tagline">Muslim Economic Empowerment Network</p>
+    </div>
+    
+    <!-- Alert Container -->
+    <div id="alert-container"></div>
+    
+    <!-- Login Card -->
+    <div class="login-card">
+      <div class="login-card-header">
+        <h2>Welcome Back</h2>
+        <p>Invitation-only access for verified members</p>
+      </div>
+      
+      <div class="login-card-body">
+        <!-- Invitation Code Section -->
+        <div id="invitation-section" class="invitation-section">
+          <div class="form-group">
+            <label for="invitation-code" class="form-label">Invitation Code</label>
+            <div class="input-group">
+              <input 
+                type="text" 
+                id="invitation-code" 
+                class="form-input" 
+                placeholder="Enter your 12-character invitation code"
+                maxlength="12"
+                autocomplete="off"
+              >
+              <button type="button" id="validate-invitation" class="btn btn-secondary">
+                Validate
+              </button>
+            </div>
+            <p class="form-hint">Invitation codes are provided by existing members or partner institutions</p>
+          </div>
+        </div>
+        
+        <!-- Login Form -->
+        <form id="login-form" class="login-form">
+          <div class="form-group">
+            <label for="email" class="form-label form-label-required">Email Address</label>
+            <input 
+              type="email" 
+              id="email" 
+              class="form-input" 
+              placeholder="your@email.com"
+              autocomplete="email"
+              required
+            >
+          </div>
+          
+          <div class="form-group">
+            <label for="password" class="form-label form-label-required">Password</label>
+            <input 
+              type="password" 
+              id="password" 
+              class="form-input" 
+              placeholder="Enter your password"
+              autocomplete="current-password"
+              required
+            >
+          </div>
+          
+          <div class="form-group form-check">
+            <input type="checkbox" id="remember-me" class="form-check-input">
+            <label for="remember-me" class="form-check-label">Remember me on this device</label>
+          </div>
+          
+          <button type="submit" class="btn btn-primary btn-lg w-full">
+            Sign In
+          </button>
+        </form>
+        
+        <!-- Divider -->
+        <div class="login-divider">
+          <span>or</span>
+        </div>
+        
+        <!-- Biometric Login -->
+        <button type="button" id="biometric-login" class="btn btn-outline btn-lg w-full">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2a10 10 0 0 0-10 10c0 5.523 4.477 10 10 10s10-4.477 10-10A10 10 0 0 0 12 2z"/>
+            <path d="M12 6v6l4 2"/>
+          </svg>
+          Sign in with Biometric
+        </button>
+        
+        <p class="biometric-note">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 16v-4M12 8h.01"/>
+          </svg>
+          Biometric data is processed on-device only. Zero-knowledge verification.
+        </p>
+      </div>
+      
+      <div class="login-card-footer">
+        <div class="login-help">
+          <a href="#" id="forgot-password">Forgot password?</a>
+          <span class="divider">|</span>
+          <button type="button" id="request-invitation" class="btn-link">
+            Request Invitation
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Platform Immutables -->
+    <div class="immutables-section">
+      <h3>Our Commitment</h3>
+      <ul class="immutables-list">
+        <li>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          <span>No advertising or user data sales</span>
+        </li>
+        <li>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          <span>Open source forever with data portability</span>
+        </li>
+        <li>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 6v6l4 2"/>
+          </svg>
+          <span>No interest-based finance (riba-free)</span>
+        </li>
+        <li>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          <span>Non-discrimination by sect or ethnicity</span>
+        </li>
+        <li>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <line x1="3" y1="9" x2="21" y2="9"/>
+            <line x1="9" y1="21" x2="9" y2="9"/>
+          </svg>
+          <span>Complete transparency in governance</span>
+        </li>
+        <li>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="1" x2="12" y2="23"/>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+          <span>No user fees; revenue to Waqf surplus</span>
+        </li>
+      </ul>
+    </div>
+    
+    <!-- Footer -->
+    <footer class="login-footer">
+      <p>&copy; 2024 MuslimEEN. Licensed under AGPL-3.0.</p>
+      <p>
+        <a href="#">Privacy Policy</a>
+        <span class="mx-2">|</span>
+        <a href="#">Terms of Service</a>
+        <span class="mx-2">|</span>
+        <a href="#">Code Repository</a>
+      </p>
+    </footer>
+  </main>
+  
+  <!-- Request Invitation Modal -->
+  <div id="request-invitation-modal" class="modal hidden">
+    <div class="modal-backdrop" data-close-modal></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Request an Invitation</h3>
+        <button type="button" class="modal-close" data-close-modal>&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-4">MuslimEEN is an invitation-only network. You can request access through:</p>
+        
+        <div class="request-options">
+          <div class="request-option">
+            <h4>1. Existing Member</h4>
+            <p>Ask a verified member to send you an invitation. Each member receives 5 invitations per month.</p>
+          </div>
+          
+          <div class="request-option">
+            <h4>2. Partner Institution</h4>
+            <p>Contact your local mosque, Islamic university, or professional association that partners with MuslimEEN.</p>
+          </div>
+          
+          <div class="request-option">
+            <h4>3. Community Application</h4>
+            <p>Submit a request to our community review board. Processing time: 7-14 days.</p>
+          </div>
+        </div>
+        
+        <form id="invitation-request-form" class="mt-6">
+          <div class="form-group">
+            <label for="request-email" class="form-label form-label-required">Your Email</label>
+            <input type="email" id="request-email" class="form-input" placeholder="your@email.com" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="request-name" class="form-label form-label-required">Full Name</label>
+            <input type="text" id="request-name" class="form-input" placeholder="Your full name" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="request-reason" class="form-label">Why do you want to join?</label>
+            <textarea id="request-reason" class="form-textarea" rows="3" placeholder="Briefly explain your interest in MuslimEEN..."></textarea>
+          </div>
+          
+          <button type="submit" class="btn btn-primary w-full">Submit Request</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Forgot Password Modal -->
+  <div id="forgot-password-modal" class="modal hidden">
+    <div class="modal-backdrop" data-close-modal></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Reset Password</h3>
+        <button type="button" class="modal-close" data-close-modal>&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-4">Enter your email address and we'll send you a password reset link.</p>
+        
+        <form id="password-reset-form">
+          <div class="form-group">
+            <label for="reset-email" class="form-label form-label-required">Email Address</label>
+            <input type="email" id="reset-email" class="form-input" placeholder="your@email.com" required>
+          </div>
+          
+          <button type="submit" class="btn btn-primary w-full">Send Reset Link</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Scripts -->
+  <script src="js/app.js"></script>
+  <script>
+    // Login page specific styles
+    (function() {
+      const style = document.createElement('style');
+      style.textContent = `
+        .login-page {
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+          position: relative;
+        }
+        
+        .login-background {
+          position: fixed;
+          inset: 0;
+          z-index: -1;
+          opacity: 0.5;
+        }
+        
+        .login-background .pattern-tessellation {
+          width: 100%;
+          height: 100%;
+        }
+        
+        .login-container {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: var(--space-6) var(--space-4);
+          max-width: 480px;
+          margin: 0 auto;
+          width: 100%;
+        }
+        
+        .login-logo-section {
+          text-align: center;
+          margin-bottom: var(--space-8);
+        }
+        
+        .logo-icon {
+          margin-bottom: var(--space-4);
+        }
+        
+        .logo-text {
+          font-size: var(--font-size-3xl);
+          font-weight: var(--font-weight-bold);
+          background: linear-gradient(135deg, var(--color-emerald-600), var(--color-gold-500));
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          margin-bottom: var(--space-2);
+        }
+        
+        .logo-subtitle {
+          font-size: var(--font-size-lg);
+          color: var(--color-emerald-700);
+          margin-bottom: var(--space-1);
+        }
+        
+        .logo-tagline {
+          font-size: var(--font-size-sm);
+          color: var(--text-secondary);
+        }
+        
+        .login-card {
+          width: 100%;
+          background: var(--bg-elevated);
+          border-radius: var(--radius-xl);
+          box-shadow: var(--shadow-lg);
+          border: 1px solid var(--border-light);
+          overflow: hidden;
+        }
+        
+        .login-card-header {
+          padding: var(--space-6);
+          text-align: center;
+          border-bottom: 1px solid var(--border-light);
+        }
+        
+        .login-card-header h2 {
+          font-size: var(--font-size-xl);
+          margin-bottom: var(--space-1);
+        }
+        
+        .login-card-header p {
+          font-size: var(--font-size-sm);
+          color: var(--text-secondary);
+          margin-bottom: 0;
+        }
+        
+        .login-card-body {
+          padding: var(--space-6);
+        }
+        
+        .invitation-section {
+          margin-bottom: var(--space-6);
+          padding-bottom: var(--space-6);
+          border-bottom: 1px solid var(--border-light);
+        }
+        
+        .invitation-section.validated {
+          background: var(--color-emerald-50);
+          margin: calc(-1 * var(--space-6)) calc(-1 * var(--space-6)) var(--space-6);
+          padding: var(--space-6);
+          border-bottom: 1px solid var(--color-emerald-200);
+        }
+        
+        .login-form {
+          margin-bottom: var(--space-4);
+        }
+        
+        .login-divider {
+          display: flex;
+          align-items: center;
+          margin: var(--space-6) 0;
+          color: var(--text-tertiary);
+        }
+        
+        .login-divider::before,
+        .login-divider::after {
+          content: '';
+          flex: 1;
+          height: 1px;
+          background: var(--border-light);
+        }
+        
+        .login-divider span {
+          padding: 0 var(--space-4);
+          font-size: var(--font-size-sm);
+        }
+        
+        .biometric-note {
+          display: flex;
+          align-items: center;
+          gap: var(--space-2);
+          margin-top: var(--space-4);
+          font-size: var(--font-size-xs);
+          color: var(--text-tertiary);
+        }
+        
+        .login-card-footer {
+          padding: var(--space-4) var(--space-6);
+          background: var(--bg-tertiary);
+          border-top: 1px solid var(--border-light);
+        }
+        
+        .login-help {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: var(--space-4);
+          font-size: var(--font-size-sm);
+        }
+        
+        .login-help .divider {
+          color: var(--border-medium);
+        }
+        
+        .btn-link {
+          background: none;
+          border: none;
+          color: var(--text-link);
+          font-size: inherit;
+          cursor: pointer;
+          padding: 0;
+        }
+        
+        .btn-link:hover {
+          text-decoration: underline;
+        }
+        
+        .immutables-section {
+          margin-top: var(--space-8);
+          text-align: center;
+        }
+        
+        .immutables-section h3 {
+          font-size: var(--font-size-sm);
+          font-weight: var(--font-weight-semibold);
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: var(--text-secondary);
+          margin-bottom: var(--space-4);
+        }
+        
+        .immutables-list {
+          list-style: none;
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: var(--space-3);
+          text-align: left;
+        }
+        
+        .immutables-list li {
+          display: flex;
+          align-items: center;
+          gap: var(--space-2);
+          font-size: var(--font-size-xs);
+          color: var(--text-secondary);
+        }
+        
+        .immutables-list svg {
+          flex-shrink: 0;
+          color: var(--color-emerald-500);
+        }
+        
+        .login-footer {
+          margin-top: var(--space-8);
+          text-align: center;
+          font-size: var(--font-size-xs);
+          color: var(--text-tertiary);
+        }
+        
+        .login-footer p {
+          margin-bottom: var(--space-2);
+        }
+        
+        .login-footer a {
+          color: var(--text-secondary);
+        }
+        
+        .login-footer a:hover {
+          color: var(--text-primary);
+        }
+        
+        .request-options {
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-4);
+        }
+        
+        .request-option {
+          padding: var(--space-4);
+          background: var(--bg-tertiary);
+          border-radius: var(--radius-lg);
+        }
+        
+        .request-option h4 {
+          font-size: var(--font-size-sm);
+          font-weight: var(--font-weight-semibold);
+          margin-bottom: var(--space-1);
+        }
+        
+        .request-option p {
+          font-size: var(--font-size-sm);
+          color: var(--text-secondary);
+          margin-bottom: 0;
+        }
+        
+        .w-full {
+          width: 100%;
+        }
+        
+        @media (max-width: 480px) {
+          .immutables-list {
+            grid-template-columns: 1fr;
+          }
+          
+          .login-help {
+            flex-direction: column;
+            gap: var(--space-2);
+          }
+          
+          .login-help .divider {
+            display: none;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    })();
+  </script>
+</body>
+</html>

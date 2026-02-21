@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="EARN Marketplace - Jobs, Freelancers, Professional Services - MuslimEEN">
+  <meta name="theme-color" content="#059669">
+  
+  <title>EARN Marketplace - MuslimEEN</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/design-system.css">
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-content">
+      <button type="button" id="menu-toggle" class="header-menu-toggle btn btn-ghost">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+      
+      <a href="dashboard.html" class="header-logo">
+        <svg viewBox="0 0 32 32" width="32" height="32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M16 0L19 12L32 16L19 20L16 32L13 20L0 16L13 12L16 0Z" fill="url(#header-star)"/>
+          <defs>
+            <linearGradient id="header-star" x1="0" y1="0" x2="32" y2="32">
+              <stop offset="0%" stop-color="#059669"/>
+              <stop offset="100%" stop-color="#047857"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <span>MuslimEEN</span>
+      </a>
+      
+      <nav class="header-nav">
+        <ul class="nav">
+          <li><a href="dashboard.html" class="nav-link">Home</a></li>
+          <li><a href="profile.html" class="nav-link">Profile</a></li>
+          <li><a href="connections.html" class="nav-link">Network</a></li>
+          <li><a href="messages.html" class="nav-link">Messages</a></li>
+        </ul>
+      </nav>
+      
+      <div class="header-actions">
+        <button type="button" class="btn btn-ghost" aria-label="Search">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="M21 21l-4.35-4.35"/>
+          </svg>
+        </button>
+        
+        <div class="dropdown">
+          <button type="button" id="notification-toggle" class="btn btn-ghost relative" aria-label="Notifications">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+            <span id="notification-badge" class="absolute -top-1 -right-1 w-5 h-5 bg-ruby-500 text-white text-xs rounded-full flex items-center justify-center" style="display: none;">0</span>
+          </button>
+          <div id="notifications-dropdown" class="dropdown-menu" style="width: 320px;"></div>
+        </div>
+        
+        <div class="dropdown">
+          <button type="button" id="user-menu-toggle" class="btn btn-ghost flex items-center gap-2">
+            <div class="avatar avatar-sm">AH</div>
+            <span class="hidden md:inline">Ahmed Hassan</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          <div id="user-dropdown" class="dropdown-menu">
+            <a href="profile.html" class="dropdown-item">Your Profile</a>
+            <a href="verification.html" class="dropdown-item">Verification Status</a>
+            <a href="settings.html" class="dropdown-item">Settings</a>
+            <div class="dropdown-divider"></div>
+            <a href="#" id="logout" class="dropdown-item">Sign Out</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+  
+  <!-- Sidebar Overlay -->
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+  
+  <!-- Sidebar -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-content">
+      <div class="sidebar-user">
+        <div class="avatar avatar-lg mx-auto">AH</div>
+        <h3 class="text-center mt-3 font-semibold">Ahmed Hassan</h3>
+        <p class="text-center text-sm text-secondary">Software Engineer</p>
+      </div>
+      
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <h4 class="nav-section-title">Marketplace</h4>
+          <ul class="nav-list">
+            <li><a href="marketplace-earn.html" class="nav-link active">
+              <span class="nav-icon earn">رزق</span> EARN
+            </a></li>
+            <li><a href="marketplace-build.html" class="nav-link">
+              <span class="nav-icon build">بناء</span> BUILD
+            </a></li>
+            <li><a href="marketplace-live.html" class="nav-link">
+              <span class="nav-icon live">حياة</span> LIVE
+            </a></li>
+            <li><a href="marketplace-protect.html" class="nav-link">
+              <span class="nav-icon protect">حفظ</span> PROTECT
+            </a></li>
+          </ul>
+        </div>
+      </nav>
+    </div>
+  </aside>
+  
+  <!-- Main Content -->
+  <main class="main with-sidebar">
+    <div class="main-content">
+      <!-- Pillar Header -->
+      <section class="pillar-header pillar-earn">
+        <div class="pillar-header-content">
+          <span class="pillar-arabic-title">رزق</span>
+          <h1>EARN Marketplace</h1>
+          <p>Jobs, Freelancers, Professional Services, Education, Trades, Sports, Media</p>
+        </div>
+        <div class="pillar-header-pattern pattern-star-8"></div>
+      </section>
+      
+      <!-- Search & Filters -->
+      <section class="search-filters">
+        <div class="search-bar">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="M21 21l-4.35-4.35"/>
+          </svg>
+          <input type="text" class="form-input" placeholder="Search jobs, services, professionals...">
+        </div>
+        
+        <div class="filters-row">
+          <div class="filter-group">
+            <label class="filter-label">Category</label>
+            <select class="form-select">
+              <option value="">All Categories</option>
+              <option value="jobs">Jobs</option>
+              <option value="freelancers">Freelancers</option>
+              <option value="professional">Professional Services</option>
+              <option value="education">Education</option>
+              <option value="trades">Trades</option>
+              <option value="sports">Sports</option>
+              <option value="media">Media</option>
+            </select>
+          </div>
+          
+          <div class="filter-group">
+            <label class="filter-label">Location</label>
+            <select class="form-select">
+              <option value="">Any Location</option>
+              <option value="london">London</option>
+              <option value="manchester">Manchester</option>
+              <option value="birmingham">Birmingham</option>
+              <option value="remote">Remote</option>
+            </select>
+          </div>
+          
+          <div class="filter-group">
+            <label class="filter-label">Trust Score</label>
+            <select class="form-select">
+              <option value="">Any Score</option>
+              <option value="700+">700+ (Excellent)</option>
+              <option value="500-699">500-699 (Good)</option>
+              <option value="200-499">200-499 (Fair)</option>
+            </select>
+          </div>
+          
+          <div class="filter-group">
+            <label class="filter-label">Verification</label>
+            <select class="form-select">
+              <option value="">Any</option>
+              <option value="verified">Verified Only</option>
+              <option value="business">Business Verified</option>
+            </select>
+          </div>
+        </div>
+      </section>
+      
+      <!-- Categories Grid -->
+      <section class="categories-section">
+        <h2>Browse by Category</h2>
+        <div class="categories-grid">
+          <a href="?category=jobs" class="category-card">
+            <span class="category-icon">💼</span>
+            <span class="category-name">Jobs</span>
+            <span class="category-count">487 listings</span>
+          </a>
+          <a href="?category=freelancers" class="category-card">
+            <span class="category-icon">💻</span>
+            <span class="category-name">Freelancers</span>
+            <span class="category-count">324 providers</span>
+          </a>
+          <a href="?category=professional" class="category-card">
+            <span class="category-icon">⚕️</span>
+            <span class="category-name">Professional Services</span>
+            <span class="category-count">156 providers</span>
+          </a>
+          <a href="?category=education" class="category-card">
+            <span class="category-icon">📚</span>
+            <span class="category-name">Education</span>
+            <span class="category-count">89 providers</span>
+          </a>
+          <a href="?category=trades" class="category-card">
+            <span class="category-icon">🔧</span>
+            <span class="category-name">Trades</span>
+            <span class="category-count">134 providers</span>
+          </a>
+          <a href="?category=sports" class="category-card">
+            <span class="category-icon">⚽</span>
+            <span class="category-name">Sports</span>
+            <span class="category-count">45 providers</span>
+          </a>
+          <a href="?category=media" class="category-card">
+            <span class="category-icon">📺</span>
+            <span class="category-name">Media</span>
+            <span class="category-count">67 providers</span>
+          </a>
+          <a href="?category=other" class="category-card">
+            <span class="category-icon">✨</span>
+            <span class="category-name">Other Services</span>
+            <span class="category-count">28 providers</span>
+          </a>
+        </div>
+      </section>
+      
+      <!-- Featured Listings -->
+      <section class="listings-section">
+        <div class="section-header">
+          <h2>Featured Opportunities</h2>
+          <div class="sort-options">
+            <label>Sort by:</label>
+            <select class="form-select form-select-sm">
+              <option value="recent">Most Recent</option>
+              <option value="trust">Trust Score</option>
+              <option value="relevant">Most Relevant</option>
+            </select>
+          </div>
+        </div>
+        
+        <div id="marketplace-items" class="listings-grid">
+          <!-- Job Card 1 -->
+          <div class="card listing-card">
+            <div class="card-header">
+              <div class="flex items-center gap-3">
+                <div class="avatar">IB</div>
+                <div>
+                  <div class="font-semibold">Islamic Bank of Britain</div>
+                  <div class="text-sm text-secondary">Financial Services</div>
+                </div>
+                <div class="ml-auto">
+                  <span class="badge badge-trust-high">950 TRUST</span>
+                </div>
+              </div>
+            </div>
+            <div class="card-body">
+              <h4>Senior Islamic Finance Analyst</h4>
+              <p class="text-secondary mt-2">We are seeking an experienced Islamic Finance Analyst to join our Shariah compliance team...</p>
+              <div class="listing-meta mt-3">
+                <span class="meta-item">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                    <circle cx="12" cy="10" r="3"/>
+                  </svg>
+                  London, UK
+                </span>
+                <span class="meta-item">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="1" x2="12" y2="23"/>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                  </svg>
+                  £60,000 - £80,000
+                </span>
+              </div>
+              <div class="listing-tags mt-3">
+                <span class="badge badge-verified">Full-time</span>
+                <span class="badge badge-verified">Remote OK</span>
+              </div>
+            </div>
+            <div class="card-footer">
+              <div class="flex gap-2">
+                <button class="btn btn-primary btn-sm">Apply Now</button>
+                <button class="btn btn-outline btn-sm">Save</button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Job Card 2 -->
+          <div class="card listing-card">
+            <div class="card-header">
+              <div class="flex items-center gap-3">
+                <div class="avatar">DH</div>
+                <div>
+                  <div class="font-semibold">Dr. Amina Hassan</div>
+                  <div class="text-sm text-secondary">Medical Professional</div>
+                </div>
+                <div class="ml-auto">
+                  <span class="badge badge-trust-high">945 TRUST</span>
+                </div>
+              </div>
+            </div>
+            <div class="card-body">
+              <h4>Halal Cosmetic Surgery Consultation</h4>
+              <p class="text-secondary mt-2">Board-certified surgeon specializing in reconstructive procedures with Islamic ethical guidelines...</p>
+              <div class="listing-meta mt-3">
+                <span class="meta-item">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                    <circle cx="12" cy="10" r="3"/>
+                  </svg>
+                  Manchester, UK
+                </span>
+                <span class="meta-item">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="1" x2="12" y2="23"/>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                  </svg>
+                  £200 consultation
+                </span>
+              </div>
+              <div class="listing-tags mt-3">
+                <span class="badge badge-verified">34 endorsements</span>
+                <span class="badge badge-verified">Female only</span>
+              </div>
+            </div>
+            <div class="card-footer">
+              <div class="flex gap-2">
+                <button class="btn btn-primary btn-sm">Book</button>
+                <button class="btn btn-outline btn-sm">View Profile</button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Job Card 3 -->
+          <div class="card listing-card">
+            <div class="card-header">
+              <div class="flex items-center gap-3">
+                <div class="avatar">IL</div>
+                <div>
+                  <div class="font-semibold">Ibrahim Law Associates</div>
+                  <div class="text-sm text-secondary">Legal Services</div>
+                </div>
+                <div class="ml-auto">
+                  <span class="badge badge-trust-high">890 TRUST</span>
+                </div>
+              </div>
+            </div>
+            <div class="card-body">
+              <h4>Islamic Inheritance Planning</h4>
+              <p class="text-secondary mt-2">Expert guidance on Shariah-compliant estate planning and wealth distribution...</p>
+              <div class="listing-meta mt-3">
+                <span class="meta-item">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                    <circle cx="12" cy="10" r="3"/>
+                  </svg>
+                  London, UK
+                </span>
+                <span class="meta-item">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="1" x2="12" y2="23"/>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                  </svg>
+                  £150/hour
+                </span>
+              </div>
+              <div class="listing-tags mt-3">
+                <span class="badge badge-verified">28 endorsements</span>
+                <span class="badge badge-verified">Home visits</span>
+              </div>
+            </div>
+            <div class="card-footer">
+              <div class="flex gap-2">
+                <button class="btn btn-primary btn-sm">Book Consultation</button>
+                <button class="btn btn-outline btn-sm">Save</button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Job Card 4 -->
+          <div class="card listing-card">
+            <div class="card-header">
+              <div class="flex items-center gap-3">
+                <div class="avatar">AI</div>
+                <div>
+                  <div class="font-semibold">Al-Ihsan Academy</div>
+                  <div class="text-sm text-secondary">Education</div>
+                </div>
+                <div class="ml-auto">
+                  <span class="badge badge-trust-high">875 TRUST</span>
+                </div>
+              </div>
+            </div>
+            <div class="card-body">
+              <h4>Islamic Studies Teacher</h4>
+              <p class="text-secondary mt-2">Seeking qualified teacher for weekend Islamic studies program for children ages 7-12...</p>
+              <div class="listing-meta mt-3">
+                <span class="meta-item">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                    <circle cx="12" cy="10" r="3"/>
+                  </svg>
+                  Birmingham, UK
+                </span>
+                <span class="meta-item">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="1" x2="12" y2="23"/>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                  </svg>
+                  £25-35/hour
+                </span>
+              </div>
+              <div class="listing-tags mt-3">
+                <span class="badge badge-verified">Part-time</span>
+                <span class="badge badge-verified">Weekends</span>
+              </div>
+            </div>
+            <div class="card-footer">
+              <div class="flex gap-2">
+                <button class="btn btn-primary btn-sm">Apply</button>
+                <button class="btn btn-outline btn-sm">Save</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Load More -->
+        <div class="text-center mt-8">
+          <button class="btn btn-outline">Load More Opportunities</button>
+        </div>
+      </section>
+      
+      <!-- Post Opportunity CTA -->
+      <section class="post-cta">
+        <div class="cta-content">
+          <h2>Have a job or service to offer?</h2>
+          <p>Post your opportunity to reach thousands of verified Muslim professionals</p>
+        </div>
+        <button class="btn btn-primary btn-lg">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Post Opportunity
+        </button>
+      </section>
+    </div>
+  </main>
+  
+  <!-- Scripts -->
+  <script src="js/app.js"></script>
+  <script>
+    (function() {
+      const style = document.createElement('style');
+      style.textContent = `
+        /* Pillar Header */
+        .pillar-header {
+          position: relative;
+          padding: var(--space-8) var(--space-6);
+          border-radius: var(--radius-xl);
+          margin-bottom: var(--space-6);
+          overflow: hidden;
+        }
+        
+        .pillar-header-content {
+          position: relative;
+          z-index: 1;
+        }
+        
+        .pillar-arabic-title {
+          font-family: var(--font-family-arabic);
+          font-size: var(--font-size-3xl);
+          opacity: 0.5;
+        }
+        
+        .pillar-header h1 {
+          font-size: var(--font-size-3xl);
+          margin-top: var(--space-2);
+          margin-bottom: var(--space-2);
+        }
+        
+        .pillar-header p {
+          opacity: 0.9;
+          margin-bottom: 0;
+        }
+        
+        .pillar-header-pattern {
+          position: absolute;
+          inset: 0;
+          opacity: 0.1;
+        }
+        
+        .pillar-earn {
+          background: linear-gradient(135deg, var(--color-emerald-600), var(--color-emerald-800));
+          color: white;
+        }
+        
+        .pillar-build {
+          background: linear-gradient(135deg, var(--color-sapphire-600), var(--color-sapphire-800));
+          color: white;
+        }
+        
+        .pillar-live {
+          background: linear-gradient(135deg, var(--color-gold-500), var(--color-gold-700));
+          color: white;
+        }
+        
+        .pillar-protect {
+          background: linear-gradient(135deg, var(--color-amethyst-600), var(--color-amethyst-800));
+          color: white;
+        }
+        
+        /* Search & Filters */
+        .search-filters {
+          background: var(--bg-elevated);
+          border-radius: var(--radius-xl);
+          border: 1px solid var(--border-light);
+          padding: var(--space-4);
+          margin-bottom: var(--space-6);
+        }
+        
+        .search-bar {
+          display: flex;
+          align-items: center;
+          gap: var(--space-3);
+          padding: var(--space-3) var(--space-4);
+          background: var(--bg-tertiary);
+          border-radius: var(--radius-lg);
+          margin-bottom: var(--space-4);
+        }
+        
+        .search-bar svg {
+          color: var(--text-tertiary);
+        }
+        
+        .search-bar .form-input {
+          flex: 1;
+          background: transparent;
+          border: none;
+          padding: 0;
+        }
+        
+        .search-bar .form-input:focus {
+          box-shadow: none;
+        }
+        
+        .filters-row {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+          gap: var(--space-3);
+        }
+        
+        .filter-group {
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-1);
+        }
+        
+        .filter-label {
+          font-size: var(--font-size-xs);
+          font-weight: var(--font-weight-medium);
+          color: var(--text-secondary);
+          text-transform: uppercase;
+        }
+        
+        .form-select-sm {
+          padding: var(--space-2) var(--space-3);
+          font-size: var(--font-size-sm);
+        }
+        
+        /* Categories */
+        .categories-section {
+          margin-bottom: var(--space-8);
+        }
+        
+        .categories-section h2 {
+          font-size: var(--font-size-lg);
+          margin-bottom: var(--space-4);
+        }
+        
+        .categories-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+          gap: var(--space-3);
+        }
+        
+        .category-card {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: var(--space-4);
+          background: var(--bg-elevated);
+          border: 1px solid var(--border-light);
+          border-radius: var(--radius-lg);
+          text-decoration: none;
+          color: inherit;
+          transition: all var(--transition-fast);
+        }
+        
+        .category-card:hover {
+          border-color: var(--color-primary);
+          box-shadow: var(--shadow-md);
+          text-decoration: none;
+        }
+        
+        .category-icon {
+          font-size: var(--font-size-2xl);
+          margin-bottom: var(--space-2);
+        }
+        
+        .category-name {
+          font-weight: var(--font-weight-medium);
+          font-size: var(--font-size-sm);
+          text-align: center;
+        }
+        
+        .category-count {
+          font-size: var(--font-size-xs);
+          color: var(--text-tertiary);
+          margin-top: var(--space-1);
+        }
+        
+        /* Listings */
+        .listings-section {
+          margin-bottom: var(--space-8);
+        }
+        
+        .section-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: var(--space-4);
+        }
+        
+        .section-header h2 {
+          font-size: var(--font-size-lg);
+        }
+        
+        .sort-options {
+          display: flex;
+          align-items: center;
+          gap: var(--space-2);
+          font-size: var(--font-size-sm);
+        }
+        
+        .listings-grid {
+          display: grid;
+          gap: var(--space-4);
+        }
+        
+        .listing-card {
+          transition: box-shadow var(--transition-fast);
+        }
+        
+        .listing-card:hover {
+          box-shadow: var(--shadow-md);
+        }
+        
+        .listing-meta {
+          display: flex;
+          flex-wrap: wrap;
+          gap: var(--space-4);
+        }
+        
+        .meta-item {
+          display: flex;
+          align-items: center;
+          gap: var(--space-1);
+          font-size: var(--font-size-sm);
+          color: var(--text-secondary);
+        }
+        
+        .listing-tags {
+          display: flex;
+          flex-wrap: wrap;
+          gap: var(--space-2);
+        }
+        
+        /* CTA Section */
+        .post-cta {
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-4);
+          padding: var(--space-8);
+          background: linear-gradient(135deg, var(--color-emerald-50), var(--color-gold-50));
+          border-radius: var(--radius-xl);
+          border: 1px solid var(--color-emerald-100);
+          text-align: center;
+        }
+        
+        .post-cta h2 {
+          font-size: var(--font-size-xl);
+        }
+        
+        .post-cta p {
+          color: var(--text-secondary);
+          margin-bottom: 0;
+        }
+        
+        @media (min-width: 768px) {
+          .listings-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+          
+          .post-cta {
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            text-align: left;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    })();
+  </script>
+</body>
+</html>

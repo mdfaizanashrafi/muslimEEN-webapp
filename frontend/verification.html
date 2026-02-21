@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Verification Status - MuslimEEN">
+  <meta name="theme-color" content="#059669">
+  
+  <title>Verification Status - MuslimEEN</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/design-system.css">
+</head>
+<body>
+  <header class="header">
+    <div class="header-content">
+      <button type="button" id="menu-toggle" class="header-menu-toggle btn btn-ghost">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+      
+      <a href="dashboard.html" class="header-logo">
+        <svg viewBox="0 0 32 32" width="32" height="32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M16 0L19 12L32 16L19 20L16 32L13 20L0 16L13 12L16 0Z" fill="url(#header-star)"/>
+          <defs>
+            <linearGradient id="header-star" x1="0" y1="0" x2="32" y2="32">
+              <stop offset="0%" stop-color="#059669"/>
+              <stop offset="100%" stop-color="#047857"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <span>MuslimEEN</span>
+      </a>
+      
+      <nav class="header-nav">
+        <ul class="nav">
+          <li><a href="dashboard.html" class="nav-link">Home</a></li>
+          <li><a href="profile.html" class="nav-link">Profile</a></li>
+          <li><a href="connections.html" class="nav-link">Network</a></li>
+          <li><a href="messages.html" class="nav-link">Messages</a></li>
+        </ul>
+      </nav>
+      
+      <div class="header-actions">
+        <button type="button" class="btn btn-ghost" aria-label="Search">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="M21 21l-4.35-4.35"/>
+          </svg>
+        </button>
+        
+        <div class="dropdown">
+          <button type="button" id="notification-toggle" class="btn btn-ghost relative" aria-label="Notifications">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+            <span id="notification-badge" class="absolute -top-1 -right-1 w-5 h-5 bg-ruby-500 text-white text-xs rounded-full flex items-center justify-center" style="display: none;">0</span>
+          </button>
+          <div id="notifications-dropdown" class="dropdown-menu" style="width: 320px;"></div>
+        </div>
+        
+        <div class="dropdown">
+          <button type="button" id="user-menu-toggle" class="btn btn-ghost flex items-center gap-2">
+            <div class="avatar avatar-sm">AH</div>
+            <span class="hidden md:inline">Ahmed Hassan</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          <div id="user-dropdown" class="dropdown-menu">
+            <a href="profile.html" class="dropdown-item">Your Profile</a>
+            <a href="verification.html" class="dropdown-item">Verification Status</a>
+            <a href="settings.html" class="dropdown-item">Settings</a>
+            <div class="dropdown-divider"></div>
+            <a href="#" id="logout" class="dropdown-item">Sign Out</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+  
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+  
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-content">
+      <div class="sidebar-user">
+        <div class="avatar avatar-lg mx-auto">AH</div>
+        <h3 class="text-center mt-3 font-semibold">Ahmed Hassan</h3>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <h4 class="nav-section-title">Trust & Safety</h4>
+          <ul class="nav-list">
+            <li><a href="verification.html" class="nav-link active">Verification Status</a></li>
+            <li><a href="trust-score.html" class="nav-link">Trust Score</a></li>
+            <li><a href="disputes.html" class="nav-link">Dispute Resolution</a></li>
+          </ul>
+        </div>
+      </nav>
+    </div>
+  </aside>
+  
+  <main class="main with-sidebar">
+    <div class="main-content">
+      <!-- Page Header -->
+      <section class="page-header">
+        <h1>Verification Status</h1>
+        <p class="text-secondary">Manage your verification level and trust score</p>
+      </section>
+      
+      <!-- Current Status Card -->
+      <section class="status-card">
+        <div class="card">
+          <div class="card-body">
+            <div class="status-header">
+              <div class="status-badge full">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+              </div>
+              <div class="status-info">
+                <h2>Full Verification</h2>
+                <p class="text-secondary">You have full access to all platform features</p>
+              </div>
+            </div>
+            
+            <div class="trust-score-display mt-6">
+              <div class="flex justify-between items-center mb-2">
+                <span class="font-semibold">Trust Score</span>
+                <span class="text-sm text-secondary">Top 15% of members</span>
+              </div>
+              <div id="verification-trust-score">
+                <div class="trust-score-container">
+                  <div class="trust-score-header">
+                    <span class="trust-score-value high">785</span>
+                    <span class="text-sm text-secondary">/1000</span>
+                  </div>
+                  <div class="trust-score-bar">
+                    <div class="trust-score-fill high" style="width: 78.5%"></div>
+                  </div>
+                </div>
+              </div>
+              <p class="text-sm text-secondary mt-2">+15 points this month</p>
+            </div>
+          </div>
+        </div>
+      </section>
+      
+      <!-- Verification Progress -->
+      <section class="verification-progress">
+        <h2>Verification Steps</h2>
+        <div class="progress-steps">
+          <div class="progress-step completed">
+            <div class="step-icon">✓</div>
+            <div class="step-content">
+              <h4>Email Verification</h4>
+              <p class="text-secondary">Verified on 15 Jan 2023</p>
+            </div>
+          </div>
+          <div class="progress-step completed">
+            <div class="step-icon">✓</div>
+            <div class="step-content">
+              <h4>Biometric Verification</h4>
+              <p class="text-secondary">Verified on 20 Jan 2023</p>
+            </div>
+          </div>
+          <div class="progress-step completed">
+            <div class="step-icon">✓</div>
+            <div class="step-content">
+              <h4>Two-Witness Verification</h4>
+              <p class="text-secondary">Verified by Yusuf Ibrahim and Aisha Patel</p>
+            </div>
+          </div>
+          <div class="progress-step pending">
+            <div class="step-icon">4</div>
+            <div class="step-content">
+              <h4>Business Verification</h4>
+              <p class="text-secondary">Optional - for business accounts</p>
+              <button class="btn btn-outline btn-sm mt-2">Apply</button>
+            </div>
+          </div>
+        </div>
+      </section>
+      
+      <!-- Trust Score Factors -->
+      <section class="trust-factors">
+        <h2>Trust Score Factors</h2>
+        <div class="card">
+          <div class="card-body">
+            <div id="trust-factors">
+              <div class="trust-factor">
+                <div class="factor-info">
+                  <span class="factor-name">Profile Completeness</span>
+                  <span class="factor-impact positive">+50</span>
+                </div>
+                <div class="factor-bar">
+                  <div class="factor-fill" style="width: 85%"></div>
+                </div>
+              </div>
+              <div class="trust-factor">
+                <div class="factor-info">
+                  <span class="factor-name">Connection Quality</span>
+                  <span class="factor-impact positive">+30</span>
+                </div>
+                <div class="factor-bar">
+                  <div class="factor-fill" style="width: 70%"></div>
+                </div>
+              </div>
+              <div class="trust-factor">
+                <div class="factor-info">
+                  <span class="factor-name">Community Contributions</span>
+                  <span class="factor-impact positive">+25</span>
+                </div>
+                <div class="factor-bar">
+                  <div class="factor-fill" style="width: 60%"></div>
+                </div>
+              </div>
+              <div class="trust-factor">
+                <div class="factor-info">
+                  <span class="factor-name">Verification Level</span>
+                  <span class="factor-impact positive">+100</span>
+                </div>
+                <div class="factor-bar">
+                  <div class="factor-fill" style="width: 100%"></div>
+                </div>
+              </div>
+              <div class="trust-factor">
+                <div class="factor-info">
+                  <span class="factor-name">Endorsements Received</span>
+                  <span class="factor-impact positive">+47</span>
+                </div>
+                <div class="factor-bar">
+                  <div class="factor-fill" style="width: 47%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      
+      <!-- Witness Eligibility -->
+      <section class="witness-section">
+        <div class="card" style="border-color: var(--color-emerald-300);">
+          <div class="card-body">
+            <div class="flex items-start gap-4">
+              <div class="witness-icon" style="background: var(--color-emerald-100); color: var(--color-emerald-600); width: 48px; height: 48px; border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+              </div>
+              <div class="flex-1">
+                <h3>Witness Eligibility</h3>
+                <p class="text-secondary mt-1">You are eligible to vouch for new members joining the platform. Your trust score of 785 qualifies you as a witness.</p>
+                <div class="flex gap-4 mt-3">
+                  <div>
+                    <span class="text-lg font-semibold text-primary">12</span>
+                    <span class="text-sm text-secondary block">Members vouched</span>
+                  </div>
+                  <div>
+                    <span class="text-lg font-semibold text-primary">100%</span>
+                    <span class="text-sm text-secondary block">Success rate</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      
+      <!-- Upgrade Options -->
+      <section class="upgrade-section">
+        <h2>Upgrade Options</h2>
+        <div class="upgrade-cards">
+          <div class="card upgrade-card">
+            <div class="card-header" style="background: linear-gradient(135deg, var(--color-sapphire-100), var(--color-sapphire-50));">
+              <h3>Business Verification</h3>
+            </div>
+            <div class="card-body">
+              <ul class="feature-list">
+                <li>✓ Business profile badge</li>
+                <li>✓ Enhanced visibility</li>
+                <li>✓ Post as business entity</li>
+                <li>✓ Analytics dashboard</li>
+              </ul>
+              <button class="btn btn-primary w-full mt-4">Apply Now</button>
+            </div>
+          </div>
+          
+          <div class="card upgrade-card">
+            <div class="card-header" style="background: linear-gradient(135deg, var(--color-gold-100), var(--color-gold-50));">
+              <h3>Institutional Partner</h3>
+            </div>
+            <div class="card-body">
+              <ul class="feature-list">
+                <li>✓ Bulk invitation codes</li>
+                <li>✓ Member verification</li>
+                <li>✓ Governance participation</li>
+                <li>✓ Priority support</li>
+              </ul>
+              <button class="btn btn-primary w-full mt-4">Contact Us</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+  
+  <script src="js/app.js"></script>
+  <script>
+    (function() {
+      const style = document.createElement('style');
+      style.textContent = `
+        .page-header {
+          margin-bottom: var(--space-6);
+        }
+        
+        .page-header h1 {
+          font-size: var(--font-size-2xl);
+          margin-bottom: var(--space-1);
+        }
+        
+        .status-card {
+          margin-bottom: var(--space-6);
+        }
+        
+        .status-header {
+          display: flex;
+          align-items: center;
+          gap: var(--space-4);
+        }
+        
+        .status-badge {
+          width: 64px;
+          height: 64px;
+          border-radius: var(--radius-full);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        
+        .status-badge.full {
+          background: var(--color-emerald-100);
+          color: var(--color-emerald-600);
+        }
+        
+        .verification-progress {
+          margin-bottom: var(--space-6);
+        }
+        
+        .verification-progress h2 {
+          font-size: var(--font-size-lg);
+          margin-bottom: var(--space-4);
+        }
+        
+        .progress-steps {
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-4);
+        }
+        
+        .progress-step {
+          display: flex;
+          align-items: flex-start;
+          gap: var(--space-4);
+          padding: var(--space-4);
+          background: var(--bg-elevated);
+          border-radius: var(--radius-lg);
+          border: 1px solid var(--border-light);
+        }
+        
+        .progress-step.completed {
+          border-color: var(--color-emerald-300);
+          background: var(--color-emerald-50);
+        }
+        
+        .progress-step.pending {
+          border-style: dashed;
+        }
+        
+        .step-icon {
+          width: 40px;
+          height: 40px;
+          border-radius: var(--radius-full);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: var(--font-weight-bold);
+          flex-shrink: 0;
+        }
+        
+        .progress-step.completed .step-icon {
+          background: var(--color-emerald-500);
+          color: white;
+        }
+        
+        .progress-step.pending .step-icon {
+          background: var(--bg-tertiary);
+          color: var(--text-tertiary);
+        }
+        
+        .trust-factors {
+          margin-bottom: var(--space-6);
+        }
+        
+        .trust-factors h2 {
+          font-size: var(--font-size-lg);
+          margin-bottom: var(--space-4);
+        }
+        
+        .trust-factor {
+          margin-bottom: var(--space-4);
+        }
+        
+        .factor-info {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: var(--space-2);
+        }
+        
+        .factor-impact.positive {
+          color: var(--color-emerald-600);
+        }
+        
+        .factor-bar {
+          height: 8px;
+          background: var(--bg-tertiary);
+          border-radius: var(--radius-full);
+          overflow: hidden;
+        }
+        
+        .factor-fill {
+          height: 100%;
+          background: linear-gradient(90deg, var(--color-emerald-400), var(--color-emerald-600));
+          border-radius: var(--radius-full);
+        }
+        
+        .witness-section {
+          margin-bottom: var(--space-6);
+        }
+        
+        .upgrade-section h2 {
+          font-size: var(--font-size-lg);
+          margin-bottom: var(--space-4);
+        }
+        
+        .upgrade-cards {
+          display: grid;
+          gap: var(--space-4);
+        }
+        
+        .feature-list {
+          list-style: none;
+        }
+        
+        .feature-list li {
+          padding: var(--space-2) 0;
+          color: var(--text-secondary);
+        }
+        
+        @media (min-width: 768px) {
+          .upgrade-cards {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    })();
+  </script>
+</body>
+</html>

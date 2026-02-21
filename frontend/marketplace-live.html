@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="LIVE Marketplace - Housing, Food, Travel, Wellness - MuslimEEN">
+  <meta name="theme-color" content="#d97706">
+  
+  <title>LIVE Marketplace - MuslimEEN</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/design-system.css">
+</head>
+<body>
+  <header class="header">
+    <div class="header-content">
+      <button type="button" id="menu-toggle" class="header-menu-toggle btn btn-ghost">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+      
+      <a href="dashboard.html" class="header-logo">
+        <svg viewBox="0 0 32 32" width="32" height="32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M16 0L19 12L32 16L19 20L16 32L13 20L0 16L13 12L16 0Z" fill="url(#header-star)"/>
+          <defs>
+            <linearGradient id="header-star" x1="0" y1="0" x2="32" y2="32">
+              <stop offset="0%" stop-color="#059669"/>
+              <stop offset="100%" stop-color="#047857"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <span>MuslimEEN</span>
+      </a>
+      
+      <nav class="header-nav">
+        <ul class="nav">
+          <li><a href="dashboard.html" class="nav-link">Home</a></li>
+          <li><a href="profile.html" class="nav-link">Profile</a></li>
+          <li><a href="connections.html" class="nav-link">Network</a></li>
+          <li><a href="messages.html" class="nav-link">Messages</a></li>
+        </ul>
+      </nav>
+      
+      <div class="header-actions">
+        <button type="button" class="btn btn-ghost" aria-label="Search">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="M21 21l-4.35-4.35"/>
+          </svg>
+        </button>
+        
+        <div class="dropdown">
+          <button type="button" id="notification-toggle" class="btn btn-ghost relative" aria-label="Notifications">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+            <span id="notification-badge" class="absolute -top-1 -right-1 w-5 h-5 bg-ruby-500 text-white text-xs rounded-full flex items-center justify-center" style="display: none;">0</span>
+          </button>
+          <div id="notifications-dropdown" class="dropdown-menu" style="width: 320px;"></div>
+        </div>
+        
+        <div class="dropdown">
+          <button type="button" id="user-menu-toggle" class="btn btn-ghost flex items-center gap-2">
+            <div class="avatar avatar-sm">AH</div>
+            <span class="hidden md:inline">Ahmed Hassan</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          <div id="user-dropdown" class="dropdown-menu">
+            <a href="profile.html" class="dropdown-item">Your Profile</a>
+            <a href="verification.html" class="dropdown-item">Verification Status</a>
+            <a href="settings.html" class="dropdown-item">Settings</a>
+            <div class="dropdown-divider"></div>
+            <a href="#" id="logout" class="dropdown-item">Sign Out</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+  
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+  
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-content">
+      <div class="sidebar-user">
+        <div class="avatar avatar-lg mx-auto">AH</div>
+        <h3 class="text-center mt-3 font-semibold">Ahmed Hassan</h3>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <h4 class="nav-section-title">Marketplace</h4>
+          <ul class="nav-list">
+            <li><a href="marketplace-earn.html" class="nav-link"><span class="nav-icon earn">رزق</span> EARN</a></li>
+            <li><a href="marketplace-build.html" class="nav-link"><span class="nav-icon build">بناء</span> BUILD</a></li>
+            <li><a href="marketplace-live.html" class="nav-link active"><span class="nav-icon live">حياة</span> LIVE</a></li>
+            <li><a href="marketplace-protect.html" class="nav-link"><span class="nav-icon protect">حفظ</span> PROTECT</a></li>
+          </ul>
+        </div>
+      </nav>
+    </div>
+  </aside>
+  
+  <main class="main with-sidebar">
+    <div class="main-content">
+      <!-- Pillar Header -->
+      <section class="pillar-header pillar-live">
+        <div class="pillar-header-content">
+          <span class="pillar-arabic-title">حياة</span>
+          <h1>LIVE Marketplace</h1>
+          <p>Housing, Food, Travel, Creative Services, Wellness, Environment</p>
+        </div>
+        <div class="pillar-header-pattern pattern-star-8"></div>
+      </section>
+      
+      <!-- Search & Filters -->
+      <section class="search-filters">
+        <div class="search-bar">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="M21 21l-4.35-4.35"/>
+          </svg>
+          <input type="text" class="form-input" placeholder="Search housing, food, travel, wellness services...">
+        </div>
+        
+        <div class="filters-row">
+          <div class="filter-group">
+            <label class="filter-label">Category</label>
+            <select class="form-select">
+              <option value="">All Categories</option>
+              <option value="housing">Housing</option>
+              <option value="food">Food & Catering</option>
+              <option value="travel">Travel & Tourism</option>
+              <option value="creative">Creative Services</option>
+              <option value="wellness">Wellness</option>
+              <option value="environment">Environment</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Location</label>
+            <select class="form-select">
+              <option value="">Any Location</option>
+              <option value="london">London</option>
+              <option value="manchester">Manchester</option>
+              <option value="birmingham">Birmingham</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Price Range</label>
+            <select class="form-select">
+              <option value="">Any Price</option>
+              <option value="0-100">£0 - £100</option>
+              <option value="100-500">£100 - £500</option>
+              <option value="500+">£500+</option>
+            </select>
+          </div>
+        </div>
+      </section>
+      
+      <!-- Categories -->
+      <section class="categories-section">
+        <h2>Browse by Category</h2>
+        <div class="categories-grid">
+          <a href="?category=housing" class="category-card">
+            <span class="category-icon">🏠</span>
+            <span class="category-name">Housing</span>
+            <span class="category-count">48 listings</span>
+          </a>
+          <a href="?category=food" class="category-card">
+            <span class="category-icon">🍽️</span>
+            <span class="category-name">Food & Catering</span>
+            <span class="category-count">127 providers</span>
+          </a>
+          <a href="?category=travel" class="category-card">
+            <span class="category-icon">✈️</span>
+            <span class="category-name">Travel & Tourism</span>
+            <span class="category-count">34 providers</span>
+          </a>
+          <a href="?category=creative" class="category-card">
+            <span class="category-icon">🎨</span>
+            <span class="category-name">Creative Services</span>
+            <span class="category-count">89 providers</span>
+          </a>
+          <a href="?category=wellness" class="category-card">
+            <span class="category-icon">🧘</span>
+            <span class="category-name">Wellness</span>
+            <span class="category-count">56 providers</span>
+          </a>
+          <a href="?category=environment" class="category-card">
+            <span class="category-icon">🌱</span>
+            <span class="category-name">Environment</span>
+            <span class="category-count">23 providers</span>
+          </a>
+        </div>
+      </section>
+      
+      <!-- Featured Listings -->
+      <section class="listings-section">
+        <div class="section-header">
+          <h2>Featured Listings</h2>
+          <a href="?view=all" class="btn btn-ghost btn-sm">View All</a>
+        </div>
+        
+        <div class="listings-grid">
+          <!-- Housing Card -->
+          <div class="card listing-card">
+            <div class="listing-image" style="background: linear-gradient(135deg, #10b981, #059669); height: 160px; display: flex; align-items: center; justify-content: center;">
+              <span style="font-size: 64px;">🏘️</span>
+            </div>
+            <div class="card-body">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="badge badge-verified">Housing</span>
+                <span class="badge badge-trust-high">810 TRUST</span>
+              </div>
+              <h4>GreenHalal Eco Homes</h4>
+              <p class="text-secondary mt-2">Sustainable living community with prayer facilities and halal amenities</p>
+              <div class="listing-meta mt-3">
+                <span class="meta-item">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                    <circle cx="12" cy="10" r="3"/>
+                  </svg>
+                  Leeds, UK
+                </span>
+              </div>
+              <div class="listing-tags mt-3">
+                <span class="badge badge-verified">24 units</span>
+                <span class="badge badge-verified">Prayer room</span>
+                <span class="badge badge-verified">Halal kitchen</span>
+              </div>
+              <div class="mt-4 pt-4 border-t border-light">
+                <span class="text-lg font-semibold text-primary">£250,000 - £450,000</span>
+              </div>
+            </div>
+            <div class="card-footer">
+              <button class="btn btn-primary btn-sm">View Details</button>
+              <button class="btn btn-outline btn-sm">Contact</button>
+            </div>
+          </div>
+          
+          <!-- Food Card -->
+          <div class="card listing-card">
+            <div class="listing-image" style="background: linear-gradient(135deg, #f59e0b, #d97706); height: 160px; display: flex; align-items: center; justify-content: center;">
+              <span style="font-size: 64px;">🍱</span>
+            </div>
+            <div class="card-body">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="badge badge-verified">Food</span>
+                <span class="badge badge-trust-high">865 TRUST</span>
+              </div>
+              <h4>Halal Bites Catering</h4>
+              <p class="text-secondary mt-2">Premium halal catering for weddings, corporate events, and private functions</p>
+              <div class="listing-meta mt-3">
+                <span class="meta-item">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                    <circle cx="12" cy="10" r="3"/>
+                  </svg>
+                  London, UK
+                </span>
+              </div>
+              <div class="listing-tags mt-3">
+                <span class="badge badge-verified">HMC Certified</span>
+                <span class="badge badge-verified">47 reviews</span>
+              </div>
+              <div class="mt-4 pt-4 border-t border-light">
+                <span class="text-lg font-semibold text-primary">From £15/person</span>
+              </div>
+            </div>
+            <div class="card-footer">
+              <button class="btn btn-primary btn-sm">Book Now</button>
+              <button class="btn btn-outline btn-sm">View Menu</button>
+            </div>
+          </div>
+          
+          <!-- Travel Card -->
+          <div class="card listing-card">
+            <div class="listing-image" style="background: linear-gradient(135deg, #3b82f6, #2563eb); height: 160px; display: flex; align-items: center; justify-content: center;">
+              <span style="font-size: 64px;">🕋</span>
+            </div>
+            <div class="card-body">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="badge badge-verified">Travel</span>
+                <span class="badge badge-trust-high">920 TRUST</span>
+              </div>
+              <h4>Umrah Plus Packages</h4>
+              <p class="text-secondary mt-2">All-inclusive Umrah packages with 5-star halal hotels and guided tours</p>
+              <div class="listing-meta mt-3">
+                <span class="meta-item">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                  7-14 days
+                </span>
+              </div>
+              <div class="listing-tags mt-3">
+                <span class="badge badge-verified">ATOL Protected</span>
+                <span class="badge badge-verified">156 reviews</span>
+              </div>
+              <div class="mt-4 pt-4 border-t border-light">
+                <span class="text-lg font-semibold text-primary">From £1,299</span>
+              </div>
+            </div>
+            <div class="card-footer">
+              <button class="btn btn-primary btn-sm">View Packages</button>
+              <button class="btn btn-outline btn-sm">Enquire</button>
+            </div>
+          </div>
+          
+          <!-- Wellness Card -->
+          <div class="card listing-card">
+            <div class="listing-image" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); height: 160px; display: flex; align-items: center; justify-content: center;">
+              <span style="font-size: 64px;">🌿</span>
+            </div>
+            <div class="card-body">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="badge badge-verified">Wellness</span>
+                <span class="badge badge-trust-high">780 TRUST</span>
+              </div>
+              <h4>Sisters Only Spa & Wellness</h4>
+              <p class="text-secondary mt-2">Female-only wellness center offering hijama, massage, and holistic therapies</p>
+              <div class="listing-meta mt-3">
+                <span class="meta-item">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                    <circle cx="12" cy="10" r="3"/>
+                  </svg>
+                  Manchester, UK
+                </span>
+              </div>
+              <div class="listing-tags mt-3">
+                <span class="badge badge-verified">Female staff</span>
+                <span class="badge badge-verified">Private rooms</span>
+              </div>
+              <div class="mt-4 pt-4 border-t border-light">
+                <span class="text-lg font-semibold text-primary">From £45/session</span>
+              </div>
+            </div>
+            <div class="card-footer">
+              <button class="btn btn-primary btn-sm">Book Now</button>
+              <button class="btn btn-outline btn-sm">View Services</button>
+            </div>
+          </div>
+        </div>
+      </section>
+      
+      <!-- CTA -->
+      <section class="post-cta" style="background: linear-gradient(135deg, var(--color-gold-50), var(--color-emerald-50));">
+        <div class="cta-content">
+          <h2>Offer a service or product?</h2>
+          <p>Reach Muslim customers seeking halal and ethical options</p>
+        </div>
+        <button class="btn btn-primary btn-lg">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          List Your Service
+        </button>
+      </section>
+    </div>
+  </main>
+  
+  <script src="js/app.js"></script>
+  <script>
+    (function() {
+      const style = document.createElement('style');
+      style.textContent = `
+        .pillar-header.pillar-live { background: linear-gradient(135deg, var(--color-gold-500), var(--color-gold-700)); }
+        
+        .listing-image {
+          border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        }
+        
+        .border-t {
+          border-top: 1px solid var(--border-light);
+        }
+        
+        .border-light {
+          border-color: var(--border-light);
+        }
+      `;
+      document.head.appendChild(style);
+    })();
+  </script>
+</body>
+</html>

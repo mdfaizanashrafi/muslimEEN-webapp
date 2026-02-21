@@ -32,7 +32,8 @@ MuslimEEN operates as a **closed, invitation-only network**:
 - **Static Export** - Pre-rendered HTML for fast loading
 
 ### Backend
-- **Node.js + Express** - API server
+- **Node.js + Express** - API server with modular architecture
+- **TypeScript** - Type-safe development
 - **PostgreSQL** - Database
 - **JWT** - Authentication
 
@@ -47,33 +48,95 @@ MuslimEEN operates as a **closed, invitation-only network**:
 
 ```
 muslimeen/
-├── frontend/              # Next.js frontend application
-│   ├── app/               # App Router pages
-│   │   ├── (auth)/        # Auth group (login page)
-│   │   ├── dashboard/     # Dashboard page
-│   │   ├── profile/       # Profile page
-│   │   ├── connections/   # Network/connections page
-│   │   ├── messages/      # Messages page
-│   │   ├── verification/  # Verification status page
-│   │   ├── marketplace/   # Marketplace verticals
-│   │   │   └── [vertical]/# Dynamic route for earn/build/live/protect
+├── frontend/                # Next.js frontend application
+│   ├── app/                 # App Router pages
+│   │   ├── (auth)/          # Auth group (login page)
+│   │   ├── dashboard/       # Dashboard page
+│   │   ├── profile/         # Profile page
+│   │   ├── connections/     # Network/connections page
+│   │   ├── messages/        # Messages page
+│   │   ├── verification/    # Verification status page
+│   │   ├── marketplace/     # Marketplace verticals
+│   │   │   └── [vertical]/  # Dynamic route for earn/build/live/protect
 │   │   └── islamic-finance/ # Islamic finance tools
-│   ├── styles/            # Page-specific CSS
-│   ├── lib/               # API client and utilities
-│   ├── types/             # TypeScript type definitions
+│   ├── styles/              # Page-specific CSS
+│   ├── lib/                 # API client
+│   ├── types/               # TypeScript type definitions
 │   ├── package.json
 │   └── next.config.js
-├── backend/               # Express backend API
+│
+├── backend/                 # Express backend API (Modular Architecture)
 │   ├── src/
-│   │   ├── server.js              # Express server
-│   │   ├── config/database.js     # PostgreSQL connection
-│   │   ├── controllers/           # API controllers
-│   │   ├── models/                # Database models
-│   │   ├── routes/                # API routes
-│   │   └── middleware/            # Auth, validation, etc.
-│   ├── database/migrations/       # SQL migrations
+│   │   ├── app.ts           # Express app configuration
+│   │   ├── server.ts        # Server bootstrap
+│   │   ├── routes.ts        # Route aggregator
+│   │   │
+│   │   ├── config/          # Configuration
+│   │   │   ├── env.ts       # Environment validation
+│   │   │   ├── database.ts  # Database connection
+│   │   │   └── constants.ts # App constants
+│   │   │
+│   │   ├── modules/         # Domain-based modules
+│   │   │   ├── auth/        # Authentication
+│   │   │   ├── user/        # User management
+│   │   │   ├── marketplace/ # Marketplace
+│   │   │   ├── verification/# Verification
+│   │   │   ├── invitation/  # Invitations
+│   │   │   ├── islamicFinance/ # Islamic finance
+│   │   │   ├── messages/    # Messages
+│   │   │   ├── feed/        # Activity feed
+│   │   │   └── admin/       # Admin functions
+│   │   │
+│   │   ├── middleware/      # Express middleware
+│   │   └── shared/          # Shared utilities
+│   │
+│   ├── database/migrations/ # SQL migrations
 │   └── package.json
-└── README.md              # This file
+│
+├── ARCHITECTURE_MIGRATION_REPORT.md  # Migration documentation
+├── SECURITY.md              # Security documentation
+├── DEPLOYMENT.md            # Deployment guide
+├── API_CONTRACT.md          # API documentation
+└── README.md                # This file
+```
+
+## Architecture Overview
+
+MuslimEEN follows a modular full-stack architecture:
+
+### Frontend
+- **Next.js** (React + TypeScript)
+- **App Router** for routing
+- **Design-system preserved** (byte-for-byte CSS migration)
+
+### Backend
+- **Express** with modular domain architecture
+- **Service layer** for business logic
+- **PostgreSQL** database
+- **JWT** authentication
+- **Enterprise middleware** structure
+
+See `ARCHITECTURE_MIGRATION_REPORT.md` for detailed migration information.
+
+## Quick Start
+
+### Prerequisites
+- Node.js 18+
+- PostgreSQL 14+
+
+### Backend
+```bash
+cd backend
+npm install
+npm run dev        # Runs on http://localhost:3001
+```
+
+### Frontend
+```bash
+cd frontend
+npm install
+npm run dev        # Runs on http://localhost:8080
+npm run build      # Build for production (outputs to dist/)
 ```
 
 ## Pages Overview
@@ -132,23 +195,6 @@ Four vertical marketplaces:
 - Zakat calculator
 - Qard Hasan matching
 - Takaful insurance information
-
-## Quick Start
-
-### Backend
-```bash
-cd backend
-npm install
-npm run dev        # Runs on http://localhost:3001
-```
-
-### Frontend
-```bash
-cd frontend
-npm install
-npm run dev        # Runs on http://localhost:8080
-npm run build      # Build for production (outputs to dist/)
-```
 
 ## Key Features
 
@@ -234,6 +280,18 @@ See `API_CONTRACT.md` for complete API specification.
 - Biometric authentication support (WebAuthn)
 - Zero-knowledge proof for biometric data
 - On-device biometric processing (never stored)
+
+## Documentation
+
+| File | Description |
+|------|-------------|
+| `README.md` | This file - overview and quick start |
+| `RUN_GUIDE.md` | Detailed run instructions |
+| `API_CONTRACT.md` | Complete API documentation |
+| `ARCHITECTURE_MIGRATION_REPORT.md` | Architecture migration details |
+| `SECURITY.md` | Security guidelines |
+| `DEPLOYMENT.md` | Deployment guide |
+| `DATABASE_SETUP.md` | Database setup instructions |
 
 ## License
 

@@ -53,20 +53,6 @@ router.get('/', (req: Request, res: Response) => {
 // Authentication Routes
 // ============================================================================
 
-// Debug routes
-router.get('/auth/test', (req: Request, res: Response) => {
-  res.json({ success: true, message: 'Auth routes working' });
-});
-
-router.get('/auth/test-post', (req: Request, res: Response) => {
-  res.json({ success: true, message: 'GET works for validate-invitation path' });
-});
-
-// Simplified validate-invitation without validation middleware for testing
-router.post('/auth/validate-invitation-simple', authLimiter, (req: Request, res: Response) => {
-  res.json({ success: true, message: 'Simple POST works', body: req.body });
-});
-
 router.post('/auth/validate-invitation', authLimiter, validate('validateInvitation'), authController.validateInvitation);
 router.post('/auth/login', authLimiter, validate('login'), authController.login);
 router.post('/auth/register', authLimiter, validate('register'), authController.register);

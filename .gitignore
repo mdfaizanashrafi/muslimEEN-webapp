@@ -109,6 +109,8 @@ dist/
 downloads/
 eggs/
 .eggs/
+# Allow frontend/lib for Next.js utilities
+!frontend/lib/
 lib/
 lib64/
 parts/

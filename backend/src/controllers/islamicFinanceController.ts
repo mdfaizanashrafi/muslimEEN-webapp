@@ -3,13 +3,13 @@
  * Handles Sadaqah, Waqf, Qard Hasan, and Zakat
  */
 
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { Sadaqah, Waqf, QardHasan, ZakatCalculator } from '../models/IslamicFinance';
-import { AuthenticatedRequest } from '../types';
+
 
 // Sadaqah (Charity)
 export const getSadaqahCampaigns = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -20,7 +20,7 @@ export const getSadaqahCampaigns = async (
 };
 
 export const getSadaqahCampaign = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -35,7 +35,7 @@ export const getSadaqahCampaign = async (
 };
 
 export const donate = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -48,7 +48,7 @@ export const donate = async (
 
 // Waqf
 export const getWaqf = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -60,7 +60,7 @@ export const getWaqf = async (
 
 // Qard Hasan
 export const getQardHasanLoans = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -71,7 +71,7 @@ export const getQardHasanLoans = async (
 };
 
 export const createQardHasanLoan = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -85,7 +85,7 @@ export const createQardHasanLoan = async (
 };
 
 export const lendToQardHasan = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -97,7 +97,7 @@ export const lendToQardHasan = async (
 };
 
 export const repayQardHasan = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -110,7 +110,7 @@ export const repayQardHasan = async (
 
 // Zakat
 export const calculateZakat = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {

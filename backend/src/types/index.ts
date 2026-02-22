@@ -5,6 +5,9 @@
 
 import { Request, Response, NextFunction } from 'express';
 
+// Ensure Express namespace is extended
+export {};
+
 // ============================================================================
 // USER TYPES
 // ============================================================================

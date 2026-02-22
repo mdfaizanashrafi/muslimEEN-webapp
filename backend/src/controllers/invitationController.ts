@@ -3,12 +3,12 @@
  * Handles invitation creation and management
  */
 
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import Invitation from '../models/Invitation';
-import { AuthenticatedRequest } from '../types';
+
 
 export const getInvitations = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -19,7 +19,7 @@ export const getInvitations = async (
 };
 
 export const createInvitation = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -30,7 +30,7 @@ export const createInvitation = async (
 };
 
 export const revokeInvitation = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -41,7 +41,7 @@ export const revokeInvitation = async (
 };
 
 export const getRemainingCount = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -52,7 +52,7 @@ export const getRemainingCount = async (
 };
 
 export const validateInvitation = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {

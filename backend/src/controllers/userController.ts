@@ -3,16 +3,16 @@
  * Handles user profile, connections, and notifications
  */
 
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import User from '../models/User';
 import Connection from '../models/Connection';
 import TrustScore from '../models/TrustScore';
 import Notification from '../models/Notification';
-import { AuthenticatedRequest } from '../types';
+
 
 // Profile
 export const getProfile = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -23,7 +23,7 @@ export const getProfile = async (
 };
 
 export const updateProfile = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -36,7 +36,7 @@ export const updateProfile = async (
 
 // Trust Score
 export const getTrustScore = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -47,7 +47,7 @@ export const getTrustScore = async (
 };
 
 export const getTrustScoreHistory = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -59,7 +59,7 @@ export const getTrustScoreHistory = async (
 
 // Connections
 export const getConnections = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -70,7 +70,7 @@ export const getConnections = async (
 };
 
 export const getPendingConnections = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -81,7 +81,7 @@ export const getPendingConnections = async (
 };
 
 export const sendConnectionRequest = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -93,7 +93,7 @@ export const sendConnectionRequest = async (
 };
 
 export const acceptConnectionRequest = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -104,7 +104,7 @@ export const acceptConnectionRequest = async (
 };
 
 export const rejectConnectionRequest = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -116,7 +116,7 @@ export const rejectConnectionRequest = async (
 
 // Notifications
 export const getNotifications = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -127,7 +127,7 @@ export const getNotifications = async (
 };
 
 export const markNotificationRead = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -138,7 +138,7 @@ export const markNotificationRead = async (
 };
 
 export const markAllNotificationsRead = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {

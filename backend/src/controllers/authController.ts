@@ -3,14 +3,14 @@
  * Handles login, logout, and invitation validation
  */
 
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
 import User from '../models/User';
 import Invitation from '../models/Invitation';
 import TrustScore from '../models/TrustScore';
 import { generateToken } from '../middleware/auth';
 import logger from '../utils/logger';
-import { AuthenticatedRequest, ApiResponse, User as UserType } from '../types';
+import { ApiResponse, User as UserType } from '../types';
 
 // Generate CSRF token
 const generateCsrfToken = (): string => {
@@ -40,7 +40,7 @@ interface ValidateInvitationBody {
  * POST /api/auth/validate-invitation
  */
 export const validateInvitation = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -64,7 +64,7 @@ export const validateInvitation = async (
  * POST /api/auth/login
  */
 export const login = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -130,7 +130,7 @@ export const login = async (
  * POST /api/auth/register
  */
 export const register = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -224,7 +224,7 @@ export const register = async (
  * POST /api/auth/logout
  */
 export const logout = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -248,7 +248,7 @@ export const logout = async (
  * GET /api/auth/me
  */
 export const getCurrentUser = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {

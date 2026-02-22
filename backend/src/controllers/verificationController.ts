@@ -3,16 +3,16 @@
  * Handles biometric, witness, and business verification
  */
 
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
 import User from '../models/User';
 import TrustScore from '../models/TrustScore';
 import logger from '../utils/logger';
-import { AuthenticatedRequest } from '../types';
+
 
 // Biometric
 export const requestBiometricVerification = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -24,7 +24,7 @@ export const requestBiometricVerification = async (
 };
 
 export const completeBiometricVerification = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -37,7 +37,7 @@ export const completeBiometricVerification = async (
 
 // Witness
 export const requestWitnessVerification = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -47,7 +47,7 @@ export const requestWitnessVerification = async (
 };
 
 export const approveWitness = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -60,7 +60,7 @@ export const approveWitness = async (
 
 // Business
 export const requestBusinessVerification = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -70,7 +70,7 @@ export const requestBusinessVerification = async (
 };
 
 export const approveBusinessVerification = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {

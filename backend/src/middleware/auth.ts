@@ -3,10 +3,24 @@
  * JWT verification and authorization
  */
 
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import User from '../models/User';
-import { AuthenticatedRequest, UserRole, JWTPayload } from '../types';
+import { UserRole, JWTPayload } from '../types';
+
+// Extend Express Request
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        id: string;
+        email: string;
+        role: UserRole;
+        isActive: boolean;
+      };
+    }
+  }
+}
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
@@ -39,7 +53,7 @@ export const verifyToken = (token: string): JWTPayload | null => {
  * Authentication middleware
  */
 export const authenticate = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -107,7 +121,7 @@ export const authenticate = async (
  * Optional authentication - doesn't fail if no token
  */
 export const optionalAuth = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -136,7 +150,7 @@ export const optionalAuth = async (
  * Authorization middleware - check user roles
  */
 export const authorize = (...roles: UserRole[]) => {
-  return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) {
       res.status(401).json({
         success: false,

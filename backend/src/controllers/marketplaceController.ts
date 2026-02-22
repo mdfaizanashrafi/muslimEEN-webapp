@@ -3,12 +3,12 @@
  * Handles marketplace items for all verticals (work, earn, build, protect)
  */
 
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import Marketplace from '../models/Marketplace';
-import { AuthenticatedRequest } from '../types';
+
 
 export const getItems = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -20,7 +20,7 @@ export const getItems = async (
 };
 
 export const getItem = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -35,7 +35,7 @@ export const getItem = async (
 };
 
 export const createItem = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -50,7 +50,7 @@ export const createItem = async (
 };
 
 export const updateItem = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -61,7 +61,7 @@ export const updateItem = async (
 };
 
 export const deleteItem = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -72,7 +72,7 @@ export const deleteItem = async (
 };
 
 export const invest = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {

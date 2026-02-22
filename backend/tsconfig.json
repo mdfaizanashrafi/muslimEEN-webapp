@@ -2,6 +2,7 @@
   "compilerOptions": {
     "target": "ES2020",
     "module": "commonjs",
+    "lib": ["ES2020"],
     "outDir": "./dist",
     "rootDir": "./src",
     "strict": true,
@@ -18,7 +19,8 @@
     "strictNullChecks": false,
     "noImplicitReturns": false,
     "noUnusedLocals": false,
-    "noUnusedParameters": false
+    "noUnusedParameters": false,
+    "types": ["node", "express", "jsonwebtoken", "bcrypt", "cors", "cookie-parser", "pg", "uuid"]
   },
   "include": [
     "src/**/*"

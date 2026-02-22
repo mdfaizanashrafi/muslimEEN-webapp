@@ -6,21 +6,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import User from '../models/User';
-import { UserRole, JWTPayload } from '../types';
-
-// Extend Express Request
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        id: string;
-        email: string;
-        role: UserRole;
-        isActive: boolean;
-      };
-    }
-  }
-}
+import { UserRole, JWTPayload, User as UserType } from '../types';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
@@ -99,7 +85,7 @@ export const authenticate = async (
       return;
     }
 
-    if (!user.isActive) {
+    if (!user.isActive && user.isActive !== undefined) {
       res.status(403).json({
         success: false,
         error: {

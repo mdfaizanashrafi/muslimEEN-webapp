@@ -19,8 +19,7 @@
     "strictNullChecks": false,
     "noImplicitReturns": false,
     "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "types": ["node", "express", "jsonwebtoken", "bcrypt", "cors", "cookie-parser", "pg", "uuid"]
+    "noUnusedParameters": false
   },
   "include": [
     "src/**/*"

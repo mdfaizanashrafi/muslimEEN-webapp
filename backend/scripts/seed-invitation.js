@@ -26,53 +26,24 @@ async function seedInvitation() {
   try {
     console.log('🔄 Creating test invitation...');
     
-    // Check if invitations table exists
-    const tableCheck = await client.query(`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_name = 'invitations'
-      );
-    `);
-    
-    if (!tableCheck.rows[0].exists) {
-      console.log('📁 Creating invitations table...');
-      await client.query(`
-        CREATE TABLE IF NOT EXISTS invitations (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          code VARCHAR(12) UNIQUE NOT NULL,
-          email VARCHAR(255),
-          invitee_email VARCHAR(255),
-          created_by UUID,
-          status VARCHAR(20) DEFAULT 'pending',
-          max_uses INTEGER DEFAULT 1,
-          used_count INTEGER DEFAULT 0,
-          expires_at TIMESTAMP,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          used_at TIMESTAMP,
-          used_by UUID
-        )
-      `);
-      console.log('✅ Table created');
-    }
-    
-    // Create test invitation
-    const code = 'WELCOME2024';
+    // Create test invitation with 12 character code
+    const code = 'WELCOME20241'; // 12 characters
     
     await client.query(`
-      INSERT INTO invitations (id, code, status, max_uses, used_count, created_at)
-      VALUES (gen_random_uuid(), $1, 'pending', 10, 0, NOW())
+      INSERT INTO invitations (id, code, invitee_email, status, created_at, expires_at)
+      VALUES (gen_random_uuid(), $1, 'test@example.com', 'pending', NOW(), NOW() + INTERVAL '30 days')
       ON CONFLICT (code) DO UPDATE 
-      SET status = 'pending', used_count = 0, max_uses = 10
+      SET status = 'pending', invitee_email = 'test@example.com'
     `, [code]);
     
     console.log('✅ Invitation created successfully!');
     console.log('');
-    console.log('🎉 TEST CODE: WELCOME2024');
-    console.log('   (Can be used 10 times)');
+    console.log('🎉 TEST CODE: WELCOME20241 (12 characters)');
     console.log('');
     
     // Verify
     const result = await client.query('SELECT * FROM invitations WHERE code = $1', [code]);
+    console.log('Code length:', result.rows[0].code.length, 'characters');
     console.log('Database record:', result.rows[0]);
     
   } catch (error) {

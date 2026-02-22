@@ -26,6 +26,9 @@ import * as invitationController from '../controllers/invitationController';
 
 const router = Router();
 
+// Debug: Log all registered routes
+console.log('Loading API routes...');
+
 // ============================================================================
 // Public Routes
 // ============================================================================
@@ -49,6 +52,11 @@ router.get('/', (req: Request, res: Response) => {
 // ============================================================================
 // Authentication Routes
 // ============================================================================
+
+// Debug route
+router.get('/auth/test', (req: Request, res: Response) => {
+  res.json({ success: true, message: 'Auth routes working' });
+});
 
 router.post('/auth/validate-invitation', authLimiter, validate('validateInvitation'), authController.validateInvitation);
 router.post('/auth/login', authLimiter, validate('login'), authController.login);

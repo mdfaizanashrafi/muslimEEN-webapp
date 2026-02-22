@@ -1,11 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Temporarily disable static export for dev mode
-  // output: 'export',
-  // distDir: 'dist',
+  // Static export for deployment to Vercel or other static hosts
+  output: 'export',
+  distDir: 'dist',
   images: {
     unoptimized: true,
   },
+  // Enable trailing slashes for static export compatibility
+  trailingSlash: true,
 };
 
 module.exports = nextConfig;

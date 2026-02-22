@@ -1,21 +1,16 @@
 # MuslimEEN - Agent Development Guide
 
 > **Muslim Economic Empowerment Network**  
-> An invitation-only professional networking platform for the Muslim community.
+> An invitation-only professional networking platform for the Muslim community with Shariah-compliant financial tools.
 
 ---
 
 ## Project Overview
 
-MuslimEEN is a LinkedIn-equivalent professional networking platform built specifically for the Muslim community's economic participation. The platform features:
-
-- **Trust-based verification system** with 0-1000 trust scores
-- **Shariah-compliant financial tools** (Zakat calculator, Qard Hasan, Sadaqah, Waqf)
-- **Four marketplace verticals**: EARN, BUILD, LIVE, PROTECT
-- **Invitation-only access** to prevent spam and maintain community quality
-- **Islamic geometric design system** with jewel-tone color palette
+MuslimEEN is a full-stack LinkedIn-equivalent professional networking platform built specifically for the Muslim community's economic participation. The platform combines professional networking with Islamic finance tools in a trust-based ecosystem.
 
 ### Core Platform Immutables
+
 - No advertising or user data sales
 - Open source forever (AGPL-3.0) with data portability
 - Non-discrimination by sect or ethnicity
@@ -23,37 +18,53 @@ MuslimEEN is a LinkedIn-equivalent professional networking platform built specif
 - Complete transparency in governance, finances, and code
 - No user fees; revenue only from B2B institutional services directed to Waqf surplus
 
+### Key Features
+
+- **Trust-based verification system** with 0-1000 trust scores
+- **Shariah-compliant financial tools**: Zakat calculator, Qard Hasan, Sadaqah, Waqf
+- **Four marketplace verticals**: EARN, BUILD, LIVE, PROTECT
+- **Invitation-only access** to prevent spam and maintain community quality
+- **Islamic geometric design system** with jewel-tone color palette
+
 ---
 
 ## Technology Stack
 
 ### Frontend
+
 | Technology | Version/Details |
 |------------|-----------------|
-| HTML5 | Semantic markup with accessibility focus |
-| CSS3 | Custom design system with CSS variables |
-| JavaScript | Vanilla JS (no frameworks) |
+| Next.js | 14.2.5 (App Router) |
+| React | 18.3.1 |
+| TypeScript | 5.5.2 |
+| CSS | Custom design system with CSS variables (globals.css) |
 | Fonts | Inter (primary), Noto Naskh Arabic (Arabic) |
 
-**Key Decision**: No external JavaScript frameworks (React, Vue, Angular) are used. This is intentional for:
-- Maximum performance (< 150KB total bundle size)
-- Fast load times (< 2 seconds on 4G)
-- Reduced complexity and maintenance burden
-- Framework-free longevity
+**Key Frontend Features**:
+- Next.js App Router for routing
+- Static export capability (`output: 'export'` configurable)
+- CSS-based Islamic geometric patterns (no images)
+- Responsive design with mobile-first approach
+- WCAG 2.1 AA accessibility compliance
 
-### Backend Integration
-- RESTful API at `https://api.muslimeen.org/v1`
-- JWT-based authentication (24-hour expiry)
-- Bearer token in `Authorization` header
-- Standard response format:
-  ```json
-  {
-    "success": true,
-    "data": {},
-    "message": "Optional message",
-    "error": null
-  }
-  ```
+### Backend
+
+| Technology | Version/Details |
+|------------|-----------------|
+| Node.js | >= 18.0.0 |
+| Express | 4.18.2 |
+| TypeScript | 5.3.3 |
+| Database | PostgreSQL 14+ |
+| Auth | JWT (jsonwebtoken) |
+| Validation | Joi |
+| Security | Helmet, CORS, express-rate-limit |
+| Logging | Winston |
+
+### Database
+
+- **PostgreSQL 14+** with UUID extension
+- **Migrations**: SQL files in `backend/database/migrations/`
+- **Key Tables**: users, invitations, connections, marketplace_items, notifications, messages, sadaqah_campaigns, waqf, qard_hasan_loans
 
 ---
 
@@ -61,40 +72,334 @@ MuslimEEN is a LinkedIn-equivalent professional networking platform built specif
 
 ```
 muslimeen/
-├── frontend/                    # All frontend source files
-│   ├── index.html              # Login page (entry point)
-│   ├── dashboard.html          # Main dashboard
-│   ├── profile.html            # User profile
-│   ├── verification.html       # Verification status
-│   ├── connections.html        # Network/connections
-│   ├── messages.html           # Messaging interface
-│   ├── marketplace-*.html      # Four marketplace verticals
-│   ├── islamic-finance.html    # Islamic finance tools
-│   ├── css/
-│   │   └── design-system.css   # Complete design system
-│   └── js/
-│       └── app.js              # Main application (vanilla JS)
+├── frontend/                    # Next.js 14 frontend
+│   ├── app/                    # App Router pages
+│   │   ├── (marketing)/        # Marketing pages (landing)
+│   │   ├── (auth)/             # Auth group layout
+│   │   ├── login/              # Login page
+│   │   ├── dashboard/          # Main dashboard
+│   │   ├── profile/            # User profile
+│   │   ├── verification/       # Verification status
+│   │   ├── connections/        # Network/connections
+│   │   ├── messages/           # Messaging interface
+│   │   ├── marketplace/        # Marketplace with [vertical] dynamic route
+│   │   └── islamic-finance/    # Islamic finance tools
+│   ├── components/             # React components
+│   ├── lib/                    # Utilities and API client
+│   │   └── api.ts              # API client with TypeScript types
+│   ├── styles/                 # Page-specific CSS
+│   ├── types/                  # TypeScript type definitions
+│   ├── public/                 # Static assets
+│   ├── globals.css             # Global design system (~1000 lines)
+│   ├── next.config.js          # Next.js configuration
+│   └── package.json
 │
-├── README.md                   # Human-readable project overview
+├── backend/                     # Node.js/Express API
+│   ├── src/
+│   │   ├── server.ts           # Main entry point
+│   │   ├── routes/
+│   │   │   └── index.ts        # API route definitions
+│   │   ├── controllers/        # Route controllers (TypeScript)
+│   │   │   ├── authController.ts
+│   │   │   ├── userController.ts
+│   │   │   ├── marketplaceController.ts
+│   │   │   ├── islamicFinanceController.ts
+│   │   │   ├── verificationController.ts
+│   │   │   └── invitationController.ts
+│   │   ├── middleware/         # Express middleware
+│   │   │   ├── auth.ts         # JWT authentication
+│   │   │   ├── validation.ts   # Request validation
+│   │   │   ├── rateLimiter.ts  # Rate limiting
+│   │   │   └── errorHandler.ts # Error handling
+│   │   ├── models/             # Database models (JS/TS mix)
+│   │   ├── types/
+│   │   │   └── index.ts        # TypeScript type definitions
+│   │   └── utils/
+│   │       └── logger.js       # Winston logger
+│   ├── database/
+│   │   └── migrations/
+│   │       └── 001_initial_schema.sql
+│   ├── .env.example            # Environment template
+│   ├── .eslintrc.json          # ESLint configuration
+│   ├── tsconfig.json           # TypeScript configuration
+│   └── package.json
+│
 ├── API_CONTRACT.md             # Complete API specification
 ├── BACKEND_README.md           # Backend integration guide
-├── DEPLOYMENT.md               # Deployment instructions
+├── DATABASE_SETUP.md           # PostgreSQL setup instructions
+├── DEPLOYMENT.md               # Deployment configurations
 ├── ACCESSIBILITY_AUDIT.md      # WCAG 2.1 AA compliance report
+├── SECURITY.md                 # Security guidelines
+├── RUN_GUIDE.md                # Quick start guide
 └── AGENTS.md                   # This file
 ```
 
-### File Organization Conventions
+---
 
-1. **HTML Pages**: One file per page, named descriptively (e.g., `marketplace-earn.html`)
-2. **CSS**: Single comprehensive file containing all styles with CSS custom properties
-3. **JavaScript**: Single modular file with IIFE pattern, organized by feature modules
-4. **No build step**: Files are served as-is; no bundling or transpilation required
+## Build and Development Commands
+
+### Frontend
+
+```bash
+cd frontend
+
+# Install dependencies
+npm install
+
+# Development server (port 8080)
+npm run dev
+
+# Build for production
+npm run build
+
+# Start production server
+npm start
+
+# Lint
+npm run lint
+```
+
+### Backend
+
+```bash
+cd backend
+
+# Install dependencies
+npm install
+
+# Development server with hot reload (port 3001)
+npm run dev
+
+# Build TypeScript to dist/
+npm run build
+
+# Start production server
+npm start
+
+# Type checking (no emit)
+npm run type-check
+
+# Lint
+npm run lint
+
+# Database migrations
+npm run migrate
+
+# Seed database
+npm run seed
+```
+
+### Database Setup
+
+```bash
+# Create database
+psql -U postgres -c "CREATE DATABASE muslimeen;"
+
+# Run migrations
+psql -U postgres -d muslimeen -f backend/database/migrations/001_initial_schema.sql
+
+# Or use migration script
+npm run migrate
+```
+
+---
+
+## Environment Configuration
+
+### Backend (.env)
+
+```env
+# Server Configuration
+NODE_ENV=development
+PORT=3000
+
+# Database Configuration
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=muslimeen
+DB_USER=muslimeen
+DB_PASSWORD=your_secure_password_here
+
+# JWT Configuration
+JWT_SECRET=your-super-secret-jwt-key-change-in-production-min-32-chars
+JWT_EXPIRES_IN=24h
+
+# Security
+BCRYPT_ROUNDS=12
+CSRF_SECRET=your-csrf-secret-key
+
+# Logging
+LOG_LEVEL=info
+```
+
+### Frontend
+
+Frontend uses `NEXT_PUBLIC_API_URL` for API base URL (set in environment or defaults to `http://localhost:3001/api`).
+
+---
+
+## Code Style Guidelines
+
+### TypeScript/JavaScript
+
+- Use `const` and `let` (no `var`)
+- Use arrow functions for callbacks
+- Use template literals for string interpolation
+- Use destructuring where appropriate
+- Explicit function return types recommended
+- Strict TypeScript enabled (`strict: true`)
+
+### Backend ESLint Rules
+
+- `@typescript-eslint/no-explicit-any`: warn
+- `@typescript-eslint/no-unused-vars`: error (with `_` prefix ignore)
+- `no-console`: warn
+- `prefer-const`: error
+
+### CSS
+
+- Use CSS custom properties (variables) for all theme values
+- Follow utility-first approach with semantic naming
+- Mobile-first responsive design
+- Avoid `!important` except in print styles
+
+### File Naming
+
+- Components: PascalCase (e.g., `UserProfile.tsx`)
+- Utilities: camelCase (e.g., `apiClient.ts`)
+- Styles: lowercase with hyphens (e.g., `dashboard.css`)
+- Routes: Next.js App Router conventions
+
+---
+
+## Testing Strategy
+
+### Current Status
+
+The project has **Jest** configured for testing but minimal test coverage currently exists.
+
+### Available Test Commands
+
+```bash
+# Run all tests
+npm test
+
+# Unit tests only
+npm run test:unit
+
+# Integration tests only
+npm run test:integration
+```
+
+### Testing Guidelines
+
+1. **Unit Tests**: Test individual functions, especially:
+   - Trust score calculation logic
+   - Invitation validation
+   - User role permissions
+   - Zakat calculation formulas
+
+2. **Integration Tests**: Test complete flows:
+   - Authentication flow
+   - Marketplace CRUD operations
+   - Islamic finance calculations
+
+3. **Manual Testing Checklist**:
+   - All pages load without console errors
+   - Navigation works between all pages
+   - Forms submit correctly
+   - Responsive design on mobile/tablet/desktop
+   - Accessibility audit passes (Lighthouse)
+
+### Browser Support
+
+- Chrome 90+
+- Firefox 88+
+- Safari 14+
+- Edge 90+
+- Mobile Safari (iOS 14+)
+- Chrome Mobile (Android 10+)
+
+---
+
+## API Architecture
+
+### Base URL
+
+```
+Development: http://localhost:3001/api
+Production: https://api.muslimeen.org/v1
+```
+
+### Authentication
+
+- JWT-based authentication with Bearer token
+- Token expires in 24 hours
+- CSRF token required for state-changing requests
+- Rate limiting on auth endpoints (5 requests/minute)
+
+### Response Format
+
+```json
+{
+  "success": true,
+  "data": {},
+  "message": "Optional message",
+  "error": null
+}
+```
+
+### Key Endpoints
+
+| Category | Endpoints |
+|----------|-----------|
+| Auth | `/auth/login`, `/auth/register`, `/auth/validate-invitation`, `/auth/logout` |
+| User | `/user/profile`, `/user/trust-score`, `/user/connections`, `/user/notifications` |
+| Marketplace | `/marketplace/:vertical` (earn, build, live, protect) |
+| Islamic Finance | `/islamic-finance/sadaqah`, `/islamic-finance/zakat/calculate`, `/islamic-finance/qard-hasan`, `/islamic-finance/waqf` |
+| Verification | `/verification/biometric/*`, `/verification/witness/*`, `/verification/business/*` |
+
+See `API_CONTRACT.md` for complete documentation.
+
+---
+
+## Security Considerations
+
+### Implemented
+
+- ✅ Helmet.js for security headers
+- ✅ CORS configuration for allowed origins
+- ✅ Rate limiting on all endpoints
+- ✅ Input validation with Joi
+- ✅ Password hashing with bcrypt (12 rounds)
+- ✅ XSS protection (escaped HTML, CSP headers)
+- ✅ SQL injection prevention (parameterized queries)
+
+### Required for Production
+
+- Store JWT in `httpOnly`, `Secure`, `SameSite=Strict` cookies
+- Implement proper CSRF double-submit cookie pattern
+- Enable HTTPS enforcement
+- Add security headers (see SECURITY.md)
+- Regular security audits and dependency updates
+
+### Security Headers
+
+```
+Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://api.muslimeen.org;
+X-Frame-Options: SAMEORIGIN
+X-Content-Type-Options: nosniff
+X-XSS-Protection: 1; mode=block
+Referrer-Policy: strict-origin-when-cross-origin
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+```
 
 ---
 
 ## Design System
 
 ### Color Palette (CSS Variables)
+
 ```css
 --color-emerald-600: #059669   /* Primary - emerald green */
 --color-sapphire-600: #2563eb /* Secondary - sapphire blue */
@@ -104,208 +409,19 @@ muslimeen/
 ```
 
 ### Trust Score Colors
+
 - **High (700-1000)**: Emerald green (`--trust-high`)
 - **Medium (200-699)**: Gold (`--trust-medium`)
 - **Low (0-199)**: Ruby red (`--trust-low`)
 
-### Islamic Geometric Patterns
-All patterns are CSS-generated (no images):
-- `.pattern-star-8` - 8-point star pattern
-- `.pattern-tessellation` - Geometric tessellation
-- `.pattern-grid-islamic` - Islamic grid pattern
-- `.pattern-diamond` - Diamond pattern
-- `.pattern-hexagon` - Hexagon pattern
-
 ### Component Classes
+
 | Component | Class | Variants |
 |-----------|-------|----------|
 | Button | `.btn` | `.btn-primary`, `.btn-secondary`, `.btn-outline`, `.btn-ghost`, `.btn-sm`, `.btn-lg` |
 | Card | `.card` | `.card-header`, `.card-body`, `.card-footer` |
 | Form Input | `.form-input` | `.form-select`, `.form-textarea` |
 | Badge | `.badge` | `.badge-verified`, `.badge-trust-high`, `.badge-trust-medium`, `.badge-trust-low` |
-| Avatar | `.avatar` | `.avatar-sm`, `.avatar-lg` |
-
----
-
-## JavaScript Architecture
-
-### Module Structure (in `app.js`)
-```javascript
-// Main modules in the IIFE:
-CONFIG      // Configuration constants
-State       // Application state management
-DOM         // DOM manipulation utilities
-Storage     // localStorage wrapper
-API         // API client with mock implementation
-Auth        // Authentication module
-Components  // UI component factory
-Pages       // Page-specific controllers
-```
-
-### Mock Data System
-The frontend includes a comprehensive mock data system for development. When running locally (`file://` or `localhost`), API calls return mock data instead of hitting the real API.
-
-**To switch to real API**: Remove or modify the condition in `API.request()`:
-```javascript
-if (window.location.protocol === 'file:' || window.location.hostname === 'localhost') {
-  return API.mockRequest(endpoint, config);
-}
-```
-
-### Key Configuration Values
-```javascript
-API_BASE_URL: '/api/v1'
-STORAGE_KEY: 'muslimeen_session'
-SESSION_DURATION: 24 * 60 * 60 * 1000  // 24 hours
-TRUST_SCORE_MAX: 1000
-TRUST_SCORE_MIN: 0
-```
-
----
-
-## Page Initialization
-
-Pages are auto-initialized based on the filename:
-
-| Page File | Initialization Function |
-|-----------|------------------------|
-| `index.html` | `Pages.login()` |
-| `dashboard.html` | `Pages.dashboard()` |
-| `profile.html` | `Pages.profile()` |
-| `verification.html` | `Pages.verification()` |
-| `connections.html` | `Pages.connections()` |
-| `messages.html` | `Pages.messages()` |
-| `marketplace-*.html` | `Pages.marketplace(vertical)` |
-| `islamic-finance.html` | `Pages.islamicFinance(tool)` |
-
----
-
-## API Endpoints Reference
-
-### Authentication
-- `POST /auth/validate-invitation` - Validate invitation code
-- `POST /auth/login` - Login with credentials
-- `POST /auth/logout` - Logout user
-
-### User
-- `GET /user/profile` - Get user profile
-- `PUT /user/profile` - Update user profile
-- `GET /user/notifications` - Get notifications
-- `GET /user/connections` - Get connections list
-- `GET /user/trust-score` - Get trust score details
-
-### Marketplace
-- `GET /marketplace/{vertical}` - Get marketplace items (vertical: earn, build, live, protect)
-- `POST /marketplace/{vertical}` - Create new listing
-
-### Islamic Finance
-- `GET /islamic-finance/sadaqah` - Get charity campaigns
-- `GET /islamic-finance/waqf` - Get Waqf listings
-- `GET /islamic-finance/qardhasan` - Get Qard Hasan loans
-- `POST /islamic-finance/zakat/calculate` - Calculate Zakat
-
-See `API_CONTRACT.md` for complete details.
-
----
-
-## Development Guidelines
-
-### Code Style
-
-1. **JavaScript**: Use ES6+ features but avoid experimental syntax
-   - Use `const` and `let` (no `var`)
-   - Use arrow functions for callbacks
-   - Use template literals for string interpolation
-   - Use destructuring where appropriate
-
-2. **CSS**: 
-   - Use CSS custom properties (variables) for all theme values
-   - Follow BEM-like naming: `.block-element--modifier`
-   - Mobile-first responsive design
-   - Avoid `!important` (except in print styles)
-
-3. **HTML**:
-   - Semantic HTML5 elements (`<header>`, `<main>`, `<nav>`, etc.)
-   - ARIA labels where needed for accessibility
-   - `lang` attribute on all text elements with different languages
-
-### Accessibility Requirements
-- WCAG 2.1 AA compliance (see `ACCESSIBILITY_AUDIT.md`)
-- All interactive elements must be keyboard accessible
-- Color contrast minimum 4.5:1 for text
-- Focus indicators must be visible
-- Screen reader announcements for dynamic content
-
-### Performance Budget
-- Total CSS + JS bundle: < 150KB
-- First Contentful Paint: < 1.5s
-- Largest Contentful Paint: < 2.5s
-- Time to Interactive: < 3.5s
-
----
-
-## Testing Strategy
-
-### No Automated Test Suite Currently
-This project does not currently have automated tests. Testing is manual:
-
-1. **Manual Testing Checklist**:
-   - All pages load without console errors
-   - Navigation works between all pages
-   - Forms submit correctly
-   - Responsive design on mobile/tablet/desktop
-   - Accessibility audit passes (Lighthouse)
-
-2. **Browser Support**:
-   - Chrome 90+
-   - Firefox 88+
-   - Safari 14+
-   - Edge 90+
-   - Mobile Safari (iOS 14+)
-   - Chrome Mobile (Android 10+)
-
-### Mock API for Development
-The built-in mock API allows frontend development without a running backend. Mock data is defined in `State.mockData` object in `app.js`.
-
----
-
-## Build and Deployment
-
-### No Build Step Required
-This is a static site. No build tools, bundlers, or package managers are needed.
-
-### Local Development
-Simply open `frontend/index.html` in a browser, or serve with any static file server:
-
-```bash
-# Python 3
-python -m http.server 8000 --directory frontend
-
-# Node.js (if http-server is installed)
-npx http-server frontend -p 8000
-
-# PHP
-php -S localhost:8000 -t frontend
-```
-
-### Production Deployment
-Deploy the `frontend/` directory to any static hosting service:
-
-- **Cloudflare Pages** (recommended)
-- **Netlify**
-- **Vercel**
-- **AWS S3 + CloudFront**
-- **Nginx or Apache**
-
-See `DEPLOYMENT.md` for detailed configurations.
-
-### Security Headers Required
-```
-X-Frame-Options: SAMEORIGIN
-X-Content-Type-Options: nosniff
-X-XSS-Protection: 1; mode=block
-Referrer-Policy: strict-origin-when-cross-origin
-```
 
 ---
 
@@ -317,8 +433,10 @@ Referrer-Policy: strict-origin-when-cross-origin
 | `muslim_unverified` | Limited features (30-day provisional period) |
 | `non_muslim` | Consumer mode only (no Islamic finance, no governance) |
 | `business_provider` | Enhanced visibility, client review system |
+| `admin` | Administrative access |
 
 ### Verification Badges
+
 - `biometric` - Identity verified through biometric authentication
 - `two_witness` - Vouched for by two verified community members
 - `business` - Business entity verification completed
@@ -326,70 +444,74 @@ Referrer-Policy: strict-origin-when-cross-origin
 
 ---
 
-## Common Development Tasks
+## Deployment
 
-### Adding a New Page
-1. Create HTML file in `frontend/` (e.g., `new-feature.html`)
-2. Add page initialization in `app.js` `init()` function:
-   ```javascript
-   case 'new-feature':
-     Pages.newFeature();
-     break;
-   ```
-3. Add corresponding controller method in `Pages` object
-4. Add navigation link in relevant HTML files
+### Frontend Deployment
 
-### Adding a New Component
-1. Add CSS to `design-system.css` following naming conventions
-2. Add JavaScript factory method in `Components` object:
-   ```javascript
-   newComponent(data) {
-     return DOM.create('div', { className: 'new-component' }, [
-       // component structure
-     ]);
-   }
-   ```
+Deploy the `frontend/` directory to any static hosting service:
 
-### Adding an API Endpoint
-1. Add mock handler in `API.mockRequest()` method
-2. Add convenience method in `API` object if needed
-3. Update `API_CONTRACT.md` with endpoint documentation
+1. **Build**: `npm run build` (outputs to `dist/` when `output: 'export'` enabled)
+2. **Hosting Options**:
+   - Cloudflare Pages (recommended)
+   - Netlify
+   - Vercel
+   - AWS S3 + CloudFront
+   - Nginx or Apache
 
----
+### Backend Deployment
 
-## Environment Configuration
+1. **Build**: `npm run build` (compiles TypeScript to `dist/`)
+2. **Start**: `npm start` (runs compiled JS from `dist/`)
+3. **Requirements**:
+   - Node.js >= 18
+   - PostgreSQL 14+
+   - Environment variables configured
 
-No environment files are currently used. To add environment-specific configuration:
+### Database Migration on Deploy
 
-1. Create a `config.js` file (gitignored)
-2. Load it before `app.js` in HTML
-3. Reference `window.CONFIG` in the application
-
-Example `config.js`:
-```javascript
-window.ENV = {
-  API_BASE_URL: 'https://api-staging.muslimeen.org/v1',
-  ENVIRONMENT: 'staging'
-};
+```bash
+# Production migration
+npm run migrate
 ```
 
 ---
 
-## Debugging
+## Performance Budget
 
-The application exposes a global `MuslimEEN` object for debugging:
+- Total CSS + JS bundle: < 150KB (frontend)
+- First Contentful Paint: < 1.5s
+- Largest Contentful Paint: < 2.5s
+- Time to Interactive: < 3.5s
+- API response time: < 200ms
 
-```javascript
-// Access in browser console
-MuslimEEN.State      // Current application state
-MuslimEEN.Auth       // Authentication methods
-MuslimEEN.API        // API client
-MuslimEEN.Components // Component factories
-MuslimEEN.Pages      // Page controllers
-MuslimEEN.CONFIG     // Configuration constants
+---
+
+## Troubleshooting
+
+### Port Already in Use
+
+```bash
+# Kill process on port 3001 (backend)
+npx kill-port 3001
+
+# Frontend will auto-select next available port
 ```
 
-**Note**: Remove this exposure in production by modifying the end of `app.js`.
+### Database Connection Issues
+
+```bash
+# Check PostgreSQL is running
+psql -U postgres -c "SELECT 1;"
+
+# Verify .env credentials
+# Check database exists: \l in psql
+```
+
+### CORS Errors
+
+- Ensure backend is on port 3001
+- Ensure frontend is on port 8080
+- Check CORS origins in `backend/src/server.ts`
 
 ---
 
@@ -397,13 +519,14 @@ MuslimEEN.CONFIG     // Configuration constants
 
 | File | Purpose |
 |------|---------|
-| `frontend/index.html` | Login page - entry point |
-| `frontend/css/design-system.css` | All styles, ~1500 lines |
-| `frontend/js/app.js` | All JavaScript, ~1800 lines |
+| `frontend/app/layout.tsx` | Root layout with fonts and metadata |
+| `frontend/app/globals.css` | Complete design system (~1000 lines) |
+| `frontend/lib/api.ts` | API client with TypeScript types |
+| `backend/src/server.ts` | Express server configuration |
+| `backend/src/routes/index.ts` | API route definitions |
+| `backend/src/types/index.ts` | TypeScript type definitions |
+| `backend/database/migrations/001_initial_schema.sql` | Database schema |
 | `API_CONTRACT.md` | Complete API specification |
-| `BACKEND_README.md` | Backend integration requirements |
-| `DEPLOYMENT.md` | Deployment configurations |
-| `ACCESSIBILITY_AUDIT.md` | WCAG compliance documentation |
 
 ---
 
@@ -413,4 +536,4 @@ AGPL-3.0 - Open source forever as per platform immutables.
 
 ---
 
-**Last Updated**: Based on project state as of February 2026
+**Last Updated**: February 2026

@@ -44,6 +44,17 @@ const allowedOrigins = [
   'http://127.0.0.1:5500'
 ];
 
+// Add FRONTEND_URL from environment if provided
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(process.env.FRONTEND_URL);
+}
+
+// Support multiple frontend URLs (comma-separated)
+if (process.env.FRONTEND_URLS) {
+  const additionalUrls = process.env.FRONTEND_URLS.split(',').map(url => url.trim());
+  allowedOrigins.push(...additionalUrls);
+}
+
 app.use(cors({
   origin: function(origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
     // Allow requests with no origin (mobile apps, curl, etc.)
@@ -54,9 +65,15 @@ app.use(cors({
       return callback(null, true);
     }
     
-    if (allowedOrigins.includes(origin)) {
+    // Check if origin matches allowed origins or vercel.app pattern
+    const isAllowed = allowedOrigins.includes(origin) || 
+                      origin.endsWith('.vercel.app') ||
+                      origin.includes('vercel.app');
+    
+    if (isAllowed) {
       callback(null, true);
     } else {
+      logger.warn(`CORS blocked request from origin: ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
   },

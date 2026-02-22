@@ -222,6 +222,7 @@ class User {
       connections: row.connections,
       profileViews: row.profile_views,
       isWitnessEligible: row.is_witness_eligible,
+      isActive: row.is_active !== false, // Default to true if not set
       badges: row.badges || [],
       createdAt: row.created_at,
       lastLogin: row.last_login,

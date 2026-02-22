@@ -28,7 +28,7 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap" 
           rel="stylesheet" 
         />
-        <link rel="icon" type="image/png" href="/favicon.png" />
+        <link rel="icon" type="image/png" href="/favicon.png?v=2" />
       </head>
       <body className={inter.className}>{children}</body>
     </html>

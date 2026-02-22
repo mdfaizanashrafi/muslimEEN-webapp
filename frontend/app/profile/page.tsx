@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import '@/styles/profile.css';
+import '../../styles/profile.css';
 
 // Icons as components for better reusability
 const MenuIcon = () => (

@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, FormEvent } from 'react';
-import { auth } from '@/lib/api';
-import '@/styles/login.css';
+import { auth } from '../../lib/api';
+import '../../styles/login.css';
 
 export default function LoginPage() {
   const [invitationCode, setInvitationCode] = useState('');

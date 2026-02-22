@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import '@/styles/islamic-finance.css';
+import '../../styles/islamic-finance.css';
 
 // Icons as components
 const MenuIcon = () => (

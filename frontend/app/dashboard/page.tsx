@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import '@/styles/dashboard.css';
+import '../../styles/dashboard.css';
 
 // Icons as components for better reusability
 const MenuIcon = () => (

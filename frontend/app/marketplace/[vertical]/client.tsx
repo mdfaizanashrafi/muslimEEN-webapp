@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import '@/styles/marketplace.css';
+import '../../../styles/marketplace.css';
 
 type VerticalType = 'earn' | 'build' | 'live' | 'protect';
 

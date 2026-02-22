@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import '@/styles/messages.css';
+import '../../styles/messages.css';
 
 // Icons as components
 const MenuIcon = () => (

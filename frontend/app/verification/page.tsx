@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import '@/styles/verification.css';
+import '../../styles/verification.css';
 
 // Icons as components
 const MenuIcon = () => (

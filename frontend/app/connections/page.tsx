@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import '@/styles/connections.css';
+import '../../styles/connections.css';
 
 // Icons as components
 const MenuIcon = () => (

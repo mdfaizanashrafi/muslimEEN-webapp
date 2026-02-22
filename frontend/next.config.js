@@ -1,7 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
-  distDir: 'dist',
+  // Temporarily disable static export for dev mode
+  // output: 'export',
+  // distDir: 'dist',
   images: {
     unoptimized: true,
   },

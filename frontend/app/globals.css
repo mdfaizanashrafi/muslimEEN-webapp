@@ -1378,14 +1378,16 @@ a:hover {
 
   .sidebar {
     transform: none;
-    position: sticky;
+    position: fixed;
     top: var(--header-height);
+    left: 0;
+    bottom: 0;
+    width: var(--sidebar-width);
     height: calc(100vh - var(--header-height));
   }
 
   .main.with-sidebar {
-    display: grid;
-    grid-template-columns: var(--sidebar-width) 1fr;
+    margin-left: var(--sidebar-width);
   }
 
   .grid-cols-md-2 { grid-template-columns: repeat(2, 1fr); }

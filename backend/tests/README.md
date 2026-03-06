@@ -1,204 +1,184 @@
 # MuslimEEN Backend Tests
 
-## Test Structure
+## Overview
+
+This directory contains all tests for the MuslimEEN backend, including:
+- Unit tests for services and utilities
+- Integration tests for API endpoints
+- Migration tests for modular architecture transition
+
+## Directory Structure
 
 ```
 tests/
-├── setup.ts                    # Test initialization
-├── mocks/
-│   └── models.ts              # Mock models and data
+├── integration/
+│   └── migration/
+│       └── api-endpoints.test.ts    # API endpoint migration tests
+├── modules/
+│   ├── iam.parity.test.ts           # IAM parity tests
+│   └── marketplace.parity.test.ts   # Marketplace parity tests
 ├── unit/
-│   ├── utils/
-│   │   ├── security.test.ts   # Security utility tests
-│   │   └── formatters.test.ts # Formatter utility tests
-│   └── services/
-│       ├── JwtService.test.ts
-│       ├── PasswordService.test.ts
-│       ├── AuthService.test.ts
-│       ├── UserService.test.ts
-│       ├── TrustScoreService.test.ts
-│       ├── ConnectionService.test.ts
-│       ├── NotificationService.test.ts
-│       ├── VerificationService.test.ts
-│       ├── IslamicFinanceService.test.ts
-│       └── InvitationService.test.ts
-└── README.md                  # This file
+│   └── services/                    # Service unit tests (legacy)
+├── utils/
+│   ├── migrationVerifier.ts         # Migration verification utilities
+│   └── moduleTester.ts              # Module testing helpers
+├── run-migration-tests.js           # Migration test runner script
+├── setup.ts                         # Main Jest setup
+├── setup.migration.ts               # Migration test setup
+└── MIGRATION_TESTING_GUIDE.md       # Comprehensive testing guide
 ```
 
-## Running Tests
+## Quick Start
 
 ### Run All Tests
+
 ```bash
 npm test
 ```
 
-### Run Unit Tests Only
+### Run Migration Tests
+
 ```bash
-npm run test:unit
+# Run all migration tests
+node tests/run-migration-tests.js --all
+
+# Verify migration status only
+node tests/run-migration-tests.js --verify
+
+# Test legacy implementation
+node tests/run-migration-tests.js --legacy
+
+# Test modular implementation
+node tests/run-migration-tests.js --modular
+
+# Run parity tests only
+node tests/run-migration-tests.js --parity
 ```
 
-### Run Specific Test File
+### Run Specific Test Files
+
 ```bash
-npx jest tests/unit/services/AuthService.test.ts
+# Parity tests
+npm test -- iam.parity.test.ts
+
+# Integration tests
+npm test -- api-endpoints.test.ts
+
+# With coverage
+npm test -- --coverage
 ```
 
-### Run Tests with Coverage
-```bash
-npx jest --coverage
+## Test Configuration
+
+### Environment Variables
+
+Create `.env.test.modular` for testing modular implementation:
+
+```env
+NODE_ENV=test
+DB_NAME=muslimeen_test_modular
+JWT_SECRET=test-secret
+
+# Feature Flags
+USE_MODULAR_IAM=true
+USE_MODULAR_PROFILE=true
+USE_MODULAR_TRUST=true
+USE_MODULAR_NETWORK=true
+USE_MODULAR_MARKETPLACE=true
+USE_MODULAR_ISLAMIC_FINANCE=true
 ```
 
-### Run Tests in Watch Mode
-```bash
-npx jest --watch
-```
+### Jest Configuration
 
-## Test Categories
+- `jest.config.js` - Main configuration
+- `jest.config.migration.js` - Migration-specific configuration
 
-### 1. Utility Tests
-Pure function tests with no dependencies.
+## Migration Testing
 
-- **security.test.ts**: Token generation, hashing, secure compare
-- **formatters.test.ts**: Data formatting, sanitization, type conversion
+See [MIGRATION_TESTING_GUIDE.md](./MIGRATION_TESTING_GUIDE.md) for detailed information about:
+- Setting up the test environment
+- Running parity tests
+- Verifying module migration status
+- Troubleshooting common issues
 
-### 2. Service Tests
-Business logic tests with mocked dependencies.
+## Writing Tests
 
-| Service | Tests Cover |
-|---------|-------------|
-| JwtService | Token generation, verification, decoding |
-| PasswordService | Hashing, verification, strength validation |
-| AuthService | Login, register, logout, validation |
-| UserService | Profile CRUD, status management |
-| TrustScoreService | Calculation, history, eligibility |
-| ConnectionService | Requests, acceptance, management |
-| NotificationService | Creation, retrieval, marking read |
-| VerificationService | Biometric, witness, business verification |
-| IslamicFinanceService | Sadaqah, Qard Hasan, Zakat calculations |
-| InvitationService | Creation, validation, acceptance |
-
-## Mocking Strategy
-
-### Models are Mocked
-All database models are mocked in `tests/mocks/models.ts`:
+### Parity Test Example
 
 ```typescript
-// Example: Mocking User model
-jest.mock('../../../src/models/User', () => mockUserModel);
-```
+import { testBothImplementations } from '../utils/moduleTester';
 
-### Services are Mocked when Testing Other Services
-When testing a service that depends on other services, those dependencies are mocked:
-
-```typescript
-// Example: VerificationService depends on TrustScoreService
-jest.mock('../../../src/services/TrustScoreService');
-```
-
-## Writing New Tests
-
-### Test Template
-
-```typescript
-import { ServiceName } from '../../../src/services/ServiceName';
-import { mockModel } from '../../mocks/models';
-
-// Mock dependencies
-jest.mock('../../../src/models/ModelName', () => mockModel);
-
-describe('ServiceName', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  describe('methodName', () => {
-    it('should do something', async () => {
-      // Arrange
-      mockModel.method.mockResolvedValue(mockData);
-
-      // Act
-      const result = await ServiceName.methodName(input);
-
-      // Assert
-      expect(result).toEqual(expected);
-    });
-
-    it('should throw error for invalid input', async () => {
-      await expect(ServiceName.methodName(invalidInput)).rejects.toThrow(
-        new ServiceName.ServiceError('CODE', 'Message', 400)
-      );
-    });
+describe('My Module Parity', () => {
+  it('should match legacy behavior', async () => {
+    const result = await testBothImplementations(
+      () => legacyService.method(data),
+      () => modularService.method(data),
+      ['field1', 'field2']
+    );
+    
+    expect(result.match).toBe(true);
+    expect(result.differences).toHaveLength(0);
   });
 });
 ```
 
-## Test Coverage Goals
+### Integration Test Example
 
-| Module | Target Coverage |
-|--------|-----------------|
-| Services | 90%+ |
-| Utils | 95%+ |
-| Controllers | 80%+ (integration tests) |
-| Models | 70%+ (mostly integration) |
+```typescript
+import request from 'supertest';
+import app from '../../src/server';
 
-## Current Test Statistics
+describe('API Endpoint', () => {
+  it('should return correct response', async () => {
+    const response = await request(app)
+      .get('/api/endpoint')
+      .expect(200);
+    
+    expect(response.body).toHaveProperty('success', true);
+  });
+});
+```
 
-| Service | Test Cases | Status |
-|---------|-----------|--------|
-| Security Utils | 12 | ✅ Complete |
-| Formatter Utils | 14 | ✅ Complete |
-| JwtService | 10 | ✅ Complete |
-| PasswordService | 9 | ✅ Complete |
-| AuthService | 18 | ✅ Complete |
-| UserService | 15 | ✅ Complete |
-| TrustScoreService | 14 | ✅ Complete |
-| ConnectionService | 13 | ✅ Complete |
-| NotificationService | 16 | ✅ Complete |
-| VerificationService | 17 | ✅ Complete |
-| IslamicFinanceService | 20 | ✅ Complete |
-| InvitationService | 15 | ✅ Complete |
+## Check Migration Status
 
-**Total: 173 test cases**
+```bash
+curl http://localhost:3001/api/migration-status
+```
 
-## Best Practices
-
-1. **Isolate Tests**: Each test should be independent
-2. **Clear Mocks**: Use `beforeEach` to clear mocks
-3. **Test Error Cases**: Always test error scenarios
-4. **Use Descriptive Names**: Test names should explain what is being tested
-5. **Arrange-Act-Assert**: Structure tests clearly
-6. **Mock External Dependencies**: Don't hit real database/API
-
-## Continuous Integration
-
-Tests run automatically on:
-- Pull requests
-- Merge to main branch
-- Daily scheduled builds
+Response:
+```json
+{
+  "migration": {
+    "status": "in-progress",
+    "modules": {
+      "iam": "modular",
+      "profile": "modular",
+      ...
+    }
+  }
+}
+```
 
 ## Troubleshooting
 
-### Tests Failing Due to Timeouts
+### Tests Failing Due to Database
+
+Ensure test database is running:
 ```bash
-# Increase timeout
-npx jest --testTimeout=30000
+psql -U postgres -c "CREATE DATABASE muslimeen_test_modular;"
 ```
 
-### Tests Failing Due to Environment
+### Feature Flags Not Working
+
+Feature flags are read at startup. Restart the server after changing environment variables.
+
+### TypeScript Errors
+
+Run type checking:
 ```bash
-# Check environment
-node -e "console.log(process.env.NODE_ENV)"
-
-# Should print 'test'
+npm run type-check
 ```
 
-### Mock Not Working
-Ensure mock is defined before importing the module:
-```typescript
-// ✅ Correct
-jest.mock('../../../src/models/User', () => mockUserModel);
-import { UserService } from '../../../src/services/UserService';
+## Support
 
-// ❌ Incorrect
-import { UserService } from '../../../src/services/UserService';
-jest.mock('../../../src/models/User', () => mockUserModel);
-```
+For detailed migration testing instructions, see [MIGRATION_TESTING_GUIDE.md](./MIGRATION_TESTING_GUIDE.md).

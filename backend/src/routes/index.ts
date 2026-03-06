@@ -2,12 +2,19 @@
  * API Routes
  * MuslimEEN Backend API Routes
  * 
- * Note: Routes are now thin - all business logic moved to services
+ * Migration Status: HYBRID (Legacy + Modular)
+ * This router supports gradual migration via feature flags.
+ * Each module can be switched independently.
  */
 
 import { Router, Request, Response } from 'express';
 
-// Middleware
+// Feature Flags
+import { featureFlags } from '../modules/shared/config/featureFlags';
+
+// ============================================================================
+// MIDDLEWARE (Legacy - will be migrated last)
+// ============================================================================
 import { authenticate, optionalAuth, authorize } from '../middleware/auth';
 import { createBodyValidator, createQueryValidator } from '../middleware/validation';
 import {
@@ -17,25 +24,79 @@ import {
   apiLimiter,
 } from '../middleware/rateLimiter';
 
-// Controllers
-import * as authController from '../controllers/authController';
-import * as userController from '../controllers/userController';
-import * as marketplaceController from '../controllers/marketplaceController';
-import * as islamicFinanceController from '../controllers/islamicFinanceController';
-import * as verificationController from '../controllers/verificationController';
-import * as invitationController from '../controllers/invitationController';
+// ============================================================================
+// LEGACY CONTROLLERS
+// ============================================================================
+import * as legacyAuthController from '../controllers/authController';
+import * as legacyUserController from '../controllers/userController';
+import * as legacyMarketplaceController from '../controllers/marketplaceController';
+import * as legacyIslamicFinanceController from '../controllers/islamicFinanceController';
+import * as legacyVerificationController from '../controllers/verificationController';
+import * as legacyInvitationController from '../controllers/invitationController';
+
+// ============================================================================
+// MODULAR CONTROLLERS
+// ============================================================================
+import { AuthController as modularAuthController } from '../modules/iam';
+import { ProfileController as modularProfileController } from '../modules/profile';
+import { TrustScoreController as modularTrustScoreController, VerificationController as modularVerificationController } from '../modules/trust';
+import { ConnectionController as modularConnectionController } from '../modules/network';
+import { MarketplaceController as modularMarketplaceController } from '../modules/marketplace';
+import * as modularIslamicFinanceController from '../modules/islamic-finance/controllers/IslamicFinanceController';
+
+// ============================================================================
+// CONTROLLER SELECTION (Feature Flag Based)
+// ============================================================================
+
+// IAM Module
+const authController = featureFlags.useModularIAM ? modularAuthController : legacyAuthController;
+
+// Profile Module (note: legacy userController handles profile)
+const profileController = featureFlags.useModularProfile ? modularProfileController : legacyUserController;
+
+// Trust Module
+const trustScoreController = featureFlags.useModularTrust ? modularTrustScoreController : legacyUserController;
+const verificationController = featureFlags.useModularTrust ? modularVerificationController : legacyVerificationController;
+
+// Network Module
+const connectionController = featureFlags.useModularNetwork ? modularConnectionController : legacyUserController;
+
+// Marketplace Module
+const marketplaceController = featureFlags.useModularMarketplace ? modularMarketplaceController : legacyMarketplaceController;
+
+// Islamic Finance Module
+const islamicFinanceController = featureFlags.useModularIslamicFinance ? modularIslamicFinanceController : legacyIslamicFinanceController;
+
+// Invitations Module (currently only legacy available)
+const invitationController = legacyInvitationController;
+
+// Notifications Module (currently only legacy available via userController)
+const notificationController = legacyUserController;
 
 const router = Router();
 
 // ============================================================================
-// Public Routes
+// MIGRATION STATUS ENDPOINT
 // ============================================================================
 
-// API Info
-router.get('/', (req: Request, res: Response) => {
+router.get('/migration-status', (_req: Request, res: Response) => {
   res.json({
     name: 'MuslimEEN API',
     version: '1.0.0',
+    migration: {
+      status: 'in-progress',
+      featureFlags,
+      modules: {
+        iam: featureFlags.useModularIAM ? 'modular' : 'legacy',
+        profile: featureFlags.useModularProfile ? 'modular' : 'legacy',
+        trust: featureFlags.useModularTrust ? 'modular' : 'legacy',
+        network: featureFlags.useModularNetwork ? 'modular' : 'legacy',
+        notifications: featureFlags.useModularNotifications ? 'modular' : 'legacy',
+        invitations: featureFlags.useModularInvitations ? 'modular' : 'legacy',
+        marketplace: featureFlags.useModularMarketplace ? 'modular' : 'legacy',
+        islamicFinance: featureFlags.useModularIslamicFinance ? 'modular' : 'legacy',
+      }
+    },
     endpoints: {
       auth: '/api/auth',
       user: '/api/user',
@@ -48,7 +109,16 @@ router.get('/', (req: Request, res: Response) => {
 });
 
 // ============================================================================
-// Authentication Routes
+// Public Routes
+// ============================================================================
+
+// API Info (redirect to migration-status)
+router.get('/', (req: Request, res: Response) => {
+  res.redirect('/api/migration-status');
+});
+
+// ============================================================================
+// AUTHENTICATION ROUTES (IAM Module)
 // ============================================================================
 
 router.post('/auth/validate-invitation', authLimiter, createBodyValidator('validateInvitation'), authController.validateInvitation);
@@ -58,31 +128,50 @@ router.post('/auth/logout', authenticate, authController.logout);
 router.get('/auth/me', authenticate, authController.getCurrentUser);
 
 // ============================================================================
-// User Routes
+// USER/PROFILE ROUTES (Profile Module)
 // ============================================================================
 
-router.get('/user/profile', authenticate, userLimiter, userController.getCurrentUserProfile);
-router.put('/user/profile', authenticate, userLimiter, createBodyValidator('updateProfile'), userController.updateCurrentUserProfile);
+router.get('/user/profile', authenticate, userLimiter, profileController.getCurrentUserProfile);
+router.put('/user/profile', authenticate, userLimiter, createBodyValidator('updateProfile'), profileController.updateCurrentUserProfile);
 
-// Trust Score
-router.get('/user/trust-score', authenticate, userLimiter, userController.getCurrentTrustScore);
-router.post('/user/trust-score/recalculate', authenticate, userLimiter, userController.recalculateCurrentTrustScore);
-router.get('/user/trust-score/history', authenticate, userLimiter, userController.getCurrentUserTrustScoreHistory);
-
-// Connections
-router.get('/user/connections', authenticate, userLimiter, userController.getCurrentUserConnections);
-router.get('/user/connections/pending', authenticate, userLimiter, userController.getCurrentUserPendingConnections);
-router.post('/user/connections', authenticate, userLimiter, createBodyValidator('connectionRequest'), userController.sendConnectionRequestToUser);
-router.post('/user/connections/:connectionId/accept', authenticate, userLimiter, userController.acceptIncomingConnectionRequest);
-router.post('/user/connections/:connectionId/reject', authenticate, userLimiter, userController.rejectIncomingConnectionRequest);
-
-// Notifications
-router.get('/user/notifications', authenticate, userLimiter, userController.getCurrentUserNotifications);
-router.put('/user/notifications/:notificationId/read', authenticate, userLimiter, userController.markNotificationAsRead);
-router.put('/user/notifications/read-all', authenticate, userLimiter, userController.markAllNotificationsAsRead);
+// Public profile endpoint (modular only)
+if (featureFlags.useModularProfile) {
+  router.get('/users/:userId/profile', authenticate, modularProfileController.getPublicProfile);
+}
 
 // ============================================================================
-// Invitation Routes
+// TRUST SCORE ROUTES (Trust Module)
+// ============================================================================
+
+router.get('/user/trust-score', authenticate, userLimiter, trustScoreController.getCurrentTrustScore);
+router.post('/user/trust-score/recalculate', authenticate, userLimiter, trustScoreController.recalculateCurrentTrustScore);
+router.get('/user/trust-score/history', authenticate, userLimiter, trustScoreController.getCurrentUserTrustScoreHistory);
+
+// ============================================================================
+// CONNECTIONS ROUTES (Network Module)
+// ============================================================================
+
+router.get('/user/connections', authenticate, userLimiter, connectionController.getCurrentUserConnections);
+router.get('/user/connections/pending', authenticate, userLimiter, connectionController.getCurrentUserPendingConnections);
+router.post('/user/connections', authenticate, userLimiter, createBodyValidator('connectionRequest'), connectionController.sendConnectionRequestToUser);
+router.post('/user/connections/:connectionId/accept', authenticate, userLimiter, connectionController.acceptIncomingConnectionRequest);
+router.post('/user/connections/:connectionId/reject', authenticate, userLimiter, connectionController.rejectIncomingConnectionRequest);
+
+// Additional modular endpoint
+if (featureFlags.useModularNetwork) {
+  router.delete('/user/connections/:connectionId', authenticate, userLimiter, modularConnectionController.removeConnection);
+}
+
+// ============================================================================
+// NOTIFICATIONS ROUTES (Notifications Module - Legacy only for now)
+// ============================================================================
+
+router.get('/user/notifications', authenticate, userLimiter, notificationController.getCurrentUserNotifications);
+router.put('/user/notifications/:notificationId/read', authenticate, userLimiter, notificationController.markNotificationAsRead);
+router.put('/user/notifications/read-all', authenticate, userLimiter, notificationController.markAllNotificationsAsRead);
+
+// ============================================================================
+// INVITATION ROUTES (Invitations Module - Legacy only for now)
 // ============================================================================
 
 router.get('/invitations', authenticate, userLimiter, invitationController.getInvitations);
@@ -92,7 +181,7 @@ router.get('/invitations/remaining', authenticate, userLimiter, invitationContro
 router.get('/invitations/validate/:code', authLimiter, invitationController.validateInvitation);
 
 // ============================================================================
-// Marketplace Routes
+// MARKETPLACE ROUTES (Marketplace Module)
 // ============================================================================
 
 router.get('/marketplace/:vertical', authenticate, marketplaceLimiter, createQueryValidator('marketplaceFilter'), marketplaceController.getMarketplaceListings);
@@ -105,7 +194,7 @@ router.delete('/marketplace/:vertical/:id', authenticate, marketplaceLimiter, ma
 router.post('/marketplace/:vertical/:id/invest', authenticate, marketplaceLimiter, marketplaceController.recordInvestment);
 
 // ============================================================================
-// Islamic Finance Routes
+// ISLAMIC FINANCE ROUTES (Islamic Finance Module)
 // ============================================================================
 
 // Sadaqah (Charity)
@@ -126,7 +215,7 @@ router.post('/islamic-finance/qard-hasan/:id/repay', authenticate, apiLimiter, i
 router.post('/islamic-finance/zakat/calculate', authenticate, apiLimiter, createBodyValidator('zakatCalculation'), islamicFinanceController.calculateZakat);
 
 // ============================================================================
-// Verification Routes
+// VERIFICATION ROUTES (Trust Module - Verification)
 // ============================================================================
 
 // Biometric
@@ -135,23 +224,33 @@ router.post('/verification/biometric/complete', authenticate, userLimiter, verif
 
 // Witness
 router.post('/verification/witness/request', authenticate, userLimiter, verificationController.requestWitnessVerification);
-router.post('/verification/witness/:id/approve', authenticate, userLimiter, verificationController.approveWitness);
+
+// Modular has different param name
+if (featureFlags.useModularTrust) {
+  router.post('/verification/witness/:userId/approve', authenticate, userLimiter, modularVerificationController.approveAsWitness);
+} else {
+  router.post('/verification/witness/:id/approve', authenticate, userLimiter, legacyVerificationController.approveWitness);
+}
 
 // Business
 router.post('/verification/business/request', authenticate, userLimiter, verificationController.requestBusinessVerification);
 router.post('/verification/business/:userId/approve', authenticate, userLimiter, authorize('admin'), verificationController.approveBusinessVerification);
 
 // ============================================================================
-// Admin Routes
+// ADMIN ROUTES
 // ============================================================================
 
 // Placeholder for admin routes
 router.get('/admin/stats', authenticate, authorize('admin'), (req: Request, res: Response) => {
-  res.json({ success: true, message: 'Admin stats endpoint' });
+  res.json({ 
+    success: true, 
+    message: 'Admin stats endpoint',
+    migration: getMigrationStatus(),
+  });
 });
 
 // ============================================================================
-// Feed Routes
+// FEED ROUTES
 // ============================================================================
 
 // Public feed endpoint
@@ -162,5 +261,22 @@ router.get('/feed', optionalAuth, apiLimiter, (req: Request, res: Response) => {
     items: [],
   });
 });
+
+// Helper function for admin stats
+function getMigrationStatus() {
+  return {
+    featureFlags,
+    modules: {
+      iam: featureFlags.useModularIAM ? 'modular' : 'legacy',
+      profile: featureFlags.useModularProfile ? 'modular' : 'legacy',
+      trust: featureFlags.useModularTrust ? 'modular' : 'legacy',
+      network: featureFlags.useModularNetwork ? 'modular' : 'legacy',
+      notifications: featureFlags.useModularNotifications ? 'modular' : 'legacy',
+      invitations: featureFlags.useModularInvitations ? 'modular' : 'legacy',
+      marketplace: featureFlags.useModularMarketplace ? 'modular' : 'legacy',
+      islamicFinance: featureFlags.useModularIslamicFinance ? 'modular' : 'legacy',
+    }
+  };
+}
 
 export default router;

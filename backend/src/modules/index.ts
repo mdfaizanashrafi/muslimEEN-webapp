@@ -2,25 +2,35 @@
  * MuslimEEN Modular Architecture
  * 
  * Module Structure:
+ * - iam: Identity and Access Management
  * - profile: User Profile Management
- * - trustScore: Trust Score and Verification
- * - connections: Network Connections
+ * - trust: Trust Score and Verification
+ * - network: Network Connections
+ * - marketplace: Marketplace
+ * - islamic-finance: Islamic Finance Tools
+ * - invitations: Invitation Management
  * - notifications: Notification Delivery
  * 
  * Shared:
  * - events: Event bus for inter-module communication
  * - database: Database connection
+ * - config: Feature flags and configuration
  */
 
 // Initialize notification event handlers
-import { initializeEventHandlers } from './notifications/notificationService';
+import { initializeEventHandlers } from './notifications/services/NotificationService';
 initializeEventHandlers();
 
 // Export modules
-export * as profile from './profile/profileController';
-export * as trustScore from './trustScore/trustScoreController';
-export * as connections from './connections/connectionController';
-export * as notifications from './notifications/notificationController';
+export * as iam from './iam';
+export * as profile from './profile';
+export * as trust from './trust';
+export * as network from './network';
+export * as marketplace from './marketplace';
+export * as islamicFinance from './islamic-finance';
+export * as invitations from './invitations';
+export * as notifications from './notifications';
 
 // Export shared
-export { eventBus, DomainEvents } from './shared/events/eventBus';
+export { eventBus, DomainEvents } from './shared/events/EventBus';
+export { featureFlags, isFullyMigrated, getMigrationStatus } from './shared/config/featureFlags';

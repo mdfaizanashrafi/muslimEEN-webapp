@@ -18,6 +18,12 @@ module.exports = {
     '**/tests/**/*.test.ts',
     '**/tests/**/*.test.js',
   ],
+
+  // Test path ignore patterns
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/dist/',
+  ],
   
   // Module file extensions
   moduleFileExtensions: ['ts', 'js', 'json', 'node'],

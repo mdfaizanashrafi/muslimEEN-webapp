@@ -189,6 +189,25 @@ class Connection {
   }
 
   /**
+   * Get connection by ID
+   */
+  static async getById(id) {
+    const query = `
+      SELECT 
+        c.*,
+        u1.id as requester_id,
+        u2.id as recipient_id
+      FROM connections c
+      JOIN users u1 ON c.requester_id = u1.id
+      JOIN users u2 ON c.recipient_id = u2.id
+      WHERE c.id = $1
+    `;
+    const result = await db.query(query, [id]);
+    if (result.rows.length === 0) return null;
+    return this.formatConnection(result.rows[0]);
+  }
+
+  /**
    * Format database row
    */
   static formatConnection(row) {

@@ -1,26 +1,32 @@
 /**
  * Verification Controller
- * Handles biometric, witness, and business verification
+ * Thin HTTP handler - delegates all logic to VerificationService
+ * Responsibilities: HTTP request/response only
  */
 
 import { Request, Response, NextFunction } from 'express';
-import crypto from 'crypto';
-import User from '../models/User';
-import TrustScore from '../models/TrustScore';
-import logger from '../utils/logger';
+import * as VerificationService from '../services/VerificationService';
 
+// ============================================================================
+// BIOMETRIC VERIFICATION
+// ============================================================================
 
-// Biometric
 export const requestBiometricVerification = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    // Generate WebAuthn challenge
-    const challenge = crypto.randomBytes(32).toString('base64');
-    res.json({ success: true, challenge });
-  } catch (error) { next(error); }
+    const userId = req.user!.id;
+    const result = await VerificationService.requestBiometricVerification(userId);
+
+    res.json({
+      success: true,
+      challenge: result.challenge,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const completeBiometricVerification = async (
@@ -29,21 +35,42 @@ export const completeBiometricVerification = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    await User.update(req.user!.id, { verificationTier: 'full', biometricVerified: true });
-    await TrustScore.recalculate(req.user!.id);
-    res.json({ success: true, message: 'Biometric verification completed' });
-  } catch (error) { next(error); }
+    const userId = req.user!.id;
+    const result = await VerificationService.completeBiometricVerification(userId, req.body);
+
+    res.json({
+      success: true,
+      message: 'Biometric verification completed',
+      user: result.user,
+      trustScoreChanged: result.trustScoreChanged,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
-// Witness
+// ============================================================================
+// WITNESS VERIFICATION
+// ============================================================================
+
 export const requestWitnessVerification = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    res.json({ success: true, message: 'Witness verification requested' });
-  } catch (error) { next(error); }
+    const userId = req.user!.id;
+    const { witnessIds } = req.body;
+
+    await VerificationService.requestWitnessVerification(userId, witnessIds);
+
+    res.json({
+      success: true,
+      message: 'Witness verification requested',
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const approveWitness = async (
@@ -52,21 +79,43 @@ export const approveWitness = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    await User.update(req.user!.id, { verificationTier: 'full' });
-    await TrustScore.recalculate(req.user!.id);
-    res.json({ success: true, message: 'Witness verification approved' });
-  } catch (error) { next(error); }
+    const witnessId = req.user!.id;
+    const userId = req.params.id;
+
+    const result = await VerificationService.approveWitnessVerification(userId, witnessId);
+
+    res.json({
+      success: true,
+      message: 'Witness verification approved',
+      user: result.user,
+      trustScoreChanged: result.trustScoreChanged,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
-// Business
+// ============================================================================
+// BUSINESS VERIFICATION
+// ============================================================================
+
 export const requestBusinessVerification = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    res.json({ success: true, message: 'Business verification requested' });
-  } catch (error) { next(error); }
+    const userId = req.user!.id;
+
+    await VerificationService.requestBusinessVerification(userId);
+
+    res.json({
+      success: true,
+      message: 'Business verification requested',
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const approveBusinessVerification = async (
@@ -75,8 +124,18 @@ export const approveBusinessVerification = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    await User.update(req.params.userId, { verificationTier: 'business', role: 'business' });
-    await TrustScore.recalculate(req.params.userId);
-    res.json({ success: true, message: 'Business verification approved' });
-  } catch (error) { next(error); }
+    const adminId = req.user!.id;
+    const userId = req.params.userId;
+
+    const result = await VerificationService.approveBusinessVerification(userId, adminId);
+
+    res.json({
+      success: true,
+      message: 'Business verification approved',
+      user: result.user,
+      trustScoreChanged: result.trustScoreChanged,
+    });
+  } catch (error) {
+    next(error);
+  }
 };

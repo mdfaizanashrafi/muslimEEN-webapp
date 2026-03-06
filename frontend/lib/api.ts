@@ -39,71 +39,71 @@ export interface ValidateInvitationResponse {
   usedCount?: number;
 }
 
-// Generic fetch helper
-async function fetchApi<T>(
+// Generic API request helper
+async function callMuslimEenApi<T>(
   endpoint: string, 
-  options: RequestInit = {}
+  requestConfig: RequestInit = {}
 ): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
+  const apiUrl = `${API_BASE_URL}${endpoint}`;
   
-  const config: RequestInit = {
-    ...options,
+  const httpConfig: RequestInit = {
+    ...requestConfig,
     headers: {
       'Content-Type': 'application/json',
-      ...options.headers,
+      ...requestConfig.headers,
     },
     credentials: 'include',
   };
 
   // Add CSRF token if available
   if (typeof window !== 'undefined') {
-    const csrfToken = localStorage.getItem('muslimeen_csrf');
-    if (csrfToken) {
-      config.headers = {
-        ...config.headers,
-        'X-CSRF-Token': csrfToken,
+    const storedCsrfToken = localStorage.getItem('muslimeen_csrf');
+    if (storedCsrfToken) {
+      httpConfig.headers = {
+        ...httpConfig.headers,
+        'X-CSRF-Token': storedCsrfToken,
       };
     }
   }
 
-  const response = await fetch(url, config);
+  const httpResponse = await fetch(apiUrl, httpConfig);
   
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || `HTTP error! status: ${response.status}`);
+  if (!httpResponse.ok) {
+    const errorData = await httpResponse.json().catch(() => ({}));
+    throw new Error(errorData.message || `HTTP error! status: ${httpResponse.status}`);
   }
 
-  return response.json();
+  return httpResponse.json();
 }
 
 // Auth API
 export const auth = {
-  validateInvitation: (code: string): Promise<ValidateInvitationResponse> =>
-    fetchApi('/auth/validate-invitation', {
+  validateInvitation: (invitationCode: string): Promise<ValidateInvitationResponse> =>
+    callMuslimEenApi('/auth/validate-invitation', {
       method: 'POST',
-      body: JSON.stringify({ invitationCode: code }),
+      body: JSON.stringify({ invitationCode }),
     }),
 
   login: (email: string, password: string, invitationCode?: string): Promise<LoginResponse> =>
-    fetchApi('/auth/login', {
+    callMuslimEenApi('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password, invitationCode }),
     }),
 
-  register: (data: {
+  register: (registrationData: {
     email: string;
     password: string;
     firstName: string;
     lastName: string;
     invitationCode: string;
   }): Promise<LoginResponse> =>
-    fetchApi('/auth/register', {
+    callMuslimEenApi('/auth/register', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(registrationData),
     }),
 
   logout: (): Promise<ApiResponse> =>
-    fetchApi('/auth/logout', {
+    callMuslimEenApi('/auth/logout', {
       method: 'POST',
     }),
 };
@@ -111,49 +111,49 @@ export const auth = {
 // User API
 export const user = {
   getProfile: (): Promise<ApiResponse<User>> =>
-    fetchApi('/user/profile'),
+    callMuslimEenApi('/user/profile'),
 
-  updateProfile: (data: Partial<User>): Promise<ApiResponse<User>> =>
-    fetchApi('/user/profile', {
+  updateProfile: (profileUpdates: Partial<User>): Promise<ApiResponse<User>> =>
+    callMuslimEenApi('/user/profile', {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: JSON.stringify(profileUpdates),
     }),
 
-  updateSettings: (settings: Record<string, unknown>): Promise<ApiResponse> =>
-    fetchApi('/user/settings', {
+  updateSettings: (userSettings: Record<string, unknown>): Promise<ApiResponse> =>
+    callMuslimEenApi('/user/settings', {
       method: 'PUT',
-      body: JSON.stringify(settings),
+      body: JSON.stringify(userSettings),
     }),
 
-  updateNotificationPreferences: (preferences: Record<string, boolean>): Promise<ApiResponse> =>
-    fetchApi('/user/notifications', {
+  updateNotificationPreferences: (notificationPreferences: Record<string, boolean>): Promise<ApiResponse> =>
+    callMuslimEenApi('/user/notifications', {
       method: 'PUT',
-      body: JSON.stringify(preferences),
+      body: JSON.stringify(notificationPreferences),
     }),
 };
 
 // Marketplace API
 export const marketplace = {
-  getListings: (params?: { vertical?: string; status?: string }): Promise<ApiResponse> =>
-    fetchApi(`/marketplace/listings?${new URLSearchParams(params as Record<string, string>)}`),
+  getListings: (filterParams?: { vertical?: string; status?: string }): Promise<ApiResponse> =>
+    callMuslimEenApi(`/marketplace/listings?${new URLSearchParams(filterParams as Record<string, string>)}`),
 
-  getListing: (id: string): Promise<ApiResponse> =>
-    fetchApi(`/marketplace/listings/${id}`),
+  getListing: (listingId: string): Promise<ApiResponse> =>
+    callMuslimEenApi(`/marketplace/listings/${listingId}`),
 
-  createListing: (data: Record<string, unknown>): Promise<ApiResponse> =>
-    fetchApi('/marketplace/listings', {
+  createListing: (listingData: Record<string, unknown>): Promise<ApiResponse> =>
+    callMuslimEenApi('/marketplace/listings', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(listingData),
     }),
 
-  updateListing: (id: string, data: Record<string, unknown>): Promise<ApiResponse> =>
-    fetchApi(`/marketplace/listings/${id}`, {
+  updateListing: (listingId: string, listingUpdates: Record<string, unknown>): Promise<ApiResponse> =>
+    callMuslimEenApi(`/marketplace/listings/${listingId}`, {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: JSON.stringify(listingUpdates),
     }),
 
-  deleteListing: (id: string): Promise<ApiResponse> =>
-    fetchApi(`/marketplace/listings/${id}`, {
+  deleteListing: (listingId: string): Promise<ApiResponse> =>
+    callMuslimEenApi(`/marketplace/listings/${listingId}`, {
       method: 'DELETE',
     }),
 };
@@ -161,18 +161,18 @@ export const marketplace = {
 // Verification API
 export const verification = {
   getStatus: (): Promise<ApiResponse> =>
-    fetchApi('/verification/status'),
+    callMuslimEenApi('/verification/status'),
 
-  submitIdentity: (data: Record<string, unknown>): Promise<ApiResponse> =>
-    fetchApi('/verification/identity', {
+  submitIdentity: (identityData: Record<string, unknown>): Promise<ApiResponse> =>
+    callMuslimEenApi('/verification/identity', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(identityData),
     }),
 
-  uploadDocument: (formData: FormData): Promise<ApiResponse> =>
-    fetchApi('/verification/documents', {
+  uploadDocument: (documentFormData: FormData): Promise<ApiResponse> =>
+    callMuslimEenApi('/verification/documents', {
       method: 'POST',
-      body: formData,
+      body: documentFormData,
       headers: {}, // Let browser set content-type for multipart
     }),
 };
@@ -180,29 +180,29 @@ export const verification = {
 // Connections API
 export const connections = {
   getConnections: (): Promise<ApiResponse> =>
-    fetchApi('/connections'),
+    callMuslimEenApi('/connections'),
 
   getPendingRequests: (): Promise<ApiResponse> =>
-    fetchApi('/connections/pending'),
+    callMuslimEenApi('/connections/pending'),
 
-  sendRequest: (userId: string, message?: string): Promise<ApiResponse> =>
-    fetchApi('/connections/request', {
+  sendRequest: (targetUserId: string, requestMessage?: string): Promise<ApiResponse> =>
+    callMuslimEenApi('/connections/request', {
       method: 'POST',
-      body: JSON.stringify({ userId, message }),
+      body: JSON.stringify({ userId: targetUserId, message: requestMessage }),
     }),
 
   acceptRequest: (connectionId: string): Promise<ApiResponse> =>
-    fetchApi(`/connections/${connectionId}/accept`, {
+    callMuslimEenApi(`/connections/${connectionId}/accept`, {
       method: 'POST',
     }),
 
   declineRequest: (connectionId: string): Promise<ApiResponse> =>
-    fetchApi(`/connections/${connectionId}/decline`, {
+    callMuslimEenApi(`/connections/${connectionId}/decline`, {
       method: 'POST',
     }),
 
   removeConnection: (connectionId: string): Promise<ApiResponse> =>
-    fetchApi(`/connections/${connectionId}`, {
+    callMuslimEenApi(`/connections/${connectionId}`, {
       method: 'DELETE',
     }),
 };
@@ -210,19 +210,19 @@ export const connections = {
 // Messages API
 export const messages = {
   getConversations: (): Promise<ApiResponse> =>
-    fetchApi('/messages/conversations'),
+    callMuslimEenApi('/messages/conversations'),
 
   getMessages: (conversationId: string): Promise<ApiResponse> =>
-    fetchApi(`/messages/conversations/${conversationId}`),
+    callMuslimEenApi(`/messages/conversations/${conversationId}`),
 
-  sendMessage: (conversationId: string, content: string): Promise<ApiResponse> =>
-    fetchApi(`/messages/conversations/${conversationId}`, {
+  sendMessage: (conversationId: string, messageContent: string): Promise<ApiResponse> =>
+    callMuslimEenApi(`/messages/conversations/${conversationId}`, {
       method: 'POST',
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({ content: messageContent }),
     }),
 
   markAsRead: (conversationId: string): Promise<ApiResponse> =>
-    fetchApi(`/messages/conversations/${conversationId}/read`, {
+    callMuslimEenApi(`/messages/conversations/${conversationId}/read`, {
       method: 'POST',
     }),
 };

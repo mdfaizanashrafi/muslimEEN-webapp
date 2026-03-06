@@ -1,149 +1,322 @@
 /**
  * User Controller
- * Handles user profile, connections, and notifications
+ * HTTP request handling for user-related operations
+ * Responsibilities: Extract HTTP data, delegate to services, format responses
  */
 
 import { Request, Response, NextFunction } from 'express';
-import User from '../models/User';
-import Connection from '../models/Connection';
-import TrustScore from '../models/TrustScore';
-import Notification from '../models/Notification';
+import * as UserService from '../services/UserService';
+import * as TrustScoreService from '../services/TrustScoreService';
+import * as ConnectionService from '../services/ConnectionService';
+import * as NotificationService from '../services/NotificationService';
+import logger from '../utils/logger';
 
+// ============================================================================
+// PROFILE
+// ============================================================================
 
-// Profile
-export const getProfile = async (
+/**
+ * Retrieve current user's complete profile
+ * GET /user/profile
+ */
+export const retrieveCurrentUserProfile = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const user = await User.getFullProfile(req.user!.id);
-    res.json({ success: true, user });
-  } catch (error) { next(error); }
+    const authenticatedUserId = req.user!.id;
+    const userProfile = await UserService.fetchUserProfileById(authenticatedUserId);
+
+    res.json(UserService.formatProfileForApiResponse(userProfile));
+  } catch (error) {
+    next(error);
+  }
 };
 
-export const updateProfile = async (
+/**
+ * Modify current user's profile information
+ * PUT /user/profile
+ */
+export const modifyCurrentUserProfile = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const user = await User.update(req.user!.id, req.body);
-    await TrustScore.recalculate(req.user!.id);
-    res.json({ success: true, user, message: 'Profile updated' });
-  } catch (error) { next(error); }
+    const authenticatedUserId = req.user!.id;
+    const profileUpdateData = req.body;
+
+    const updatedUserProfile = await UserService.updateUserProfile(authenticatedUserId, profileUpdateData);
+
+    res.json({
+      success: true,
+      user: updatedUserProfile,
+      message: 'Profile updated successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
-// Trust Score
-export const getTrustScore = async (
+// ============================================================================
+// TRUST SCORE
+// ============================================================================
+
+/**
+ * Retrieve current user's trust score with factors
+ * GET /user/trust-score
+ */
+export const retrieveCurrentTrustScore = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const trustScore = await TrustScore.recalculate(req.user!.id);
-    res.json({ success: true, trustScore });
-  } catch (error) { next(error); }
+    const authenticatedUserId = req.user!.id;
+    const currentTrustScore = await TrustScoreService.fetchCurrentTrustScore(authenticatedUserId);
+    const trustScoreHistory = await TrustScoreService.fetchTrustScoreHistory(authenticatedUserId);
+
+    res.json({
+      success: true,
+      score: currentTrustScore,
+      history: trustScoreHistory.history.slice(0, 1)[0]?.factors || [],
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
-export const getTrustScoreHistory = async (
+/**
+ * Trigger recalculation of trust score
+ * POST /user/trust-score/recalculate
+ */
+export const triggerTrustScoreRecalculation = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const history = await User.getTrustScoreHistory(req.user!.id);
-    res.json({ success: true, history });
-  } catch (error) { next(error); }
+    const authenticatedUserId = req.user!.id;
+    const recalculationOutcome = await TrustScoreService.recalculateTrustScore(authenticatedUserId);
+
+    res.json({
+      success: true,
+      score: recalculationOutcome.score,
+      changed: recalculationOutcome.changed,
+      witnessEligibilityChanged: recalculationOutcome.witnessEligibilityChanged,
+      factors: recalculationOutcome.factors,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
-// Connections
-export const getConnections = async (
+/**
+ * Retrieve trust score change history
+ * GET /user/trust-score/history
+ */
+export const retrieveTrustScoreHistory = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const connections = await Connection.getByUser(req.user!.id);
-    res.json({ success: true, connections });
-  } catch (error) { next(error); }
+    const authenticatedUserId = req.user!.id;
+    const scoreHistory = await TrustScoreService.fetchTrustScoreHistory(authenticatedUserId);
+
+    res.json(scoreHistory);
+  } catch (error) {
+    next(error);
+  }
 };
 
-export const getPendingConnections = async (
+// ============================================================================
+// CONNECTIONS
+// ============================================================================
+
+/**
+ * Retrieve authenticated user's network connections
+ * GET /user/connections
+ */
+export const retrieveUserNetworkConnections = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const pending = await Connection.getPendingRequests(req.user!.id);
-    res.json({ success: true, pending });
-  } catch (error) { next(error); }
+    const authenticatedUserId = req.user!.id;
+    const userNetworkConnections = await ConnectionService.fetchUserConnections(authenticatedUserId);
+
+    res.json(userNetworkConnections);
+  } catch (error) {
+    next(error);
+  }
 };
 
-export const sendConnectionRequest = async (
+/**
+ * Retrieve pending connection requests for user
+ * GET /user/connections/pending
+ */
+export const retrievePendingConnectionRequests = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { recipientId } = req.body;
-    await Connection.create(req.user!.id, recipientId);
-    res.json({ success: true, message: 'Connection request sent' });
-  } catch (error) { next(error); }
+    const authenticatedUserId = req.user!.id;
+    const pendingConnectionRequests = await ConnectionService.fetchPendingConnectionRequests(authenticatedUserId);
+
+    res.json(pendingConnectionRequests);
+  } catch (error) {
+    next(error);
+  }
 };
 
+/**
+ * Initiate connection request to another user
+ * POST /user/connections
+ */
+export const initiateConnectionRequest = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const requesterUserId = req.user!.id;
+    const targetRecipientId = req.body.recipientId;
+
+    await ConnectionService.sendConnectionRequest(requesterUserId, targetRecipientId);
+
+    res.json({
+      success: true,
+      message: 'Connection request sent successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Accept incoming connection request
+ * POST /user/connections/:connectionId/accept
+ */
 export const acceptConnectionRequest = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    await Connection.accept(req.params.id, req.user!.id);
-    res.json({ success: true, message: 'Connection accepted' });
-  } catch (error) { next(error); }
+    const recipientUserId = req.user!.id;
+    const connectionRequestId = req.params.connectionId;
+
+    await ConnectionService.acceptConnectionRequest(connectionRequestId, recipientUserId);
+
+    res.json({
+      success: true,
+      message: 'Connection request accepted',
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
-export const rejectConnectionRequest = async (
+/**
+ * Decline incoming connection request
+ * POST /user/connections/:connectionId/reject
+ */
+export const declineConnectionRequest = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    await Connection.reject(req.params.id, req.user!.id);
-    res.json({ success: true, message: 'Connection rejected' });
-  } catch (error) { next(error); }
+    const recipientUserId = req.user!.id;
+    const connectionRequestId = req.params.connectionId;
+
+    await ConnectionService.rejectConnectionRequest(connectionRequestId, recipientUserId);
+
+    res.json({
+      success: true,
+      message: 'Connection request declined',
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
-// Notifications
-export const getNotifications = async (
+// ============================================================================
+// NOTIFICATIONS
+// ============================================================================
+
+/**
+ * Retrieve user's notification inbox
+ * GET /user/notifications
+ */
+export const retrieveUserNotifications = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const notifications = await Notification.getByUser(req.user!.id);
-    res.json({ success: true, notifications });
-  } catch (error) { next(error); }
+    const authenticatedUserId = req.user!.id;
+    const { unreadOnly, limit: queryLimit, offset: queryOffset } = req.query;
+
+    const userNotificationInbox = await NotificationService.fetchUserNotifications(authenticatedUserId, {
+      unreadOnly: unreadOnly === 'true',
+      limit: queryLimit ? parseInt(queryLimit as string, 10) : undefined,
+      offset: queryOffset ? parseInt(queryOffset as string, 10) : undefined,
+    });
+
+    res.json(userNotificationInbox);
+  } catch (error) {
+    next(error);
+  }
 };
 
-export const markNotificationRead = async (
+/**
+ * Mark specific notification as read
+ * PUT /user/notifications/:notificationId/read
+ */
+export const markSingleNotificationAsRead = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    await Notification.markAsRead(req.params.id, req.user!.id);
-    res.json({ success: true, message: 'Notification marked as read' });
-  } catch (error) { next(error); }
+    const authenticatedUserId = req.user!.id;
+    const notificationId = req.params.notificationId;
+
+    await NotificationService.markNotificationAsRead(notificationId, authenticatedUserId);
+
+    res.json({
+      success: true,
+      message: 'Notification marked as read',
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
-export const markAllNotificationsRead = async (
+/**
+ * Mark all user's notifications as read
+ * PUT /user/notifications/read-all
+ */
+export const markAllUserNotificationsAsRead = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    await Notification.markAllAsRead(req.user!.id);
-    res.json({ success: true, message: 'All notifications marked as read' });
-  } catch (error) { next(error); }
+    const authenticatedUserId = req.user!.id;
+
+    await NotificationService.markAllNotificationsAsReadForUser(authenticatedUserId);
+
+    res.json({
+      success: true,
+      message: 'All notifications marked as read',
+    });
+  } catch (error) {
+    next(error);
+  }
 };

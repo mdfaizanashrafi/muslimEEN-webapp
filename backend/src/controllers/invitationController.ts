@@ -1,11 +1,15 @@
 /**
  * Invitation Controller
- * Handles invitation creation and management
+ * Thin HTTP handler - delegates all logic to InvitationService
+ * Responsibilities: HTTP request/response only
  */
 
 import { Request, Response, NextFunction } from 'express';
-import Invitation from '../models/Invitation';
+import * as InvitationService from '../services/InvitationService';
 
+// ============================================================================
+// GET INVITATIONS
+// ============================================================================
 
 export const getInvitations = async (
   req: Request,
@@ -13,10 +17,21 @@ export const getInvitations = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const invitations = await Invitation.getByInviter(req.user!.id);
-    res.json({ success: true, invitations });
-  } catch (error) { next(error); }
+    const userId = req.user!.id;
+    const invitations = await InvitationService.getInvitationsByInviter(userId);
+
+    res.json({
+      success: true,
+      invitations,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
+
+// ============================================================================
+// CREATE INVITATION
+// ============================================================================
 
 export const createInvitation = async (
   req: Request,
@@ -24,10 +39,26 @@ export const createInvitation = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const invitation = await Invitation.create(req.user!.id, req.body.email);
-    res.status(201).json({ success: true, invitation });
-  } catch (error) { next(error); }
+    const inviterId = req.user!.id;
+    const { email } = req.body;
+
+    const invitation = await InvitationService.createInvitation({
+      inviterId,
+      inviteeEmail: email,
+    });
+
+    res.status(201).json({
+      success: true,
+      invitation,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
+
+// ============================================================================
+// REVOKE INVITATION
+// ============================================================================
 
 export const revokeInvitation = async (
   req: Request,
@@ -35,10 +66,23 @@ export const revokeInvitation = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    await Invitation.revoke(req.params.id, req.user!.id);
-    res.json({ success: true, message: 'Invitation revoked' });
-  } catch (error) { next(error); }
+    const userId = req.user!.id;
+    const invitationId = req.params.id;
+
+    await InvitationService.revokeInvitation(invitationId, userId);
+
+    res.json({
+      success: true,
+      message: 'Invitation revoked',
+    });
+  } catch (error) {
+    next(error);
+  }
 };
+
+// ============================================================================
+// GET REMAINING COUNT
+// ============================================================================
 
 export const getRemainingCount = async (
   req: Request,
@@ -46,10 +90,21 @@ export const getRemainingCount = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const count = await Invitation.countPendingByInviter(req.user!.id);
-    res.json({ success: true, remaining: count });
-  } catch (error) { next(error); }
+    const userId = req.user!.id;
+    const count = await InvitationService.getPendingInvitationCount(userId);
+
+    res.json({
+      success: true,
+      remaining: count,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
+
+// ============================================================================
+// VALIDATE INVITATION
+// ============================================================================
 
 export const validateInvitation = async (
   req: Request,
@@ -57,7 +112,14 @@ export const validateInvitation = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const result = await Invitation.validate(req.params.code);
-    res.json({ success: result.valid, ...result });
-  } catch (error) { next(error); }
+    const { code } = req.params;
+    const result = await InvitationService.validateInvitation(code);
+
+    res.json({
+      success: result.valid,
+      ...result,
+    });
+  } catch (error) {
+    next(error);
+  }
 };

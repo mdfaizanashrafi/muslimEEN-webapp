@@ -1,22 +1,32 @@
 /**
  * Islamic Finance Controller
- * Handles Sadaqah, Waqf, Qard Hasan, and Zakat
+ * Thin HTTP handler - delegates all logic to IslamicFinanceService
+ * Responsibilities: HTTP request/response only
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { Sadaqah, Waqf, QardHasan, ZakatCalculator } from '../models/IslamicFinance';
+import * as IslamicFinanceService from '../services/IslamicFinanceService';
+import { IslamicFinanceError } from '../services/IslamicFinanceService';
 
+// ============================================================================
+// SADAQAH (CHARITY)
+// ============================================================================
 
-// Sadaqah (Charity)
 export const getSadaqahCampaigns = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const campaigns = await Sadaqah.getAll();
-    res.json({ success: true, campaigns });
-  } catch (error) { next(error); }
+    const campaigns = await IslamicFinanceService.getSadaqahCampaigns();
+
+    res.json({
+      success: true,
+      campaigns,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const getSadaqahCampaign = async (
@@ -25,13 +35,27 @@ export const getSadaqahCampaign = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const campaign = await Sadaqah.getById(req.params.id);
+    const campaignId = req.params.id;
+    const campaign = await IslamicFinanceService.getSadaqahCampaign(campaignId);
+
     if (!campaign) {
-      res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Campaign not found' } });
+      res.status(404).json({
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Campaign not found',
+        },
+      });
       return;
     }
-    res.json({ success: true, campaign });
-  } catch (error) { next(error); }
+
+    res.json({
+      success: true,
+      campaign,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const donate = async (
@@ -40,34 +64,78 @@ export const donate = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const campaignId = req.params.id;
+    const donorId = req.user!.id;
     const { amount, anonymous, message } = req.body;
-    await Sadaqah.recordDonation(req.params.id, req.user!.id, amount, anonymous, message);
-    res.json({ success: true, message: 'Donation recorded' });
-  } catch (error) { next(error); }
+
+    const donation = await IslamicFinanceService.processDonation({
+      campaignId,
+      donorId,
+      amount,
+      anonymous,
+      message,
+    });
+
+    res.json({
+      success: true,
+      message: 'Donation recorded',
+      donation,
+    });
+  } catch (error) {
+    if (error instanceof IslamicFinanceError) {
+      res.status(error.statusCode).json({
+        success: false,
+        error: {
+          code: error.code,
+          message: error.message,
+        },
+      });
+      return;
+    }
+    next(error);
+  }
 };
 
-// Waqf
-export const getWaqf = async (
+// ============================================================================
+// WAQF
+// ============================================================================
+
+export const getWaqfListings = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const waqf = await Waqf.getAll();
-    res.json({ success: true, waqf });
-  } catch (error) { next(error); }
+    const waqfListings = await IslamicFinanceService.getWaqfListings();
+
+    res.json({
+      success: true,
+      waqf: waqfListings,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
-// Qard Hasan
+// ============================================================================
+// QARD HASAN
+// ============================================================================
+
 export const getQardHasanLoans = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const loans = await QardHasan.getAll();
-    res.json({ success: true, loans });
-  } catch (error) { next(error); }
+    const loans = await IslamicFinanceService.getQardHasanLoans();
+
+    res.json({
+      success: true,
+      loans,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const createQardHasanLoan = async (
@@ -76,12 +144,33 @@ export const createQardHasanLoan = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const loan = await QardHasan.create({
-      ...req.body,
-      borrowerId: req.user!.id
+    const borrowerId = req.user!.id;
+    const { amount, purpose, term } = req.body;
+
+    const loan = await IslamicFinanceService.createQardHasanLoan({
+      borrowerId,
+      amount,
+      purpose,
+      term,
     });
-    res.status(201).json({ success: true, loan });
-  } catch (error) { next(error); }
+
+    res.status(201).json({
+      success: true,
+      loan,
+    });
+  } catch (error) {
+    if (error instanceof IslamicFinanceError) {
+      res.status(error.statusCode).json({
+        success: false,
+        error: {
+          code: error.code,
+          message: error.message,
+        },
+      });
+      return;
+    }
+    next(error);
+  }
 };
 
 export const lendToQardHasan = async (
@@ -90,10 +179,33 @@ export const lendToQardHasan = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const loanId = req.params.id;
+    const lenderId = req.user!.id;
     const { amount } = req.body;
-    const loan = await QardHasan.addLender(req.params.id, req.user!.id, amount);
-    res.json({ success: true, loan });
-  } catch (error) { next(error); }
+
+    const loan = await IslamicFinanceService.addLenderToLoan({
+      loanId,
+      lenderId,
+      amount,
+    });
+
+    res.json({
+      success: true,
+      loan,
+    });
+  } catch (error) {
+    if (error instanceof IslamicFinanceError) {
+      res.status(error.statusCode).json({
+        success: false,
+        error: {
+          code: error.code,
+          message: error.message,
+        },
+      });
+      return;
+    }
+    next(error);
+  }
 };
 
 export const repayQardHasan = async (
@@ -102,20 +214,50 @@ export const repayQardHasan = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const loanId = req.params.id;
     const { amount } = req.body;
-    const loan = await QardHasan.recordRepayment(req.params.id, amount);
-    res.json({ success: true, loan });
-  } catch (error) { next(error); }
+
+    const loan = await IslamicFinanceService.processRepayment({
+      loanId,
+      amount,
+    });
+
+    res.json({
+      success: true,
+      loan,
+    });
+  } catch (error) {
+    if (error instanceof IslamicFinanceError) {
+      res.status(error.statusCode).json({
+        success: false,
+        error: {
+          code: error.code,
+          message: error.message,
+        },
+      });
+      return;
+    }
+    next(error);
+  }
 };
 
-// Zakat
+// ============================================================================
+// ZAKAT CALCULATOR
+// ============================================================================
+
 export const calculateZakat = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const result = ZakatCalculator.calculate(req.body);
-    res.json({ success: true, result });
-  } catch (error) { next(error); }
+    const result = IslamicFinanceService.calculateZakat(req.body);
+
+    res.json({
+      success: true,
+      result,
+    });
+  } catch (error) {
+    next(error);
+  }
 };

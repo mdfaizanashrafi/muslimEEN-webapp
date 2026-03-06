@@ -1,84 +1,153 @@
 /**
  * Marketplace Controller
- * Handles marketplace items for all verticals (work, earn, build, protect)
+ * Thin HTTP handler - delegates all logic to Marketplace model
+ * Note: Marketplace model is already fairly simple, minimal changes needed
+ * Responsibilities: HTTP request/response only
  */
 
 import { Request, Response, NextFunction } from 'express';
 import Marketplace from '../models/Marketplace';
 
+// ============================================================================
+// GET LISTINGS
+// ============================================================================
 
-export const getItems = async (
+export const getMarketplaceListings = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { vertical } = req.params;
-    const items = await Marketplace.getByVertical(vertical, req.query);
-    res.json({ success: true, items });
-  } catch (error) { next(error); }
+    const { vertical: category } = req.params;
+    const listings = await Marketplace.getByVertical(category, req.query);
+
+    res.json({
+      success: true,
+      listings,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
-export const getItem = async (
+// ============================================================================
+// GET SINGLE LISTING
+// ============================================================================
+
+export const getListingById = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const item = await Marketplace.getById(req.params.id);
-    if (!item) {
-      res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Item not found' } });
+    const listing = await Marketplace.getById(req.params.id);
+
+    if (!listing) {
+      res.status(404).json({
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Listing not found',
+        },
+      });
       return;
     }
-    res.json({ success: true, item });
-  } catch (error) { next(error); }
-};
 
-export const createItem = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  try {
-    const { vertical } = req.params;
-    const item = await Marketplace.create(vertical, {
-      ...req.body,
-      providerId: req.user!.id
+    res.json({
+      success: true,
+      listing,
     });
-    res.status(201).json({ success: true, item });
-  } catch (error) { next(error); }
+  } catch (error) {
+    next(error);
+  }
 };
 
-export const updateItem = async (
+// ============================================================================
+// CREATE LISTING
+// ============================================================================
+
+export const createListing = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const item = await Marketplace.update(req.params.id, req.body);
-    res.json({ success: true, item });
-  } catch (error) { next(error); }
+    const { vertical: category } = req.params;
+    const listing = await Marketplace.create(category, {
+      ...req.body,
+      providerId: req.user!.id,
+    });
+
+    res.status(201).json({
+      success: true,
+      listing,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
-export const deleteItem = async (
+// ============================================================================
+// UPDATE LISTING
+// ============================================================================
+
+export const updateListing = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const listing = await Marketplace.update(req.params.id, req.body);
+
+    res.json({
+      success: true,
+      listing,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============================================================================
+// DELETE LISTING
+// ============================================================================
+
+export const removeListing = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
     await Marketplace.delete(req.params.id);
-    res.json({ success: true, message: 'Item deleted' });
-  } catch (error) { next(error); }
+
+    res.json({
+      success: true,
+      message: 'Listing removed',
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
-export const invest = async (
+// ============================================================================
+// INVEST (BUILD VERTICAL)
+// ============================================================================
+
+export const recordInvestment = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
     const { amount } = req.body;
-    const item = await Marketplace.incrementRaised(req.params.id, amount);
-    res.json({ success: true, item, message: 'Investment recorded' });
-  } catch (error) { next(error); }
+    const listing = await Marketplace.incrementRaised(req.params.id, amount);
+
+    res.json({
+      success: true,
+      listing,
+      message: 'Investment recorded',
+    });
+  } catch (error) {
+    next(error);
+  }
 };

@@ -1,19 +1,20 @@
 /**
  * API Routes
  * MuslimEEN Backend API Routes
+ * 
+ * Note: Routes are now thin - all business logic moved to services
  */
 
 import { Router, Request, Response } from 'express';
 
 // Middleware
 import { authenticate, optionalAuth, authorize } from '../middleware/auth';
-import { validate, validateQuery } from '../middleware/validation';
+import { createBodyValidator, createQueryValidator } from '../middleware/validation';
 import {
   authLimiter,
   userLimiter,
   marketplaceLimiter,
-  messageLimiter,
-  apiLimiter
+  apiLimiter,
 } from '../middleware/rateLimiter';
 
 // Controllers
@@ -25,9 +26,6 @@ import * as verificationController from '../controllers/verificationController';
 import * as invitationController from '../controllers/invitationController';
 
 const router = Router();
-
-// Debug: Log all registered routes
-console.log('Loading API routes...');
 
 // ============================================================================
 // Public Routes
@@ -44,8 +42,8 @@ router.get('/', (req: Request, res: Response) => {
       marketplace: '/api/marketplace',
       islamicFinance: '/api/islamic-finance',
       verification: '/api/verification',
-      invitations: '/api/invitations'
-    }
+      invitations: '/api/invitations',
+    },
   });
 });
 
@@ -53,9 +51,9 @@ router.get('/', (req: Request, res: Response) => {
 // Authentication Routes
 // ============================================================================
 
-router.post('/auth/validate-invitation', authLimiter, validate('validateInvitation'), authController.validateInvitation);
-router.post('/auth/login', authLimiter, validate('login'), authController.login);
-router.post('/auth/register', authLimiter, validate('register'), authController.register);
+router.post('/auth/validate-invitation', authLimiter, createBodyValidator('validateInvitation'), authController.validateInvitation);
+router.post('/auth/login', authLimiter, createBodyValidator('login'), authController.login);
+router.post('/auth/register', authLimiter, createBodyValidator('register'), authController.register);
 router.post('/auth/logout', authenticate, authController.logout);
 router.get('/auth/me', authenticate, authController.getCurrentUser);
 
@@ -63,24 +61,25 @@ router.get('/auth/me', authenticate, authController.getCurrentUser);
 // User Routes
 // ============================================================================
 
-router.get('/user/profile', authenticate, userLimiter, userController.getProfile);
-router.put('/user/profile', authenticate, userLimiter, validate('updateProfile'), userController.updateProfile);
+router.get('/user/profile', authenticate, userLimiter, userController.getCurrentUserProfile);
+router.put('/user/profile', authenticate, userLimiter, createBodyValidator('updateProfile'), userController.updateCurrentUserProfile);
 
 // Trust Score
-router.get('/user/trust-score', authenticate, userLimiter, userController.getTrustScore);
-router.get('/user/trust-score/history', authenticate, userLimiter, userController.getTrustScoreHistory);
+router.get('/user/trust-score', authenticate, userLimiter, userController.getCurrentTrustScore);
+router.post('/user/trust-score/recalculate', authenticate, userLimiter, userController.recalculateCurrentTrustScore);
+router.get('/user/trust-score/history', authenticate, userLimiter, userController.getCurrentUserTrustScoreHistory);
 
 // Connections
-router.get('/user/connections', authenticate, userLimiter, userController.getConnections);
-router.get('/user/connections/pending', authenticate, userLimiter, userController.getPendingConnections);
-router.post('/user/connections', authenticate, userLimiter, validate('connectionRequest'), userController.sendConnectionRequest);
-router.post('/user/connections/:id/accept', authenticate, userLimiter, userController.acceptConnectionRequest);
-router.post('/user/connections/:id/reject', authenticate, userLimiter, userController.rejectConnectionRequest);
+router.get('/user/connections', authenticate, userLimiter, userController.getCurrentUserConnections);
+router.get('/user/connections/pending', authenticate, userLimiter, userController.getCurrentUserPendingConnections);
+router.post('/user/connections', authenticate, userLimiter, createBodyValidator('connectionRequest'), userController.sendConnectionRequestToUser);
+router.post('/user/connections/:connectionId/accept', authenticate, userLimiter, userController.acceptIncomingConnectionRequest);
+router.post('/user/connections/:connectionId/reject', authenticate, userLimiter, userController.rejectIncomingConnectionRequest);
 
 // Notifications
-router.get('/user/notifications', authenticate, userLimiter, userController.getNotifications);
-router.put('/user/notifications/:id/read', authenticate, userLimiter, userController.markNotificationRead);
-router.put('/user/notifications/read-all', authenticate, userLimiter, userController.markAllNotificationsRead);
+router.get('/user/notifications', authenticate, userLimiter, userController.getCurrentUserNotifications);
+router.put('/user/notifications/:notificationId/read', authenticate, userLimiter, userController.markNotificationAsRead);
+router.put('/user/notifications/read-all', authenticate, userLimiter, userController.markAllNotificationsAsRead);
 
 // ============================================================================
 // Invitation Routes
@@ -96,14 +95,14 @@ router.get('/invitations/validate/:code', authLimiter, invitationController.vali
 // Marketplace Routes
 // ============================================================================
 
-router.get('/marketplace/:vertical', authenticate, marketplaceLimiter, validateQuery('marketplaceFilter'), marketplaceController.getItems);
-router.get('/marketplace/:vertical/:id', authenticate, marketplaceLimiter, marketplaceController.getItem);
-router.post('/marketplace/:vertical', authenticate, marketplaceLimiter, validate('createMarketplaceItem'), marketplaceController.createItem);
-router.put('/marketplace/:vertical/:id', authenticate, marketplaceLimiter, marketplaceController.updateItem);
-router.delete('/marketplace/:vertical/:id', authenticate, marketplaceLimiter, marketplaceController.deleteItem);
+router.get('/marketplace/:vertical', authenticate, marketplaceLimiter, createQueryValidator('marketplaceFilter'), marketplaceController.getMarketplaceListings);
+router.get('/marketplace/:vertical/:id', authenticate, marketplaceLimiter, marketplaceController.getListingById);
+router.post('/marketplace/:vertical', authenticate, marketplaceLimiter, createBodyValidator('createMarketplaceItem'), marketplaceController.createListing);
+router.put('/marketplace/:vertical/:id', authenticate, marketplaceLimiter, marketplaceController.updateListing);
+router.delete('/marketplace/:vertical/:id', authenticate, marketplaceLimiter, marketplaceController.removeListing);
 
 // Investment endpoint for BUILD vertical
-router.post('/marketplace/:vertical/:id/invest', authenticate, marketplaceLimiter, marketplaceController.invest);
+router.post('/marketplace/:vertical/:id/invest', authenticate, marketplaceLimiter, marketplaceController.recordInvestment);
 
 // ============================================================================
 // Islamic Finance Routes
@@ -112,19 +111,19 @@ router.post('/marketplace/:vertical/:id/invest', authenticate, marketplaceLimite
 // Sadaqah (Charity)
 router.get('/islamic-finance/sadaqah', authenticate, apiLimiter, islamicFinanceController.getSadaqahCampaigns);
 router.get('/islamic-finance/sadaqah/:id', authenticate, apiLimiter, islamicFinanceController.getSadaqahCampaign);
-router.post('/islamic-finance/sadaqah/:id/donate', authenticate, apiLimiter, validate('donation'), islamicFinanceController.donate);
+router.post('/islamic-finance/sadaqah/:id/donate', authenticate, apiLimiter, createBodyValidator('donation'), islamicFinanceController.donate);
 
 // Waqf
-router.get('/islamic-finance/waqf', authenticate, apiLimiter, islamicFinanceController.getWaqf);
+router.get('/islamic-finance/waqf', authenticate, apiLimiter, islamicFinanceController.getWaqfListings);
 
 // Qard Hasan (Benevolent Loans)
 router.get('/islamic-finance/qard-hasan', authenticate, apiLimiter, islamicFinanceController.getQardHasanLoans);
-router.post('/islamic-finance/qard-hasan', authenticate, apiLimiter, validate('qardHasanLoan'), islamicFinanceController.createQardHasanLoan);
+router.post('/islamic-finance/qard-hasan', authenticate, apiLimiter, createBodyValidator('qardHasanLoan'), islamicFinanceController.createQardHasanLoan);
 router.post('/islamic-finance/qard-hasan/:id/lend', authenticate, apiLimiter, islamicFinanceController.lendToQardHasan);
 router.post('/islamic-finance/qard-hasan/:id/repay', authenticate, apiLimiter, islamicFinanceController.repayQardHasan);
 
 // Zakat Calculator
-router.post('/islamic-finance/zakat/calculate', authenticate, apiLimiter, validate('zakatCalculation'), islamicFinanceController.calculateZakat);
+router.post('/islamic-finance/zakat/calculate', authenticate, apiLimiter, createBodyValidator('zakatCalculation'), islamicFinanceController.calculateZakat);
 
 // ============================================================================
 // Verification Routes
@@ -157,10 +156,10 @@ router.get('/admin/stats', authenticate, authorize('admin'), (req: Request, res:
 
 // Public feed endpoint
 router.get('/feed', optionalAuth, apiLimiter, (req: Request, res: Response) => {
-  res.json({ 
-    success: true, 
+  res.json({
+    success: true,
     message: 'Feed endpoint',
-    items: []
+    items: [],
   });
 });
 

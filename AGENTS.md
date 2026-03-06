@@ -37,15 +37,14 @@ MuslimEEN is a full-stack LinkedIn-equivalent professional networking platform b
 | Next.js | 14.2.5 (App Router) |
 | React | 18.3.1 |
 | TypeScript | 5.5.2 |
-| CSS | Custom design system with CSS variables (globals.css) |
+| CSS | Custom design system with CSS variables (globals.css ~1000 lines) |
 | Fonts | Inter (primary), Noto Naskh Arabic (Arabic) |
 
-**Key Frontend Features**:
-- Next.js App Router for routing
-- Static export capability (`output: 'export'` configurable)
-- CSS-based Islamic geometric patterns (no images)
-- Responsive design with mobile-first approach
-- WCAG 2.1 AA accessibility compliance
+**Key Frontend Configuration**:
+- Port: 8080 (development)
+- Path aliases: `@/*` maps to `./*`
+- Strict TypeScript enabled
+- Unoptimized images (configured in `next.config.js`)
 
 ### Backend
 
@@ -59,6 +58,11 @@ MuslimEEN is a full-stack LinkedIn-equivalent professional networking platform b
 | Validation | Joi |
 | Security | Helmet, CORS, express-rate-limit |
 | Logging | Winston |
+
+**Key Backend Configuration**:
+- Port: 3001 (development), 3000 (production)
+- Output directory: `dist/`
+- Source directory: `src/`
 
 ### Database
 
@@ -75,7 +79,6 @@ muslimeen/
 ├── frontend/                    # Next.js 14 frontend
 │   ├── app/                    # App Router pages
 │   │   ├── (marketing)/        # Marketing pages (landing)
-│   │   ├── (auth)/             # Auth group layout
 │   │   ├── login/              # Login page
 │   │   ├── dashboard/          # Main dashboard
 │   │   ├── profile/            # User profile
@@ -84,12 +87,9 @@ muslimeen/
 │   │   ├── messages/           # Messaging interface
 │   │   ├── marketplace/        # Marketplace with [vertical] dynamic route
 │   │   └── islamic-finance/    # Islamic finance tools
-│   ├── components/             # React components
 │   ├── lib/                    # Utilities and API client
 │   │   └── api.ts              # API client with TypeScript types
-│   ├── styles/                 # Page-specific CSS
-│   ├── types/                  # TypeScript type definitions
-│   ├── public/                 # Static assets
+│   ├── styles/                 # Page-specific CSS (9 files)
 │   ├── globals.css             # Global design system (~1000 lines)
 │   ├── next.config.js          # Next.js configuration
 │   └── package.json
@@ -99,7 +99,7 @@ muslimeen/
 │   │   ├── server.ts           # Main entry point
 │   │   ├── routes/
 │   │   │   └── index.ts        # API route definitions
-│   │   ├── controllers/        # Route controllers (TypeScript)
+│   │   ├── controllers/        # Route controllers (6 controllers)
 │   │   │   ├── authController.ts
 │   │   │   ├── userController.ts
 │   │   │   ├── marketplaceController.ts
@@ -111,26 +111,36 @@ muslimeen/
 │   │   │   ├── validation.ts   # Request validation
 │   │   │   ├── rateLimiter.ts  # Rate limiting
 │   │   │   └── errorHandler.ts # Error handling
-│   │   ├── models/             # Database models (JS/TS mix)
+│   │   ├── services/           # Business logic services
+│   │   │   ├── AuthService.ts
+│   │   │   ├── JwtService.ts
+│   │   │   ├── PasswordService.ts
+│   │   │   ├── UserService.ts
+│   │   │   └── ...
 │   │   ├── types/
 │   │   │   └── index.ts        # TypeScript type definitions
 │   │   └── utils/
-│   │       └── logger.js       # Winston logger
+│   │       ├── logger.js       # Winston logger
+│   │       ├── formatters.ts   # Data formatters
+│   │       └── security.ts     # Security utilities
 │   ├── database/
 │   │   └── migrations/
-│   │       └── 001_initial_schema.sql
+│   │       ├── 001_initial_schema.sql
+│   │       └── migrate.js
+│   ├── tests/                  # Jest test suite
+│   │   ├── unit/services/      # Service unit tests
+│   │   ├── unit/utils/         # Utility tests
+│   │   ├── mocks/              # Test mocks
+│   │   └── setup.ts            # Test setup
 │   ├── .env.example            # Environment template
 │   ├── .eslintrc.json          # ESLint configuration
+│   ├── jest.config.js          # Jest configuration
 │   ├── tsconfig.json           # TypeScript configuration
 │   └── package.json
 │
 ├── API_CONTRACT.md             # Complete API specification
-├── BACKEND_README.md           # Backend integration guide
-├── DATABASE_SETUP.md           # PostgreSQL setup instructions
-├── DEPLOYMENT.md               # Deployment configurations
-├── ACCESSIBILITY_AUDIT.md      # WCAG 2.1 AA compliance report
+├── render.yaml                 # Render deployment configuration
 ├── SECURITY.md                 # Security guidelines
-├── RUN_GUIDE.md                # Quick start guide
 └── AGENTS.md                   # This file
 ```
 
@@ -187,6 +197,11 @@ npm run migrate
 
 # Seed database
 npm run seed
+
+# Run tests
+npm test
+npm run test:unit
+npm run test:integration
 ```
 
 ### Database Setup
@@ -199,7 +214,7 @@ psql -U postgres -c "CREATE DATABASE muslimeen;"
 psql -U postgres -d muslimeen -f backend/database/migrations/001_initial_schema.sql
 
 # Or use migration script
-npm run migrate
+cd backend && npm run migrate
 ```
 
 ---
@@ -230,9 +245,22 @@ CSRF_SECRET=your-csrf-secret-key
 
 # Logging
 LOG_LEVEL=info
+
+# Email Configuration (optional)
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=noreply@muslimeen.org
+SMTP_PASSWORD=your_smtp_password
+
+# External Services
+WEBAUTHN_RP_NAME=MuslimEEN
+WEBAUTHN_RP_ID=muslimeen.org
+
+# Admin Configuration
+ADMIN_EMAIL=admin@muslimeen.org
 ```
 
-### Frontend
+### Frontend Environment Variables
 
 Frontend uses `NEXT_PUBLIC_API_URL` for API base URL (set in environment or defaults to `http://localhost:3001/api`).
 
@@ -274,11 +302,13 @@ Frontend uses `NEXT_PUBLIC_API_URL` for API base URL (set in environment or defa
 
 ## Testing Strategy
 
-### Current Status
+### Test Framework
 
-The project has **Jest** configured for testing but minimal test coverage currently exists.
+- **Jest** with ts-jest for TypeScript support
+- **Supertest** for HTTP assertions
+- Tests located in `backend/tests/`
 
-### Available Test Commands
+### Test Commands
 
 ```bash
 # Run all tests
@@ -291,6 +321,13 @@ npm run test:unit
 npm run test:integration
 ```
 
+### Test Configuration
+
+- Test setup: `backend/tests/setup.ts`
+- Test environment variables loaded from `.env.test`
+- Global test timeout: 10 seconds
+- Faster bcrypt rounds (4) for tests
+
 ### Testing Guidelines
 
 1. **Unit Tests**: Test individual functions, especially:
@@ -298,6 +335,8 @@ npm run test:integration
    - Invitation validation
    - User role permissions
    - Zakat calculation formulas
+   - Password hashing
+   - JWT operations
 
 2. **Integration Tests**: Test complete flows:
    - Authentication flow
@@ -334,9 +373,9 @@ Production: https://api.muslimeen.org/v1
 ### Authentication
 
 - JWT-based authentication with Bearer token
-- Token expires in 24 hours
+- Token expires in 24 hours (configurable via JWT_EXPIRES_IN)
 - CSRF token required for state-changing requests
-- Rate limiting on auth endpoints (5 requests/minute)
+- Rate limiting on auth endpoints (5 requests per 15 minutes)
 
 ### Response Format
 
@@ -353,11 +392,14 @@ Production: https://api.muslimeen.org/v1
 
 | Category | Endpoints |
 |----------|-----------|
-| Auth | `/auth/login`, `/auth/register`, `/auth/validate-invitation`, `/auth/logout` |
+| Auth | `/auth/login`, `/auth/register`, `/auth/validate-invitation`, `/auth/logout`, `/auth/me` |
 | User | `/user/profile`, `/user/trust-score`, `/user/connections`, `/user/notifications` |
+| Invitations | `/invitations`, `/invitations/validate/:code` |
 | Marketplace | `/marketplace/:vertical` (earn, build, live, protect) |
 | Islamic Finance | `/islamic-finance/sadaqah`, `/islamic-finance/zakat/calculate`, `/islamic-finance/qard-hasan`, `/islamic-finance/waqf` |
 | Verification | `/verification/biometric/*`, `/verification/witness/*`, `/verification/business/*` |
+| Admin | `/admin/stats` |
+| Feed | `/feed` |
 
 See `API_CONTRACT.md` for complete documentation.
 
@@ -367,26 +409,26 @@ See `API_CONTRACT.md` for complete documentation.
 
 ### Implemented
 
-- ✅ Helmet.js for security headers
+- ✅ Helmet.js for security headers with CSP configuration
 - ✅ CORS configuration for allowed origins
-- ✅ Rate limiting on all endpoints
+- ✅ Rate limiting on all endpoints (auth: 5/15min, user: 100/15min, marketplace: 50/15min, api: 1000/15min)
 - ✅ Input validation with Joi
 - ✅ Password hashing with bcrypt (12 rounds)
 - ✅ XSS protection (escaped HTML, CSP headers)
 - ✅ SQL injection prevention (parameterized queries)
+- ✅ JWT token verification
+- ✅ CSRF token validation
 
 ### Required for Production
 
 - Store JWT in `httpOnly`, `Secure`, `SameSite=Strict` cookies
-- Implement proper CSRF double-submit cookie pattern
 - Enable HTTPS enforcement
-- Add security headers (see SECURITY.md)
 - Regular security audits and dependency updates
 
 ### Security Headers
 
 ```
-Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://api.muslimeen.org;
+Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:;
 X-Frame-Options: SAMEORIGIN
 X-Content-Type-Options: nosniff
 X-XSS-Protection: 1; mode=block
@@ -423,6 +465,15 @@ Strict-Transport-Security: max-age=31536000; includeSubDomains
 | Form Input | `.form-input` | `.form-select`, `.form-textarea` |
 | Badge | `.badge` | `.badge-verified`, `.badge-trust-high`, `.badge-trust-medium`, `.badge-trust-low` |
 
+### Islamic Geometric Patterns
+
+CSS-generated patterns available:
+- `.pattern-star-8` - 8-point star pattern
+- `.pattern-tessellation` - Geometric tessellation
+- `.pattern-grid-islamic` - Islamic grid pattern
+- `.pattern-diamond` - Diamond pattern
+- `.pattern-hexagon` - Hexagon pattern
+
 ---
 
 ## User Roles and Permissions
@@ -450,13 +501,12 @@ Strict-Transport-Security: max-age=31536000; includeSubDomains
 
 Deploy the `frontend/` directory to any static hosting service:
 
-1. **Build**: `npm run build` (outputs to `dist/` when `output: 'export'` enabled)
+1. **Build**: `npm run build` (outputs to `.next/`)
 2. **Hosting Options**:
-   - Cloudflare Pages (recommended)
+   - Vercel (recommended for Next.js)
+   - Cloudflare Pages
    - Netlify
-   - Vercel
    - AWS S3 + CloudFront
-   - Nginx or Apache
 
 ### Backend Deployment
 
@@ -466,6 +516,13 @@ Deploy the `frontend/` directory to any static hosting service:
    - Node.js >= 18
    - PostgreSQL 14+
    - Environment variables configured
+
+### Render Deployment
+
+The `render.yaml` file defines Infrastructure as Code:
+- Web service: `muslimeen-api`
+- Database: `muslimeen-db` (PostgreSQL 15)
+- Auto-deploy enabled
 
 ### Database Migration on Deploy
 
@@ -512,6 +569,16 @@ psql -U postgres -c "SELECT 1;"
 - Ensure backend is on port 3001
 - Ensure frontend is on port 8080
 - Check CORS origins in `backend/src/server.ts`
+- Add FRONTEND_URL environment variable
+
+### TypeScript Compilation Errors
+
+```bash
+# Clean and rebuild
+cd backend
+rm -rf dist/
+npm run build
+```
 
 ---
 
@@ -525,8 +592,11 @@ psql -U postgres -c "SELECT 1;"
 | `backend/src/server.ts` | Express server configuration |
 | `backend/src/routes/index.ts` | API route definitions |
 | `backend/src/types/index.ts` | TypeScript type definitions |
+| `backend/src/middleware/auth.ts` | JWT authentication middleware |
+| `backend/src/middleware/rateLimiter.ts` | Rate limiting configuration |
 | `backend/database/migrations/001_initial_schema.sql` | Database schema |
 | `API_CONTRACT.md` | Complete API specification |
+| `render.yaml` | Render deployment configuration |
 
 ---
 
@@ -536,4 +606,4 @@ AGPL-3.0 - Open source forever as per platform immutables.
 
 ---
 
-**Last Updated**: February 2026
+**Last Updated**: March 2026

@@ -65,6 +65,40 @@ export const createQardHasanLoan = async (req: Request, res: Response, next: Nex
   }
 };
 
+// Qard Hasan - Additional operations
+export const lendToQardHasan = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const loan = await IslamicFinanceService.lendToQardHasan({
+      loanId: req.params.id,
+      lenderId: req.user!.id,
+    });
+    res.json({ success: true, loan, message: 'Loan funded successfully' });
+  } catch (error) {
+    if (error instanceof IslamicFinanceError) {
+      res.status(error.statusCode).json({ success: false, error: { code: error.code, message: error.message } });
+      return;
+    }
+    next(error);
+  }
+};
+
+export const repayQardHasan = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const loan = await IslamicFinanceService.repayQardHasan({
+      loanId: req.params.id,
+      borrowerId: req.user!.id,
+      amount: req.body.amount,
+    });
+    res.json({ success: true, loan, message: 'Repayment recorded successfully' });
+  } catch (error) {
+    if (error instanceof IslamicFinanceError) {
+      res.status(error.statusCode).json({ success: false, error: { code: error.code, message: error.message } });
+      return;
+    }
+    next(error);
+  }
+};
+
 // Zakat
 export const calculateZakat = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {

@@ -97,6 +97,9 @@ export const DomainEvents = {
   QARD_HASAN_REPAID: 'islamic_finance.qard_hasan_repaid',
   WAQF_CONTRIBUTION: 'islamic_finance.waqf_contribution',
   ZAKAT_CALCULATED: 'islamic_finance.zakat_calculated',
+  
+  // Additional Events
+  WITNESS_ELIGIBILITY_CHANGED: 'trust.witness_eligibility_changed',
 } as const;
 
 // Type for event names

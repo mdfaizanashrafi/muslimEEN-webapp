@@ -41,7 +41,7 @@ import { AuthController as modularAuthController } from '../modules/iam';
 import { ProfileController as modularProfileController } from '../modules/profile';
 import { TrustScoreController as modularTrustScoreController, VerificationController as modularVerificationController } from '../modules/trust';
 import { ConnectionController as modularConnectionController } from '../modules/network';
-import { MarketplaceController as modularMarketplaceController } from '../modules/marketplace/controllers/MarketplaceController';
+import * as modularMarketplaceController from '../modules/marketplace/controllers/MarketplaceController';
 import * as modularIslamicFinanceController from '../modules/islamic-finance/controllers/IslamicFinanceController';
 
 const router = Router();

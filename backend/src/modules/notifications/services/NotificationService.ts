@@ -1,90 +1,266 @@
 /**
  * Notification Service
- * Event-driven notification delivery
+ * Manages notification creation and retrieval
  */
 
-import { eventBus, DomainEvents } from '../../shared/events/EventBus';
 import * as NotificationRepository from '../repositories/NotificationRepository';
+import { eventBus, DomainEvents } from '../../shared/events/EventBus';
 
-// Subscribe to domain events
-export const initializeEventHandlers = (): void => {
-  // Connection events
-  eventBus.subscribe(DomainEvents.CONNECTION_REQUEST_SENT, handleConnectionRequest);
-  eventBus.subscribe(DomainEvents.CONNECTION_REQUEST_ACCEPTED, handleConnectionAccepted);
-  
-  // Trust events
-  eventBus.subscribe(DomainEvents.TRUST_SCORE_UPDATED, handleTrustScoreUpdate);
-  eventBus.subscribe(DomainEvents.VERIFICATION_COMPLETED, handleVerificationCompleted);
-  
-  // Invitation events
-  eventBus.subscribe(DomainEvents.INVITATION_ACCEPTED, handleInvitationAccepted);
+// ============================================================================
+// TYPES
+// ============================================================================
+
+export interface Notification {
+  id: string;
+  userId: string;
+  type: string;
+  title: string;
+  message: string;
+  read: boolean;
+  createdAt: Date;
+  actorId?: string;
+  actorName?: string;
+  actorTrustScore?: number;
+  actionUrl?: string;
+  data?: any;
+}
+
+export interface NotificationsResponse {
+  success: boolean;
+  notifications: Notification[];
+  unreadCount: number;
+  total: number;
+}
+
+// ============================================================================
+// NOTIFICATION RETRIEVAL
+// ============================================================================
+
+/**
+ * Get notifications for a user
+ */
+export const getUserNotifications = async (
+  userId: string,
+  options: { unreadOnly?: boolean; limit?: number; offset?: number } = {}
+): Promise<NotificationsResponse> => {
+  const { unreadOnly = false, limit = 50, offset = 0 } = options;
+
+  const [notifications, unreadCount, total] = await Promise.all([
+    NotificationRepository.getByUser(userId, { unreadOnly, limit, offset }),
+    NotificationRepository.getUnreadCount(userId),
+    NotificationRepository.getTotalCount(userId),
+  ]);
+
+  return {
+    success: true,
+    notifications,
+    unreadCount,
+    total,
+  };
 };
 
-// Event handlers
-async function handleConnectionRequest(payload: any): Promise<void> {
-  await NotificationRepository.create({
-    userId: payload.recipientId,
-    type: 'connection_request',
-    title: 'New Connection Request',
-    message: 'Someone wants to connect with you',
-    data: { requesterId: payload.requesterId },
-  });
-}
-
-async function handleConnectionAccepted(payload: any): Promise<void> {
-  await NotificationRepository.create({
-    userId: payload.requesterId,
-    type: 'connection_accepted',
-    title: 'Connection Accepted',
-    message: 'Your connection request was accepted',
-    data: { recipientId: payload.recipientId },
-  });
-}
-
-async function handleTrustScoreUpdate(payload: any): Promise<void> {
-  const change = payload.newScore - payload.oldScore;
-  if (Math.abs(change) < 10) return; // Only notify for significant changes
-
-  await NotificationRepository.create({
-    userId: payload.userId,
-    type: 'trust_score_update',
-    title: `Trust Score ${change > 0 ? 'Increased' : 'Decreased'}`,
-    message: `Your trust score ${change > 0 ? 'increased' : 'decreased'} by ${Math.abs(change)} points`,
-    data: { oldScore: payload.oldScore, newScore: payload.newScore },
-  });
-}
-
-async function handleVerificationCompleted(payload: any): Promise<void> {
-  await NotificationRepository.create({
-    userId: payload.userId,
-    type: 'verification_update',
-    title: 'Verification Completed',
-    message: `Your ${payload.type} verification has been completed`,
-    data: { tier: payload.tier },
-  });
-}
-
-async function handleInvitationAccepted(payload: any): Promise<void> {
-  if (!payload.invitedBy) return;
-  
-  await NotificationRepository.create({
-    userId: payload.invitedBy,
-    type: 'invitation_accepted',
-    title: 'Invitation Accepted',
-    message: `${payload.firstName} ${payload.lastName} accepted your invitation`,
-    data: { newUserId: payload.userId },
-  });
-}
-
-// User-facing API
-export const getUserNotifications = async (userId: string, options: any = {}): Promise<any> => {
-  return NotificationRepository.findByUser(userId, options);
-};
-
+/**
+ * Mark a single notification as read
+ */
 export const markAsRead = async (notificationId: string, userId: string): Promise<void> => {
-  await NotificationRepository.markAsRead(notificationId, userId);
+  const result = await NotificationRepository.markAsRead(notificationId, userId);
+  if (!result) {
+    throw new NotificationError('NOT_FOUND', 'Notification not found', 404);
+  }
+  
+  // Publish event
+  await eventBus.publish(DomainEvents.NOTIFICATION_READ, {
+    notificationId,
+    userId,
+  });
 };
 
+/**
+ * Mark all notifications as read for a user
+ */
 export const markAllAsReadForUser = async (userId: string): Promise<void> => {
   await NotificationRepository.markAllAsRead(userId);
+  
+  // Publish event
+  await eventBus.publish(DomainEvents.NOTIFICATION_READ, {
+    userId,
+    all: true,
+  });
 };
+
+/**
+ * Delete a notification
+ */
+export const deleteNotification = async (notificationId: string, userId: string): Promise<void> => {
+  const result = await NotificationRepository.deleteNotification(notificationId, userId);
+  if (!result) {
+    throw new NotificationError('NOT_FOUND', 'Notification not found', 404);
+  }
+};
+
+// ============================================================================
+// NOTIFICATION CREATION
+// ============================================================================
+
+/**
+ * Create a notification
+ */
+export const createNotification = async (data: Partial<Notification>): Promise<Notification> => {
+  const notification = await NotificationRepository.create(data);
+  
+  // Publish event
+  await eventBus.publish(DomainEvents.NOTIFICATION_CREATED, {
+    notificationId: notification.id,
+    userId: notification.userId,
+    type: notification.type,
+  });
+  
+  return notification;
+};
+
+/**
+ * Create connection request notification
+ */
+export const notifyConnectionRequest = async (
+  recipientId: string,
+  requester: { id: string; fullName: string; trustScore: number }
+): Promise<void> => {
+  await createNotification({
+    userId: recipientId,
+    type: 'CONNECTION_REQUEST',
+    title: 'New Connection Request',
+    message: `${requester.fullName} wants to connect with you`,
+    actorId: requester.id,
+    actorName: requester.fullName,
+    actorTrustScore: requester.trustScore,
+    actionUrl: '/connections',
+  });
+};
+
+/**
+ * Create connection accepted notification
+ */
+export const notifyConnectionAccepted = async (
+  recipientId: string,
+  accepter: { id: string; fullName: string; trustScore: number }
+): Promise<void> => {
+  await createNotification({
+    userId: recipientId,
+    type: 'CONNECTION_ACCEPTED',
+    title: 'Connection Accepted',
+    message: `${accepter.fullName} accepted your connection request`,
+    actorId: accepter.id,
+    actorName: accepter.fullName,
+    actorTrustScore: accepter.trustScore,
+    actionUrl: '/connections',
+  });
+};
+
+/**
+ * Create endorsement notification
+ */
+export const notifyEndorsement = async (
+  recipientId: string,
+  endorser: { id: string; fullName: string; trustScore: number },
+  skill: string
+): Promise<void> => {
+  await createNotification({
+    userId: recipientId,
+    type: 'ENDORSEMENT',
+    title: 'New Skill Endorsement',
+    message: `${endorser.fullName} endorsed you for ${skill}`,
+    actorId: endorser.id,
+    actorName: endorser.fullName,
+    actorTrustScore: endorser.trustScore,
+    actionUrl: '/profile',
+  });
+};
+
+/**
+ * Create trust score change notification
+ */
+export const notifyTrustScoreChange = async (
+  userId: string,
+  oldScore: number,
+  newScore: number
+): Promise<void> => {
+  const change = newScore - oldScore;
+  const direction = change > 0 ? 'increased' : 'decreased';
+
+  await createNotification({
+    userId,
+    type: 'TRUST_SCORE_CHANGED',
+    title: `Trust Score ${direction.charAt(0).toUpperCase() + direction.slice(1)}`,
+    message: `Your trust score ${direction} by ${Math.abs(change)} points`,
+    actionUrl: '/verification',
+  });
+};
+
+/**
+ * Create verification completed notification
+ */
+export const notifyVerificationCompleted = async (
+  userId: string,
+  tier: 'basic' | 'full' | 'business'
+): Promise<void> => {
+  const tierNames = {
+    basic: 'Basic',
+    full: 'Full',
+    business: 'Business',
+  };
+
+  await createNotification({
+    userId,
+    type: 'VERIFICATION_COMPLETED',
+    title: 'Verification Completed',
+    message: `Congratulations! You have achieved ${tierNames[tier]} verification`,
+    actionUrl: '/verification',
+  });
+};
+
+// ============================================================================
+// EVENT HANDLERS INITIALIZATION
+// ============================================================================
+
+/**
+ * Initialize event handlers for notifications
+ * Called once at application startup
+ */
+export const initializeEventHandlers = (): void => {
+  // Listen for events that should create notifications
+  eventBus.subscribe(DomainEvents.CONNECTION_REQUEST_SENT, async (payload: any) => {
+    // This would be handled by the connection service calling notifyConnectionRequest
+  });
+
+  eventBus.subscribe(DomainEvents.CONNECTION_REQUEST_ACCEPTED, async (payload: any) => {
+    // This would be handled by the connection service calling notifyConnectionAccepted
+  });
+
+  eventBus.subscribe(DomainEvents.TRUST_SCORE_UPDATED, async (payload: any) => {
+    if (payload.oldScore !== undefined && payload.newScore !== undefined) {
+      await notifyTrustScoreChange(payload.userId, payload.oldScore, payload.newScore);
+    }
+  });
+
+  eventBus.subscribe(DomainEvents.VERIFICATION_COMPLETED, async (payload: any) => {
+    await notifyVerificationCompleted(payload.userId, payload.tier);
+  });
+
+  console.log('Notification event handlers initialized');
+};
+
+// ============================================================================
+// CUSTOM ERROR
+// ============================================================================
+
+export class NotificationError extends Error {
+  public code: string;
+  public statusCode: number;
+
+  constructor(code: string, message: string, statusCode: number = 400) {
+    super(message);
+    this.code = code;
+    this.statusCode = statusCode;
+    this.name = 'NotificationError';
+  }
+}

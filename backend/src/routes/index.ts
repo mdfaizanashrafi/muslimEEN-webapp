@@ -33,6 +33,11 @@ import * as legacyMarketplaceController from '../controllers/marketplaceControll
 import * as legacyIslamicFinanceController from '../controllers/islamicFinanceController';
 import * as legacyVerificationController from '../controllers/verificationController';
 import * as legacyInvitationController from '../controllers/invitationController';
+import * as legacyNotificationController from '../controllers/userController'; // Notifications via userController
+
+// Modular Invitations & Notifications
+import { InvitationController as modularInvitationController } from '../modules/invitations';
+import { NotificationController as modularNotificationController } from '../modules/notifications';
 
 // ============================================================================
 // MODULAR CONTROLLERS
@@ -169,22 +174,40 @@ if (featureFlags.useModularNetwork) {
 }
 
 // ============================================================================
-// NOTIFICATIONS ROUTES (Notifications Module - Legacy only for now)
+// NOTIFICATIONS ROUTES (Notifications Module)
 // ============================================================================
 
-router.get('/user/notifications', authenticate, userLimiter, legacyUserController.retrieveUserNotifications);
-router.put('/user/notifications/:notificationId/read', authenticate, userLimiter, legacyUserController.markSingleNotificationAsRead);
-router.put('/user/notifications/read-all', authenticate, userLimiter, legacyUserController.markAllUserNotificationsAsRead);
+if (featureFlags.useModularNotifications) {
+  // Modular notification routes
+  router.get('/user/notifications', authenticate, userLimiter, modularNotificationController.getUserNotifications);
+  router.put('/user/notifications/:notificationId/read', authenticate, userLimiter, modularNotificationController.markNotificationAsRead);
+  router.put('/user/notifications/read-all', authenticate, userLimiter, modularNotificationController.markAllNotificationsAsRead);
+} else {
+  // Legacy notification routes
+  router.get('/user/notifications', authenticate, userLimiter, legacyUserController.retrieveUserNotifications);
+  router.put('/user/notifications/:notificationId/read', authenticate, userLimiter, legacyUserController.markSingleNotificationAsRead);
+  router.put('/user/notifications/read-all', authenticate, userLimiter, legacyUserController.markAllUserNotificationsAsRead);
+}
 
 // ============================================================================
-// INVITATION ROUTES (Invitations Module - Legacy only for now)
+// INVITATION ROUTES (Invitations Module)
 // ============================================================================
 
-router.get('/invitations', authenticate, userLimiter, legacyInvitationController.getInvitations);
-router.post('/invitations', authenticate, userLimiter, legacyInvitationController.createInvitation);
-router.delete('/invitations/:id', authenticate, userLimiter, legacyInvitationController.revokeInvitation);
-router.get('/invitations/remaining', authenticate, userLimiter, legacyInvitationController.getRemainingCount);
-router.get('/invitations/validate/:code', authLimiter, legacyInvitationController.validateInvitation);
+if (featureFlags.useModularInvitations) {
+  // Modular invitation routes
+  router.get('/invitations', authenticate, userLimiter, modularInvitationController.getInvitations);
+  router.post('/invitations', authenticate, userLimiter, modularInvitationController.createInvitation);
+  router.delete('/invitations/:id', authenticate, userLimiter, modularInvitationController.revokeInvitation);
+  router.get('/invitations/remaining', authenticate, userLimiter, modularInvitationController.getRemainingCount);
+  router.get('/invitations/validate/:code', authLimiter, modularInvitationController.validateInvitation);
+} else {
+  // Legacy invitation routes
+  router.get('/invitations', authenticate, userLimiter, legacyInvitationController.getInvitations);
+  router.post('/invitations', authenticate, userLimiter, legacyInvitationController.createInvitation);
+  router.delete('/invitations/:id', authenticate, userLimiter, legacyInvitationController.revokeInvitation);
+  router.get('/invitations/remaining', authenticate, userLimiter, legacyInvitationController.getRemainingCount);
+  router.get('/invitations/validate/:code', authLimiter, legacyInvitationController.validateInvitation);
+}
 
 // ============================================================================
 // MARKETPLACE ROUTES (Marketplace Module)

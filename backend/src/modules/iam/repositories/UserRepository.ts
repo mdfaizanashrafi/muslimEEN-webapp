@@ -4,8 +4,8 @@
  * Owns: users table (core identity fields only)
  */
 
-import pool from '../../../database/pool';
-import { UserRole, VerificationTier } from '../../../types';
+import pool from '../../database/pool';
+import { UserRole, VerificationTier } from '../../../types/index';
 
 export interface UserIdentity {
   id: string;

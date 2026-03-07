@@ -5,9 +5,9 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import User from '../models/User';
-import { UserRole } from '../types';
-import { verifyToken } from '../services/JwtService';
+import User from '../../../models/User';
+import { UserRole } from '../../../types/index';
+import { verifyToken } from '../../iam/services/JwtService';
 
 /**
  * Authentication middleware

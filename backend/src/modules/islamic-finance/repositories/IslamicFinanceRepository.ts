@@ -44,3 +44,29 @@ export const createLoan = async (data: any) => {
   );
   return result.rows[0];
 };
+
+export const getLoanById = async (id: string) => {
+  const result = await pool.query(
+    `SELECT l.*, u.first_name || ' ' || u.last_name as borrower_name
+     FROM qard_hasan_loans l
+     JOIN users u ON l.borrower_id = u.id
+     WHERE l.id = $1`,
+    [id]
+  );
+  return result.rows[0] || null;
+};
+
+export const updateLoan = async (id: string, data: any) => {
+  const fields = Object.keys(data);
+  const values = Object.values(data);
+  
+  if (fields.length === 0) return null;
+  
+  const setClause = fields.map((field, index) => `${field} = $${index + 2}`).join(', ');
+  
+  const result = await pool.query(
+    `UPDATE qard_hasan_loans SET ${setClause}, updated_at = NOW() WHERE id = $1 RETURNING *`,
+    [id, ...values]
+  );
+  return result.rows[0] || null;
+};

@@ -22,7 +22,7 @@ import { TrustScoreController, VerificationController } from './trust';
 import { ConnectionController } from './network';
 
 // Marketplace Module
-import { MarketplaceController } from './marketplace/controllers/MarketplaceController';
+import * as MarketplaceController from './marketplace/controllers/MarketplaceController';
 
 // Islamic Finance Module
 import * as IslamicFinanceController from './islamic-finance/controllers/IslamicFinanceController';

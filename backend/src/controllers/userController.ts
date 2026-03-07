@@ -26,9 +26,9 @@ export const retrieveCurrentUserProfile = async (
 ): Promise<void> => {
   try {
     const authenticatedUserId = req.user!.id;
-    const userProfile = await UserService.fetchUserProfileById(authenticatedUserId);
+    const userProfile = await UserService.getProfile(authenticatedUserId);
 
-    res.json(UserService.formatProfileForApiResponse(userProfile));
+    res.json(UserService.formatProfileResponse(userProfile));
   } catch (error) {
     next(error);
   }
@@ -47,7 +47,7 @@ export const modifyCurrentUserProfile = async (
     const authenticatedUserId = req.user!.id;
     const profileUpdateData = req.body;
 
-    const updatedUserProfile = await UserService.updateUserProfile(authenticatedUserId, profileUpdateData);
+    const updatedUserProfile = await UserService.updateProfile(authenticatedUserId, profileUpdateData);
 
     res.json({
       success: true,
@@ -74,8 +74,8 @@ export const retrieveCurrentTrustScore = async (
 ): Promise<void> => {
   try {
     const authenticatedUserId = req.user!.id;
-    const currentTrustScore = await TrustScoreService.fetchCurrentTrustScore(authenticatedUserId);
-    const trustScoreHistory = await TrustScoreService.fetchTrustScoreHistory(authenticatedUserId);
+    const currentTrustScore = await TrustScoreService.getCurrentScore(authenticatedUserId);
+    const trustScoreHistory = await TrustScoreService.getHistory(authenticatedUserId);
 
     res.json({
       success: true,
@@ -98,7 +98,7 @@ export const triggerTrustScoreRecalculation = async (
 ): Promise<void> => {
   try {
     const authenticatedUserId = req.user!.id;
-    const recalculationOutcome = await TrustScoreService.recalculateTrustScore(authenticatedUserId);
+    const recalculationOutcome = await TrustScoreService.recalculate(authenticatedUserId);
 
     res.json({
       success: true,
@@ -123,7 +123,7 @@ export const retrieveTrustScoreHistory = async (
 ): Promise<void> => {
   try {
     const authenticatedUserId = req.user!.id;
-    const scoreHistory = await TrustScoreService.fetchTrustScoreHistory(authenticatedUserId);
+    const scoreHistory = await TrustScoreService.getHistory(authenticatedUserId);
 
     res.json(scoreHistory);
   } catch (error) {
@@ -146,7 +146,7 @@ export const retrieveUserNetworkConnections = async (
 ): Promise<void> => {
   try {
     const authenticatedUserId = req.user!.id;
-    const userNetworkConnections = await ConnectionService.fetchUserConnections(authenticatedUserId);
+    const userNetworkConnections = await ConnectionService.getUserConnections(authenticatedUserId);
 
     res.json(userNetworkConnections);
   } catch (error) {
@@ -165,7 +165,7 @@ export const retrievePendingConnectionRequests = async (
 ): Promise<void> => {
   try {
     const authenticatedUserId = req.user!.id;
-    const pendingConnectionRequests = await ConnectionService.fetchPendingConnectionRequests(authenticatedUserId);
+    const pendingConnectionRequests = await ConnectionService.getPendingRequests(authenticatedUserId);
 
     res.json(pendingConnectionRequests);
   } catch (error) {
@@ -186,7 +186,7 @@ export const initiateConnectionRequest = async (
     const requesterUserId = req.user!.id;
     const targetRecipientId = req.body.recipientId;
 
-    await ConnectionService.sendConnectionRequest(requesterUserId, targetRecipientId);
+    await ConnectionService.sendRequest(requesterUserId, targetRecipientId);
 
     res.json({
       success: true,
@@ -210,7 +210,7 @@ export const acceptConnectionRequest = async (
     const recipientUserId = req.user!.id;
     const connectionRequestId = req.params.connectionId;
 
-    await ConnectionService.acceptConnectionRequest(connectionRequestId, recipientUserId);
+    await ConnectionService.acceptRequest(connectionRequestId, recipientUserId);
 
     res.json({
       success: true,
@@ -234,7 +234,7 @@ export const declineConnectionRequest = async (
     const recipientUserId = req.user!.id;
     const connectionRequestId = req.params.connectionId;
 
-    await ConnectionService.rejectConnectionRequest(connectionRequestId, recipientUserId);
+    await ConnectionService.rejectRequest(connectionRequestId, recipientUserId);
 
     res.json({
       success: true,
@@ -262,7 +262,7 @@ export const retrieveUserNotifications = async (
     const authenticatedUserId = req.user!.id;
     const { unreadOnly, limit: queryLimit, offset: queryOffset } = req.query;
 
-    const userNotificationInbox = await NotificationService.fetchUserNotifications(authenticatedUserId, {
+    const userNotificationInbox = await NotificationService.getUserNotifications(authenticatedUserId, {
       unreadOnly: unreadOnly === 'true',
       limit: queryLimit ? parseInt(queryLimit as string, 10) : undefined,
       offset: queryOffset ? parseInt(queryOffset as string, 10) : undefined,
@@ -287,7 +287,7 @@ export const markSingleNotificationAsRead = async (
     const authenticatedUserId = req.user!.id;
     const notificationId = req.params.notificationId;
 
-    await NotificationService.markNotificationAsRead(notificationId, authenticatedUserId);
+    await NotificationService.markAsRead(notificationId, authenticatedUserId);
 
     res.json({
       success: true,
@@ -310,7 +310,7 @@ export const markAllUserNotificationsAsRead = async (
   try {
     const authenticatedUserId = req.user!.id;
 
-    await NotificationService.markAllNotificationsAsReadForUser(authenticatedUserId);
+    await NotificationService.markAllAsReadForUser(authenticatedUserId);
 
     res.json({
       success: true,

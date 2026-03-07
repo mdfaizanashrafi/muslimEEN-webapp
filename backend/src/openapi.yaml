@@ -1,0 +1,2727 @@
+openapi: 3.0.3
+info:
+  title: MuslimEEN API
+  description: |
+    # MuslimEEN - Muslim Economic Empowerment Network
+    
+    An invitation-only professional networking platform for the Muslim community with Shariah-compliant financial tools.
+    
+    ## Core Features
+    - **Trust-based verification system** with 0-1000 trust scores
+    - **Shariah-compliant financial tools**: Zakat calculator, Qard Hasan, Sadaqah, Waqf
+    - **Four marketplace verticals**: EARN, BUILD, LIVE, PROTECT
+    - **Invitation-only access** to prevent spam and maintain community quality
+    
+    ## Authentication
+    All protected endpoints require a Bearer token in the Authorization header:
+    ```
+    Authorization: Bearer <your-jwt-token>
+    ```
+    
+    ## Response Format
+    All API responses follow a consistent format:
+    ```json
+    {
+      "success": true,
+      "data": {},
+      "message": "Optional message",
+      "error": null
+    }
+    ```
+  version: 1.0.0
+  contact:
+    name: MuslimEEN Team
+    url: https://muslimeen.org
+  license:
+    name: AGPL-3.0
+    url: https://www.gnu.org/licenses/agpl-3.0.html
+
+servers:
+  - url: http://localhost:3001/api
+    description: Development server
+  - url: https://api.muslimeen.org/v1
+    description: Production server
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Authentication
+    description: User authentication and registration
+  - name: User
+    description: User profile and account management
+  - name: Profile
+    description: Profile operations
+  - name: Trust Score
+    description: Trust score management and history
+  - name: Connections
+    description: Network connections and requests
+  - name: Notifications
+    description: User notifications
+  - name: Invitations
+    description: Invitation management
+  - name: Marketplace
+    description: Marketplace listings across EARN, BUILD, LIVE, PROTECT verticals
+  - name: Islamic Finance
+    description: Shariah-compliant financial tools
+  - name: Verification
+    description: Identity and business verification
+  - name: Admin
+    description: Administrative endpoints
+
+paths:
+  # ============================================================================
+  # AUTHENTICATION
+  # ============================================================================
+  /auth/validate-invitation:
+    post:
+      summary: Validate invitation code
+      description: Check if an invitation code is valid and available for registration
+      tags:
+        - Authentication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - invitationCode
+              properties:
+                invitationCode:
+                  type: string
+                  description: The invitation code to validate
+                  example: "MUSLIMEEN-2024-ABC123"
+      responses:
+        '200':
+          description: Invitation validation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                valid:
+                  summary: Valid invitation
+                  value:
+                    success: true
+                    message: "Invitation is valid"
+                    data:
+                      invitation:
+                        code: "MUSLIMEEN-2024-ABC123"
+                        status: "pending"
+                invalid:
+                  summary: Invalid invitation
+                  value:
+                    success: false
+                    message: "Invalid or expired invitation code"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /auth/login:
+    post:
+      summary: User login
+      description: Authenticate a user and receive a JWT token
+      tags:
+        - Authentication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "user@example.com"
+                password:
+                  type: string
+                  format: password
+                  example: "SecurePassword123!"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+              example:
+                success: true
+                message: "Login successful"
+                data:
+                  user:
+                    id: "550e8400-e29b-41d4-a716-446655440000"
+                    email: "user@example.com"
+                    firstName: "Ahmed"
+                    lastName: "Hassan"
+                    fullName: "Ahmed Hassan"
+                    role: "muslim_verified"
+                    trustScore: 750
+                    badges: ["biometric", "two_witness"]
+                  token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              example:
+                success: false
+                error:
+                  code: "INVALID_CREDENTIALS"
+                  message: "Invalid email or password"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /auth/register:
+    post:
+      summary: User registration
+      description: Register a new user with a valid invitation code
+      tags:
+        - Authentication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - firstName
+                - lastName
+                - invitationCode
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "user@example.com"
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  example: "SecurePassword123!"
+                firstName:
+                  type: string
+                  example: "Ahmed"
+                lastName:
+                  type: string
+                  example: "Hassan"
+                invitationCode:
+                  type: string
+                  example: "MUSLIMEEN-2024-ABC123"
+      responses:
+        '201':
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+              example:
+                success: true
+                message: "Registration successful"
+                data:
+                  user:
+                    id: "550e8400-e29b-41d4-a716-446655440000"
+                    email: "user@example.com"
+                    firstName: "Ahmed"
+                    lastName: "Hassan"
+                    fullName: "Ahmed Hassan"
+                    role: "muslim_unverified"
+                    trustScore: 100
+                  token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              example:
+                success: false
+                error:
+                  code: "EMAIL_EXISTS"
+                  message: "Email already registered"
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /auth/logout:
+    post:
+      summary: User logout
+      description: Logout the current user and invalidate the session
+      tags:
+        - Authentication
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                message: "Logout successful"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /auth/me:
+    get:
+      summary: Get current user
+      description: Retrieve the currently authenticated user's information
+      tags:
+        - Authentication
+      responses:
+        '200':
+          description: Current user data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  user:
+                    $ref: '#/components/schemas/User'
+              example:
+                success: true
+                user:
+                  id: "550e8400-e29b-41d4-a716-446655440000"
+                  email: "user@example.com"
+                  firstName: "Ahmed"
+                  lastName: "Hassan"
+                  fullName: "Ahmed Hassan"
+                  role: "muslim_verified"
+                  verificationTier: "standard"
+                  trustScore: 750
+                  bio: "Software engineer and community volunteer"
+                  location: "London, UK"
+                  industry: "Technology"
+                  skills: ["JavaScript", "Node.js", "React"]
+                  badges: ["biometric", "two_witness"]
+                  endorsements: 15
+                  connections: 42
+                  profileViews: 128
+                  isWitnessEligible: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ============================================================================
+  # USER PROFILE
+  # ============================================================================
+  /user/profile:
+    get:
+      summary: Get current user profile
+      description: Retrieve the complete profile of the authenticated user
+      tags:
+        - Profile
+        - User
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                data:
+                  user:
+                    id: "550e8400-e29b-41d4-a716-446655440000"
+                    email: "user@example.com"
+                    firstName: "Ahmed"
+                    lastName: "Hassan"
+                    fullName: "Ahmed Hassan"
+                    role: "muslim_verified"
+                    verificationTier: "standard"
+                    trustScore: 750
+                    bio: "Software engineer and community volunteer"
+                    location: "London, UK"
+                    industry: "Technology"
+                    skills: ["JavaScript", "Node.js", "React"]
+                    badges: ["biometric", "two_witness"]
+                    endorsements: 15
+                    connections: 42
+                    profileViews: 128
+                    isWitnessEligible: true
+                    createdAt: "2024-01-15T10:30:00Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    
+    put:
+      summary: Update user profile
+      description: Update the authenticated user's profile information
+      tags:
+        - Profile
+        - User
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName:
+                  type: string
+                  example: "Ahmed"
+                lastName:
+                  type: string
+                  example: "Hassan"
+                bio:
+                  type: string
+                  maxLength: 500
+                  example: "Software engineer and community volunteer"
+                location:
+                  type: string
+                  example: "London, UK"
+                industry:
+                  type: string
+                  example: "Technology"
+                skills:
+                  type: array
+                  items:
+                    type: string
+                  example: ["JavaScript", "Node.js", "React"]
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                message: "Profile updated successfully"
+                user:
+                  id: "550e8400-e29b-41d4-a716-446655440000"
+                  firstName: "Ahmed"
+                  lastName: "Hassan"
+                  bio: "Updated bio"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /users/{userId}/profile:
+    get:
+      summary: Get public profile
+      description: Retrieve a public profile for any user by ID
+      tags:
+        - Profile
+        - User
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: The user ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '200':
+          description: Public profile retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                data:
+                  user:
+                    id: "550e8400-e29b-41d4-a716-446655440000"
+                    firstName: "Ahmed"
+                    lastName: "Hassan"
+                    fullName: "Ahmed Hassan"
+                    role: "muslim_verified"
+                    trustScore: 750
+                    bio: "Software engineer and community volunteer"
+                    location: "London, UK"
+                    industry: "Technology"
+                    skills: ["JavaScript", "Node.js", "React"]
+                    badges: ["biometric", "two_witness"]
+                    endorsements: 15
+                    connections: 42
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ============================================================================
+  # TRUST SCORE
+  # ============================================================================
+  /user/trust-score:
+    get:
+      summary: Get current trust score
+      description: Retrieve the authenticated user's current trust score
+      tags:
+        - Trust Score
+      responses:
+        '200':
+          description: Trust score retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                data:
+                  trustScore:
+                    score: 750
+                    tier: "high"
+                    maxScore: 1000
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /user/trust-score/recalculate:
+    post:
+      summary: Recalculate trust score
+      description: Trigger a recalculation of the user's trust score
+      tags:
+        - Trust Score
+      responses:
+        '200':
+          description: Trust score recalculated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                message: "Trust score recalculated"
+                data:
+                  trustScore:
+                    score: 775
+                    tier: "high"
+                    previousScore: 750
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /user/trust-score/history:
+    get:
+      summary: Get trust score history
+      description: Retrieve the history of trust score changes
+      tags:
+        - Trust Score
+      responses:
+        '200':
+          description: Trust score history retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                data:
+                  history:
+                    - date: "2024-01-15T10:30:00Z"
+                      score: 100
+                      reason: "Initial score"
+                    - date: "2024-02-01T14:20:00Z"
+                      score: 250
+                      reason: "Profile completed"
+                    - date: "2024-02-15T09:00:00Z"
+                      score: 500
+                      reason: "Biometric verification"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ============================================================================
+  # CONNECTIONS
+  # ============================================================================
+  /user/connections:
+    get:
+      summary: Get user connections
+      description: Retrieve all accepted connections for the current user
+      tags:
+        - Connections
+      responses:
+        '200':
+          description: Connections retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                data:
+                  connections:
+                    - id: "660e8400-e29b-41d4-a716-446655440001"
+                      userId: "770e8400-e29b-41d4-a716-446655440002"
+                      firstName: "Fatima"
+                      lastName: "Khan"
+                      fullName: "Fatima Khan"
+                      role: "muslim_verified"
+                      trustScore: 820
+                      industry: "Healthcare"
+                      connectedAt: "2024-02-01T10:00:00Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    
+    post:
+      summary: Send connection request
+      description: Send a connection request to another user
+      tags:
+        - Connections
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - recipientId
+              properties:
+                recipientId:
+                  type: string
+                  format: uuid
+                  description: The ID of the user to connect with
+                  example: "770e8400-e29b-41d4-a716-446655440002"
+                message:
+                  type: string
+                  maxLength: 280
+                  description: Optional message to accompany the request
+                  example: "I'd like to connect with you for professional networking."
+      responses:
+        '201':
+          description: Connection request sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                message: "Connection request sent"
+                data:
+                  connection:
+                    id: "660e8400-e29b-41d4-a716-446655440001"
+                    status: "pending"
+                    recipientId: "770e8400-e29b-41d4-a716-446655440002"
+                    createdAt: "2024-03-01T10:00:00Z"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Connection already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              example:
+                success: false
+                error:
+                  code: "CONNECTION_EXISTS"
+                  message: "Connection request already exists"
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /user/connections/pending:
+    get:
+      summary: Get pending connections
+      description: Retrieve all pending connection requests for the current user
+      tags:
+        - Connections
+      responses:
+        '200':
+          description: Pending connections retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                data:
+                  pending:
+                    - id: "660e8400-e29b-41d4-a716-446655440001"
+                      requesterId: "880e8400-e29b-41d4-a716-446655440003"
+                      firstName: "Omar"
+                      lastName: "Ali"
+                      fullName: "Omar Ali"
+                      role: "muslim_verified"
+                      trustScore: 650
+                      message: "I'd like to connect with you."
+                      createdAt: "2024-03-01T10:00:00Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /user/connections/{connectionId}/accept:
+    post:
+      summary: Accept connection request
+      description: Accept a pending connection request
+      tags:
+        - Connections
+      parameters:
+        - name: connectionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: The connection request ID
+          example: "660e8400-e29b-41d4-a716-446655440001"
+      responses:
+        '200':
+          description: Connection accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                message: "Connection request accepted"
+                data:
+                  connection:
+                    id: "660e8400-e29b-41d4-a716-446655440001"
+                    status: "accepted"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /user/connections/{connectionId}/reject:
+    post:
+      summary: Reject connection request
+      description: Reject a pending connection request
+      tags:
+        - Connections
+      parameters:
+        - name: connectionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: The connection request ID
+          example: "660e8400-e29b-41d4-a716-446655440001"
+      responses:
+        '200':
+          description: Connection rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                message: "Connection request rejected"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /user/connections/{connectionId}:
+    delete:
+      summary: Remove connection
+      description: Remove an existing connection
+      tags:
+        - Connections
+      parameters:
+        - name: connectionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: The connection ID
+          example: "660e8400-e29b-41d4-a716-446655440001"
+      responses:
+        '200':
+          description: Connection removed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                message: "Connection removed"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ============================================================================
+  # NOTIFICATIONS
+  # ============================================================================
+  /user/notifications:
+    get:
+      summary: Get notifications
+      description: Retrieve all notifications for the current user
+      tags:
+        - Notifications
+      responses:
+        '200':
+          description: Notifications retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                data:
+                  notifications:
+                    - id: "990e8400-e29b-41d4-a716-446655440004"
+                      type: "connection_request"
+                      title: "New Connection Request"
+                      message: "Omar Ali wants to connect with you"
+                      isRead: false
+                      createdAt: "2024-03-01T10:00:00Z"
+                      data:
+                        connectionId: "660e8400-e29b-41d4-a716-446655440001"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /user/notifications/{notificationId}/read:
+    put:
+      summary: Mark notification as read
+      description: Mark a specific notification as read
+      tags:
+        - Notifications
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: The notification ID
+          example: "990e8400-e29b-41d4-a716-446655440004"
+      responses:
+        '200':
+          description: Notification marked as read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                message: "Notification marked as read"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /user/notifications/read-all:
+    put:
+      summary: Mark all notifications as read
+      description: Mark all notifications as read for the current user
+      tags:
+        - Notifications
+      responses:
+        '200':
+          description: All notifications marked as read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                message: "All notifications marked as read"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ============================================================================
+  # INVITATIONS
+  # ============================================================================
+  /invitations:
+    get:
+      summary: Get invitations
+      description: Retrieve all invitations created by the current user
+      tags:
+        - Invitations
+      responses:
+        '200':
+          description: Invitations retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                data:
+                  invitations:
+                    - id: "aa0e8400-e29b-41d4-a716-446655440005"
+                      code: "MUSLIMEEN-2024-XYZ789"
+                      email: "friend@example.com"
+                      status: "pending"
+                      maxUses: 1
+                      usedCount: 0
+                      createdAt: "2024-02-15T10:00:00Z"
+                      expiresAt: "2024-03-15T10:00:00Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    
+    post:
+      summary: Create invitation
+      description: Create a new invitation code for someone
+      tags:
+        - Invitations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: Optional email to associate with the invitation
+                  example: "friend@example.com"
+      responses:
+        '201':
+          description: Invitation created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                message: "Invitation created"
+                data:
+                  invitation:
+                    id: "aa0e8400-e29b-41d4-a716-446655440005"
+                    code: "MUSLIMEEN-2024-XYZ789"
+                    status: "pending"
+                    maxUses: 1
+                    usedCount: 0
+                    createdAt: "2024-03-01T10:00:00Z"
+                    expiresAt: "2024-04-01T10:00:00Z"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: No invitations remaining
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              example:
+                success: false
+                error:
+                  code: "NO_INVITATIONS_REMAINING"
+                  message: "You have no invitations remaining"
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /invitations/{id}:
+    delete:
+      summary: Revoke invitation
+      description: Revoke an unused invitation
+      tags:
+        - Invitations
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: The invitation ID
+          example: "aa0e8400-e29b-41d4-a716-446655440005"
+      responses:
+        '200':
+          description: Invitation revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                message: "Invitation revoked"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /invitations/remaining:
+    get:
+      summary: Get remaining invitations count
+      description: Get the number of invitations remaining for the current user
+      tags:
+        - Invitations
+      responses:
+        '200':
+          description: Remaining invitations retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                data:
+                  remaining: 5
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /invitations/validate/{code}:
+    get:
+      summary: Validate invitation by code
+      description: Validate an invitation code (public endpoint)
+      tags:
+        - Invitations
+      security: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The invitation code to validate
+          example: "MUSLIMEEN-2024-XYZ789"
+      responses:
+        '200':
+          description: Validation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                valid:
+                  summary: Valid invitation
+                  value:
+                    success: true
+                    data:
+                      valid: true
+                      invitation:
+                        code: "MUSLIMEEN-2024-XYZ789"
+                        status: "pending"
+                invalid:
+                  summary: Invalid invitation
+                  value:
+                    success: false
+                    error:
+                      code: "INVALID_INVITATION"
+                      message: "Invitation not found or expired"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ============================================================================
+  # MARKETPLACE
+  # ============================================================================
+  /marketplace/{vertical}:
+    get:
+      summary: Get marketplace listings
+      description: Retrieve listings for a specific marketplace vertical
+      tags:
+        - Marketplace
+      parameters:
+        - name: vertical
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [earn, build, live, protect]
+          description: The marketplace vertical
+          example: "earn"
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search term
+        - name: location
+          in: query
+          schema:
+            type: string
+          description: Filter by location
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+          description: Number of results to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Offset for pagination
+      responses:
+        '200':
+          description: Listings retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                data:
+                  listings:
+                    - id: "bb0e8400-e29b-41d4-a716-446655440006"
+                      userId: "550e8400-e29b-41d4-a716-446655440000"
+                      category: "earn"
+                      title: "Senior Software Engineer Position"
+                      description: "Looking for an experienced software engineer"
+                      location: "Remote"
+                      salary: "$80,000 - $120,000"
+                      status: "active"
+                      createdAt: "2024-02-20T10:00:00Z"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    
+    post:
+      summary: Create marketplace listing
+      description: Create a new listing in a marketplace vertical
+      tags:
+        - Marketplace
+      parameters:
+        - name: vertical
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [earn, build, live, protect]
+          description: The marketplace vertical
+          example: "earn"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - description
+              properties:
+                title:
+                  type: string
+                  example: "Senior Software Engineer Position"
+                description:
+                  type: string
+                  example: "Looking for an experienced software engineer"
+                location:
+                  type: string
+                  example: "Remote"
+                salary:
+                  type: string
+                  example: "$80,000 - $120,000"
+                rate:
+                  type: string
+                  example: "$50/hour"
+      responses:
+        '201':
+          description: Listing created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                message: "Listing created successfully"
+                data:
+                  listing:
+                    id: "bb0e8400-e29b-41d4-a716-446655440006"
+                    category: "earn"
+                    title: "Senior Software Engineer Position"
+                    status: "active"
+                    createdAt: "2024-03-01T10:00:00Z"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /marketplace/{vertical}/{id}:
+    get:
+      summary: Get listing by ID
+      description: Retrieve a specific marketplace listing
+      tags:
+        - Marketplace
+      parameters:
+        - name: vertical
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [earn, build, live, protect]
+          description: The marketplace vertical
+          example: "earn"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: The listing ID
+          example: "bb0e8400-e29b-41d4-a716-446655440006"
+      responses:
+        '200':
+          description: Listing retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                data:
+                  listing:
+                    id: "bb0e8400-e29b-41d4-a716-446655440006"
+                    userId: "550e8400-e29b-41d4-a716-446655440000"
+                    category: "earn"
+                    title: "Senior Software Engineer Position"
+                    description: "Looking for an experienced software engineer"
+                    location: "Remote"
+                    salary: "$80,000 - $120,000"
+                    status: "active"
+                    createdAt: "2024-02-20T10:00:00Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    
+    put:
+      summary: Update listing
+      description: Update an existing marketplace listing
+      tags:
+        - Marketplace
+      parameters:
+        - name: vertical
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [earn, build, live, protect]
+          description: The marketplace vertical
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: The listing ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                location:
+                  type: string
+                salary:
+                  type: string
+                status:
+                  type: string
+                  enum: [active, inactive, closed]
+      responses:
+        '200':
+          description: Listing updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                message: "Listing updated successfully"
+                data:
+                  listing:
+                    id: "bb0e8400-e29b-41d4-a716-446655440006"
+                    title: "Updated Position Title"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    
+    delete:
+      summary: Delete listing
+      description: Remove a marketplace listing
+      tags:
+        - Marketplace
+      parameters:
+        - name: vertical
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [earn, build, live, protect]
+          description: The marketplace vertical
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: The listing ID
+      responses:
+        '200':
+          description: Listing removed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                message: "Listing removed"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /marketplace/{vertical}/{id}/invest:
+    post:
+      summary: Record investment
+      description: Record an investment in a BUILD vertical listing
+      tags:
+        - Marketplace
+      parameters:
+        - name: vertical
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [build]
+          description: The marketplace vertical (must be 'build')
+          example: "build"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: The listing ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+              properties:
+                amount:
+                  type: number
+                  minimum: 1
+                  example: 5000
+      responses:
+        '200':
+          description: Investment recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                message: "Investment recorded"
+                data:
+                  listing:
+                    id: "bb0e8400-e29b-41d4-a716-446655440006"
+                    title: "Community Center Project"
+                    raised: 50000
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ============================================================================
+  # ISLAMIC FINANCE - SADAQAH
+  # ============================================================================
+  /islamic-finance/sadaqah:
+    get:
+      summary: Get Sadaqah campaigns
+      description: Retrieve all active Sadaqah (charity) campaigns
+      tags:
+        - Islamic Finance
+      responses:
+        '200':
+          description: Campaigns retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                data:
+                  campaigns:
+                    - id: "cc0e8400-e29b-41d4-a716-446655440007"
+                      title: "Ramadan Food Drive"
+                      description: "Help provide meals for families in need"
+                      goal: 10000
+                      raised: 7500
+                      donors: 45
+                      endDate: "2024-04-15T00:00:00Z"
+                      status: "active"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /islamic-finance/sadaqah/{id}/donate:
+    post:
+      summary: Make Sadaqah donation
+      description: Donate to a specific Sadaqah campaign
+      tags:
+        - Islamic Finance
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: The campaign ID
+          example: "cc0e8400-e29b-41d4-a716-446655440007"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+              properties:
+                amount:
+                  type: number
+                  minimum: 1
+                  description: Donation amount
+                  example: 100
+                anonymous:
+                  type: boolean
+                  default: false
+                  description: Whether to make the donation anonymous
+                  example: false
+                message:
+                  type: string
+                  maxLength: 280
+                  description: Optional message
+                  example: "May Allah accept this from us"
+      responses:
+        '200':
+          description: Donation recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                message: "Donation recorded"
+                data:
+                  donation:
+                    id: "dd0e8400-e29b-41d4-a716-446655440008"
+                    amount: 100
+                    anonymous: false
+                    message: "May Allah accept this from us"
+                    createdAt: "2024-03-01T10:00:00Z"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ============================================================================
+  # ISLAMIC FINANCE - WAQF
+  # ============================================================================
+  /islamic-finance/waqf:
+    get:
+      summary: Get Waqf listings
+      description: Retrieve all Waqf (endowment) listings
+      tags:
+        - Islamic Finance
+      responses:
+        '200':
+          description: Waqf listings retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                data:
+                  waqf:
+                    - id: "ee0e8400-e29b-41d4-a716-446655440009"
+                      title: "Community Education Fund"
+                      description: "Permanent endowment supporting education"
+                      assetValue: 500000
+                      annualReturn: 5
+                      supportedCauses: ["Education", "Youth Development"]
+                      status: "active"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ============================================================================
+  # ISLAMIC FINANCE - QARD HASAN
+  # ============================================================================
+  /islamic-finance/qard-hasan:
+    get:
+      summary: Get Qard Hasan loans
+      description: Retrieve all Qard Hasan (benevolent loan) listings
+      tags:
+        - Islamic Finance
+      responses:
+        '200':
+          description: Loans retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                data:
+                  loans:
+                    - id: "ff0e8400-e29b-41d4-a716-446655440010"
+                      borrowerId: "550e8400-e29b-41d4-a716-446655440000"
+                      amount: 5000
+                      purpose: "Medical expenses"
+                      term: 12
+                      status: "pending"
+                      createdAt: "2024-03-01T10:00:00Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    
+    post:
+      summary: Create Qard Hasan loan request
+      description: Create a new Qard Hasan loan request
+      tags:
+        - Islamic Finance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+                - purpose
+                - term
+              properties:
+                amount:
+                  type: number
+                  minimum: 100
+                  description: Loan amount
+                  example: 5000
+                purpose:
+                  type: string
+                  description: Purpose of the loan
+                  example: "Medical expenses"
+                term:
+                  type: integer
+                  minimum: 1
+                  maximum: 60
+                  description: Loan term in months
+                  example: 12
+      responses:
+        '201':
+          description: Loan request created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                message: "Loan request created"
+                data:
+                  loan:
+                    id: "ff0e8400-e29b-41d4-a716-446655440010"
+                    amount: 5000
+                    purpose: "Medical expenses"
+                    term: 12
+                    status: "pending"
+                    createdAt: "2024-03-01T10:00:00Z"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /islamic-finance/qard-hasan/{id}/lend:
+    post:
+      summary: Lend to Qard Hasan
+      description: Fund a Qard Hasan loan request
+      tags:
+        - Islamic Finance
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: The loan ID
+          example: "ff0e8400-e29b-41d4-a716-446655440010"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+              properties:
+                amount:
+                  type: number
+                  minimum: 1
+                  description: Amount to lend
+                  example: 2500
+      responses:
+        '200':
+          description: Loan funded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                message: "Loan funded successfully"
+                data:
+                  loan:
+                    id: "ff0e8400-e29b-41d4-a716-446655440010"
+                    status: "funded"
+                    lenderId: "770e8400-e29b-41d4-a716-446655440002"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /islamic-finance/qard-hasan/{id}/repay:
+    post:
+      summary: Repay Qard Hasan
+      description: Make a repayment on a Qard Hasan loan
+      tags:
+        - Islamic Finance
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: The loan ID
+          example: "ff0e8400-e29b-41d4-a716-446655440010"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+              properties:
+                amount:
+                  type: number
+                  minimum: 1
+                  description: Repayment amount
+                  example: 500
+      responses:
+        '200':
+          description: Repayment recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                message: "Repayment recorded"
+                data:
+                  loan:
+                    id: "ff0e8400-e29b-41d4-a716-446655440010"
+                    status: "repaid"
+                    remainingAmount: 0
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ============================================================================
+  # ISLAMIC FINANCE - ZAKAT
+  # ============================================================================
+  /islamic-finance/zakat/calculate:
+    post:
+      summary: Calculate Zakat
+      description: Calculate Zakat based on assets and debts
+      tags:
+        - Islamic Finance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - nisabType
+              properties:
+                cash:
+                  type: number
+                  minimum: 0
+                  description: Cash and bank balances
+                  example: 5000
+                gold:
+                  type: number
+                  minimum: 0
+                  description: Value of gold in grams or currency
+                  example: 2000
+                silver:
+                  type: number
+                  minimum: 0
+                  description: Value of silver in grams or currency
+                  example: 500
+                investments:
+                  type: number
+                  minimum: 0
+                  description: Value of investments
+                  example: 10000
+                businessAssets:
+                  type: number
+                  minimum: 0
+                  description: Business assets value
+                  example: 15000
+                debts:
+                  type: number
+                  minimum: 0
+                  description: Outstanding debts
+                  example: 3000
+                nisabType:
+                  type: string
+                  enum: [gold, silver]
+                  description: Nisab calculation method
+                  example: "gold"
+      responses:
+        '200':
+          description: Zakat calculated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                data:
+                  result:
+                    totalAssets: 32500
+                    totalDebts: 3000
+                    netAssets: 29500
+                    nisabThreshold: 4500
+                    nisabType: "gold"
+                    isZakatDue: true
+                    zakatAmount: 737.5
+                    zakatRate: 0.025
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ============================================================================
+  # VERIFICATION
+  # ============================================================================
+  /verification/biometric/request:
+    post:
+      summary: Request biometric verification
+      description: Initiate biometric identity verification
+      tags:
+        - Verification
+      responses:
+        '200':
+          description: Biometric verification initiated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                message: "Biometric verification initiated"
+                data:
+                  sessionId: "session-12345"
+                  verificationUrl: "https://verify.muslimeen.org/session-12345"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /verification/biometric/complete:
+    post:
+      summary: Complete biometric verification
+      description: Complete the biometric verification process
+      tags:
+        - Verification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sessionId
+              properties:
+                sessionId:
+                  type: string
+                  description: The verification session ID
+                  example: "session-12345"
+      responses:
+        '200':
+          description: Biometric verification completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                message: "Biometric verification completed"
+                data:
+                  verified: true
+                  badge: "biometric"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /verification/witness/request:
+    post:
+      summary: Request witness verification
+      description: Request verification through two community witnesses
+      tags:
+        - Verification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - witnessIds
+              properties:
+                witnessIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                  minItems: 2
+                  maxItems: 2
+                  description: IDs of two verified witnesses
+                  example: ["770e8400-e29b-41d4-a716-446655440002", "880e8400-e29b-41d4-a716-446655440003"]
+      responses:
+        '200':
+          description: Witness verification requested
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                message: "Witness verification requested"
+                data:
+                  requestId: "req-12345"
+                  status: "pending"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /verification/witness/{userId}/approve:
+    post:
+      summary: Approve as witness
+      description: Approve a verification request as a witness
+      tags:
+        - Verification
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: The user being verified
+          example: "550e8400-e29b-41d4-a716-446655440000"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                requestId:
+                  type: string
+                  description: The verification request ID
+                  example: "req-12345"
+      responses:
+        '200':
+          description: Witness approval recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                message: "Witness approval recorded"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Not eligible as witness
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              example:
+                success: false
+                error:
+                  code: "NOT_WITNESS_ELIGIBLE"
+                  message: "You are not eligible to serve as a witness"
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /verification/business/request:
+    post:
+      summary: Request business verification
+      description: Request verification for a business entity
+      tags:
+        - Verification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - businessName
+                - registrationNumber
+              properties:
+                businessName:
+                  type: string
+                  example: "Al-Baraka Consulting Ltd"
+                registrationNumber:
+                  type: string
+                  example: "12345678"
+                documents:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of document URLs
+                  example: ["https://docs.muslimeen.org/doc1.pdf"]
+      responses:
+        '200':
+          description: Business verification requested
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                message: "Business verification requested"
+                data:
+                  requestId: "biz-12345"
+                  status: "pending"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /verification/business/{userId}/approve:
+    post:
+      summary: Approve business verification
+      description: Approve a business verification request (Admin only)
+      tags:
+        - Verification
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: The business user being verified
+          example: "550e8400-e29b-41d4-a716-446655440000"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                requestId:
+                  type: string
+                  description: The verification request ID
+                  example: "biz-12345"
+      responses:
+        '200':
+          description: Business verification approved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                message: "Business verification approved"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ============================================================================
+  # ADMIN
+  # ============================================================================
+  /admin/stats:
+    get:
+      summary: Get admin stats
+      description: Retrieve administrative statistics (Admin only)
+      tags:
+        - Admin
+      responses:
+        '200':
+          description: Admin statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                message: "Admin stats endpoint"
+                data:
+                  migration:
+                    status: "in-progress"
+                    modules:
+                      iam: "modular"
+                      profile: "modular"
+                      trust: "modular"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ============================================================================
+  # FEED
+  # ============================================================================
+  /feed:
+    get:
+      summary: Get feed
+      description: Retrieve the public feed
+      tags:
+        - User
+      responses:
+        '200':
+          description: Feed retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                message: "Feed endpoint"
+                data:
+                  items: []
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ============================================================================
+  # HEALTH & STATUS
+  # ============================================================================
+  /migration-status:
+    get:
+      summary: Get API migration status
+      description: Retrieve the current API migration and feature flag status
+      tags:
+        - System
+      security: []
+      responses:
+        '200':
+          description: Migration status retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                data:
+                  name: "MuslimEEN API"
+                  version: "1.0.0"
+                  migration:
+                    status: "in-progress"
+                    featureFlags:
+                      useModularIAM: true
+                      useModularProfile: true
+                    modules:
+                      iam: "modular"
+                      profile: "modular"
+                      trust: "modular"
+                  endpoints:
+                    auth: "/api/auth"
+                    user: "/api/user"
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /health:
+    get:
+      summary: Health check
+      description: Check API health status
+      tags:
+        - System
+      security: []
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+                  version:
+                    type: string
+                  environment:
+                    type: string
+              example:
+                status: "healthy"
+                timestamp: "2024-03-01T10:00:00.000Z"
+                version: "1.0.0"
+                environment: "development"
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from login or register
+
+  schemas:
+    # ============================================================================
+    # BASE SCHEMAS
+    # ============================================================================
+    ApiResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+        error:
+          $ref: '#/components/schemas/ApiError'
+    
+    ApiError:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: array
+          items:
+            type: string
+    
+    LoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            user:
+              $ref: '#/components/schemas/User'
+            token:
+              type: string
+              description: JWT authentication token
+    
+    # ============================================================================
+    # USER SCHEMAS
+    # ============================================================================
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+        lastName:
+          type: string
+        fullName:
+          type: string
+        role:
+          type: string
+          enum: 
+            - muslim_unverified
+            - muslim_verified
+            - muslim_witness
+            - business_unverified
+            - business_verified
+            - institution_unverified
+            - institution_verified
+            - admin
+            - super_admin
+        verificationTier:
+          type: string
+          enum: [basic, standard, advanced]
+        trustScore:
+          type: integer
+          minimum: 0
+          maximum: 1000
+        bio:
+          type: string
+          nullable: true
+        location:
+          type: string
+          nullable: true
+        industry:
+          type: string
+          nullable: true
+        skills:
+          type: array
+          items:
+            type: string
+          nullable: true
+        badges:
+          type: array
+          items:
+            type: string
+            enum: [biometric, two_witness, business, institutional]
+          nullable: true
+        endorsements:
+          type: integer
+          minimum: 0
+        connections:
+          type: integer
+          minimum: 0
+        profileViews:
+          type: integer
+          minimum: 0
+        isWitnessEligible:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        lastLogin:
+          type: string
+          format: date-time
+          nullable: true
+    
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        firstName:
+          type: string
+        lastName:
+          type: string
+        fullName:
+          type: string
+        role:
+          type: string
+        trustScore:
+          type: integer
+        bio:
+          type: string
+        location:
+          type: string
+        industry:
+          type: string
+        skills:
+          type: array
+          items:
+            type: string
+        endorsements:
+          type: integer
+        connections:
+          type: integer
+    
+    # ============================================================================
+    # CONNECTION SCHEMAS
+    # ============================================================================
+    Connection:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        requesterId:
+          type: string
+          format: uuid
+        recipientId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, accepted, declined, blocked]
+        message:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    
+    # ============================================================================
+    # INVITATION SCHEMAS
+    # ============================================================================
+    Invitation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        email:
+          type: string
+          format: email
+          nullable: true
+        status:
+          type: string
+          enum: [pending, used, expired]
+        maxUses:
+          type: integer
+          minimum: 1
+        usedCount:
+          type: integer
+          minimum: 0
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        usedAt:
+          type: string
+          format: date-time
+          nullable: true
+        usedBy:
+          type: string
+          format: uuid
+          nullable: true
+    
+    # ============================================================================
+    # NOTIFICATION SCHEMAS
+    # ============================================================================
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: 
+            - connection_request
+            - connection_accepted
+            - message_received
+            - verification_update
+            - trust_score_update
+            - marketplace_update
+        title:
+          type: string
+        message:
+          type: string
+        data:
+          type: object
+          additionalProperties: true
+        isRead:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+    
+    # ============================================================================
+    # MARKETPLACE SCHEMAS
+    # ============================================================================
+    MarketplaceListing:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        category:
+          type: string
+          enum: [work, earn, build, protect]
+        subcategory:
+          type: string
+          nullable: true
+        title:
+          type: string
+        description:
+          type: string
+        location:
+          type: string
+          nullable: true
+        rate:
+          type: string
+          nullable: true
+        salary:
+          type: string
+          nullable: true
+        seeking:
+          type: integer
+          nullable: true
+        price:
+          type: string
+          nullable: true
+        coverage:
+          type: string
+          nullable: true
+        units:
+          type: integer
+          nullable: true
+        status:
+          type: string
+          enum: [active, inactive, pending, closed]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    
+    # ============================================================================
+    # ISLAMIC FINANCE SCHEMAS
+    # ============================================================================
+    SadaqahCampaign:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        goal:
+          type: number
+        raised:
+          type: number
+        donors:
+          type: integer
+        endDate:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [active, completed, cancelled]
+    
+    Donation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        amount:
+          type: number
+        anonymous:
+          type: boolean
+        message:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+    
+    Waqf:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        assetValue:
+          type: number
+        annualReturn:
+          type: number
+        supportedCauses:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [active, inactive]
+    
+    QardHasanLoan:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        borrowerId:
+          type: string
+          format: uuid
+        lenderId:
+          type: string
+          format: uuid
+          nullable: true
+        amount:
+          type: number
+        purpose:
+          type: string
+        term:
+          type: integer
+          description: Loan term in months
+        status:
+          type: string
+          enum: [pending, funded, repaid, defaulted]
+        createdAt:
+          type: string
+          format: date-time
+    
+    ZakatCalculation:
+      type: object
+      properties:
+        totalAssets:
+          type: number
+        totalDebts:
+          type: number
+        netAssets:
+          type: number
+        nisabThreshold:
+          type: number
+        nisabType:
+          type: string
+          enum: [gold, silver]
+        isZakatDue:
+          type: boolean
+        zakatAmount:
+          type: number
+        zakatRate:
+          type: number
+          description: Typically 0.025 (2.5%)
+    
+    # ============================================================================
+    # VERIFICATION SCHEMAS
+    # ============================================================================
+    VerificationRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [identity, business, institution]
+        status:
+          type: string
+          enum: [unverified, pending, verified, rejected]
+        documents:
+          type: array
+          items:
+            type: string
+        reviewedBy:
+          type: string
+          format: uuid
+          nullable: true
+        reviewedAt:
+          type: string
+          format: date-time
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+  # ============================================================================
+  # RESPONSE COMPONENTS
+  # ============================================================================
+  responses:
+    BadRequest:
+      description: Bad request - invalid input
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            success: false
+            error:
+              code: "VALIDATION_ERROR"
+              message: "Invalid input data"
+              details: ["email is required", "password must be at least 8 characters"]
+    
+    Unauthorized:
+      description: Unauthorized - invalid or missing token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            success: false
+            error:
+              code: "UNAUTHORIZED"
+              message: "Authentication required"
+    
+    Forbidden:
+      description: Forbidden - insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            success: false
+            error:
+              code: "FORBIDDEN"
+              message: "Insufficient permissions"
+    
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            success: false
+            error:
+              code: "NOT_FOUND"
+              message: "Resource not found"
+    
+    RateLimitExceeded:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            success: false
+            error:
+              code: "RATE_LIMIT_EXCEEDED"
+              message: "Too many requests, please try again later"
+    
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            success: false
+            error:
+              code: "INTERNAL_ERROR"
+              message: "An unexpected error occurred"

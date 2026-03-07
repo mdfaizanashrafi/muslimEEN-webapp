@@ -4,8 +4,8 @@
  * Manages connection requests, approvals, and user connection counts
  */
 
-import Connection from '../models/Connection';
-import User from '../models/User';
+import Connection from '../models/connection';
+import User from '../models/user';
 import { ConnectionsResponse, PendingConnectionsResponse } from '../types/api';
 
 // ============================================================================
@@ -13,11 +13,48 @@ import { ConnectionsResponse, PendingConnectionsResponse } from '../types/api';
 // ============================================================================
 
 /**
- * Send connection request from one user to another
- * @param requesterId User sending the request
- * @param recipientId User receiving the request
- * @returns Created connection
- * @throws Error if connection already exists
+ * Sends a connection request from one user to another.
+ *
+ * Initiates the professional networking connection flow. The requester sends
+ * a connection request to the recipient, creating a pending connection record.
+ * The recipient can later accept or reject the request.
+ *
+ * Validation checks:
+ * - Users cannot connect to themselves
+ * - Both requester and recipient must exist in the system
+ * - Duplicate connection attempts are handled by the Connection model
+ *
+ * @param requesterId - Unique identifier of the user sending the request (UUID v4)
+ * @param recipientId - Unique identifier of the user receiving the request (UUID v4)
+ *
+ * @returns Created connection record with pending status
+ * @returns {string} result.id - Connection record unique identifier
+ * @returns {string} result.requesterId - ID of user who sent the request
+ * @returns {string} result.recipientId - ID of user receiving the request
+ * @returns {string} result.status - Connection status ('pending', 'accepted', 'rejected')
+ * @returns {Date} result.createdAt - Timestamp when request was created
+ *
+ * @throws {ConnectionError} SELF_CONNECTION - Attempt to connect with oneself
+ * @throws {ConnectionError} REQUESTER_NOT_FOUND - Requesting user doesn't exist
+ * @throws {ConnectionError} RECIPIENT_NOT_FOUND - Target user doesn't exist
+ *
+ * @example
+ * ```typescript
+ * // User A sends connection request to User B
+ * const connection = await sendRequest(
+ *   '550e8400-e29b-41d4-a716-446655440000', // User A
+ *   '660f9511-f30c-52e5-b827-557766551111'  // User B
+ * );
+ *
+ * console.log(connection.status); // "pending"
+ * console.log(connection.requesterId); // "550e8400-e29b-41d4-a716-446655440000"
+ * console.log(connection.recipientId); // "660f9511-f30c-52e5-b827-557766551111"
+ * ```
+ *
+ * @see {@link acceptRequest} for approving connection requests
+ * @see {@link rejectRequest} for declining connection requests
+ * @see {@link getPendingRequests} for viewing incoming requests
+ * @see {@link ConnectionError} for error handling
  */
 export const sendRequest = async (requesterId: string, recipientId: string) => {
   // Validate users aren't the same
@@ -45,10 +82,47 @@ export const sendRequest = async (requesterId: string, recipientId: string) => {
 };
 
 /**
- * Accept a pending connection request
- * @param connectionId Connection ID
- * @param recipientId User accepting (must be recipient)
- * @returns Updated connection
+ * Accepts a pending connection request, establishing a mutual connection.
+ *
+ * When a recipient accepts a connection request, this function:
+ * 1. Updates the connection status to 'accepted'
+ * 2. Recalculates connection counts for both users
+ * 3. May trigger trust score updates for both parties
+ *
+ * Only the recipient (target user) of the request can accept it.
+ *
+ * @param connectionId - Unique identifier of the connection record (UUID v4)
+ * @param recipientId - Unique identifier of the user accepting the request (must match connection.recipientId)
+ *
+ * @returns Updated connection record with accepted status
+ * @returns {string} result.id - Connection record unique identifier
+ * @returns {string} result.status - Connection status ('accepted')
+ * @returns {Date} result.acceptedAt - Timestamp when request was accepted
+ * @returns {string} result.requesterId - ID of original requester
+ * @returns {string} result.recipientId - ID of accepting user
+ *
+ * @throws {ConnectionError} NOT_FOUND - Connection record doesn't exist
+ * @throws {ConnectionError} FORBIDDEN - User is not the recipient of this request
+ * @throws {ConnectionError} INVALID_STATUS - Connection is not in pending status
+ *
+ * @example
+ * ```typescript
+ * // User B accepts connection request from User A
+ * const connection = await acceptRequest(
+ *   '770g0622-g41d-63f6-c938-668877662222', // Connection ID
+ *   '660f9511-f30c-52e5-b827-557766551111'  // User B (recipient)
+ * );
+ *
+ * console.log(connection.status); // "accepted"
+ * console.log(connection.acceptedAt); // 2024-01-15T10:30:00.000Z
+ *
+ * // Both users' connection counts are now updated
+ * ```
+ *
+ * @see {@link sendRequest} for creating connection requests
+ * @see {@link rejectRequest} for declining requests
+ * @see {@link getUserConnections} for viewing established connections
+ * @see {@link ConnectionError} for error handling
  */
 export const acceptRequest = async (connectionId: string, recipientId: string) => {
   // Accept the connection

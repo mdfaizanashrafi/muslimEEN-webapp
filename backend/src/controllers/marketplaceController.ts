@@ -6,7 +6,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import Marketplace from '../models/Marketplace';
+import Marketplace from '../models/marketplace';
 
 // ============================================================================
 // GET LISTINGS

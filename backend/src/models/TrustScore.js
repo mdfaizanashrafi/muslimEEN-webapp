@@ -4,7 +4,7 @@
  */
 
 const db = require('../config/database');
-const User = require('./User');
+const User = require('./user');
 
 class TrustScore {
   static MAX_SCORE = 1000;

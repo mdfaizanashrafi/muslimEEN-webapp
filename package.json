@@ -1,0 +1,53 @@
+{
+  "name": "muslimeen-webapp",
+  "version": "1.0.0",
+  "description": "LinkedIn for the Muslim Community - An invitation-only professional networking platform with Shariah-compliant financial tools.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "dev": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:all": "concurrently \"npm run dev:backend\" \"npm run dev\"",
+    "build": "cd frontend && npm run build",
+    "build:backend": "cd backend && npm run build",
+    "start": "cd frontend && npm start",
+    "start:backend": "cd backend && npm start",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "cd backend && npm run test:unit",
+    "test:integration": "cd backend && npm run test:integration",
+    "test:watch": "cd backend && npm run test -- --watch",
+    "test:coverage": "cd backend && npm run test -- --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:headless": "playwright test --headed",
+    "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e",
+    "lint": "cd frontend && npm run lint && cd ../backend && npm run lint",
+    "format": "cd frontend && npm run format && cd ../backend && npm run format",
+    "setup:test-db": "cd backend && npm run migrate && npm run seed"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mdfaizanashrafi/muslimEEN-webapp.git"
+  },
+  "keywords": [
+    "muslim",
+    "professional",
+    "networking",
+    "islamic-finance",
+    "shariah-compliant"
+  ],
+  "author": "MuslimEEN Team",
+  "license": "AGPL-3.0",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/mdfaizanashrafi/muslimEEN-webapp/issues"
+  },
+  "homepage": "https://github.com/mdfaizanashrafi/muslimEEN-webapp#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "concurrently": "^8.2.2"
+  }
+}

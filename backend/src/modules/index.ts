@@ -18,8 +18,8 @@
  */
 
 // Initialize notification event handlers
-import { initializeEventHandlers } from './notifications/services/NotificationService';
-initializeEventHandlers();
+import { initializeNotificationEventHandlers } from './notifications/eventHandlers';
+initializeNotificationEventHandlers();
 
 // Export modules
 export * as iam from './iam';

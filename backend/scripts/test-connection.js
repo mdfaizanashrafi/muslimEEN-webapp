@@ -3,6 +3,7 @@
  * Tests connectivity to PostgreSQL and verifies setup
  */
 
+require('dotenv').config();
 const db = require('../src/config/database');
 
 async function testConnection() {

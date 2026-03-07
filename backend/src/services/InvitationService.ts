@@ -4,7 +4,7 @@
  * Coordinates with Trust Score for reputation tracking
  */
 
-import Invitation from '../models/Invitation';
+import Invitation from '../models/invitation';
 import * as TrustScoreService from './TrustScoreService';
 
 // ============================================================================

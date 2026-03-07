@@ -12,7 +12,9 @@ export * as NotificationController from './controllers/NotificationController';
 
 // Services
 export * as NotificationService from './services/NotificationService';
-export { initializeEventHandlers } from './services/NotificationService';
+
+// Event Handlers
+export { initializeNotificationEventHandlers } from './eventHandlers';
 
 // Repositories
 export * as NotificationRepository from './repositories/NotificationRepository';

@@ -5,9 +5,37 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import User from '../../../models/User';
-import { UserRole } from '../../../types/index';
+import * as UserRepository from '../../iam/repositories/UserRepository';
+import { User, UserRole } from '../../../types/index';
 import { verifyToken } from '../../iam/services/JwtService';
+
+/**
+ * Map UserIdentity from repository to User type for request
+ */
+const mapToRequestUser = (userIdentity: UserRepository.UserIdentity): User => ({
+  id: userIdentity.id,
+  email: userIdentity.email,
+  firstName: userIdentity.firstName,
+  lastName: userIdentity.lastName,
+  fullName: userIdentity.fullName,
+  role: userIdentity.role,
+  verificationTier: userIdentity.verificationTier,
+  trustScore: userIdentity.trustScore,
+  isWitnessEligible: userIdentity.isWitnessEligible,
+  isActive: userIdentity.isActive,
+  createdAt: userIdentity.createdAt,
+  lastLogin: userIdentity.lastLogin,
+  // Optional fields not in UserIdentity
+  bio: undefined,
+  location: undefined,
+  industry: undefined,
+  skills: undefined,
+  badges: undefined,
+  endorsements: undefined,
+  connections: undefined,
+  profileViews: undefined,
+  passwordHash: userIdentity.passwordHash,
+});
 
 /**
  * Authentication middleware
@@ -46,10 +74,10 @@ export const authenticate = async (
       return;
     }
 
-    // Get fresh user data
-    const user = await User.findById(decoded.id);
+    // Get fresh user data from repository
+    const userIdentity = await UserRepository.findById(decoded.id);
 
-    if (!user) {
+    if (!userIdentity) {
       res.status(401).json({
         success: false,
         error: {
@@ -60,7 +88,7 @@ export const authenticate = async (
       return;
     }
 
-    if (!user.isActive && user.isActive !== undefined) {
+    if (!userIdentity.isActive) {
       res.status(403).json({
         success: false,
         error: {
@@ -71,7 +99,7 @@ export const authenticate = async (
       return;
     }
 
-    req.user = user as unknown as typeof req.user;
+    req.user = mapToRequestUser(userIdentity);
     next();
   } catch (error) {
     next(error);
@@ -94,9 +122,9 @@ export const optionalAuth = async (
       const decoded = verifyToken(token);
 
       if (decoded) {
-        const user = await User.findById(decoded.id);
-        if (user && user.isActive) {
-          req.user = user;
+        const userIdentity = await UserRepository.findById(decoded.id);
+        if (userIdentity && userIdentity.isActive) {
+          req.user = mapToRequestUser(userIdentity);
         }
       }
     }

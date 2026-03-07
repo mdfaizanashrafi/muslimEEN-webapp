@@ -1,6 +1,6 @@
 /**
  * MuslimEEN Backend Server
- * Main entry point
+ * Main entry point with comprehensive observability
  */
 
 import dotenv from 'dotenv';
@@ -12,8 +12,11 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 
 import routes from './routes';
-import logger from './utils/logger';
+import healthRoutes from './routes/health';
+import { logger, requestLogger } from './utils/logger';
 import { errorHandler, notFound } from './middleware/errorHandler';
+import { performanceMonitor } from './middleware/performance';
+import { initSentry, setupSentryRequestHandlers, setupSentryErrorHandler } from './config/sentry';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -21,6 +24,12 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // Trust proxy (required for Render and express-rate-limit)
 app.set('trust proxy', 1);
+
+// Initialize Sentry before any other middleware
+initSentry(app);
+
+// Sentry request handlers (must be first)
+setupSentryRequestHandlers(app);
 
 // Security middleware
 app.use(helmet({
@@ -82,7 +91,7 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'X-Requested-With', 'X-Correlation-Id']
 }));
 
 // Body parsing middleware
@@ -90,14 +99,14 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
-// Request logging
-app.use((req: Request, _res: Response, next: NextFunction) => {
-  logger.info(`${req.method} ${req.path}`, {
-    ip: req.ip,
-    userAgent: req.get('user-agent')
-  });
-  next();
-});
+// Request logging with correlation IDs
+app.use(requestLogger);
+
+// Performance monitoring
+app.use(performanceMonitor);
+
+// Health check routes (before API routes for faster response)
+app.use('/', healthRoutes);
 
 // API routes
 app.use('/api', routes);
@@ -106,44 +115,73 @@ app.use('/api', routes);
 app.get('/', (_req: Request, res: Response) => {
   res.json({
     name: 'MuslimEEN API',
-    version: '1.0.0',
+    version: process.env.npm_package_version || '1.0.0',
     status: 'running',
+    environment: NODE_ENV,
     documentation: '/api',
-    health: '/health'
-  });
-});
-
-// Health check endpoint
-app.get('/health', (_req: Request, res: Response) => {
-  res.json({
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    version: '1.0.0',
-    environment: NODE_ENV
+    health: '/health',
+    observability: {
+      health: '/health',
+      liveness: '/health/live',
+      readiness: '/health/ready',
+      startup: '/health/startup',
+      metrics: '/metrics',
+    }
   });
 });
 
 // 404 handler
 app.use(notFound);
 
+// Sentry error handler (must be before other error handlers)
+setupSentryErrorHandler(app);
+
 // Global error handler
 app.use(errorHandler);
 
 // Start server
-app.listen(PORT, () => {
-  logger.info(`MuslimEEN API server running on port ${PORT}`);
-  logger.info(`Environment: ${NODE_ENV}`);
+const server = app.listen(PORT, () => {
+  logger.info(`MuslimEEN API server running on port ${PORT}`, {
+    port: PORT,
+    environment: NODE_ENV,
+    version: process.env.npm_package_version || '1.0.0',
+  });
 });
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
-  logger.info('SIGTERM received, shutting down gracefully');
-  process.exit(0);
+const gracefulShutdown = (signal: string) => {
+  logger.info(`${signal} received, shutting down gracefully`);
+  
+  server.close(() => {
+    logger.info('HTTP server closed');
+    process.exit(0);
+  });
+  
+  // Force shutdown after 30 seconds
+  setTimeout(() => {
+    logger.error('Forced shutdown due to timeout');
+    process.exit(1);
+  }, 30000);
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  logger.error('Uncaught exception', { 
+    error: error.message, 
+    stack: error.stack 
+  });
+  process.exit(1);
 });
 
-process.on('SIGINT', () => {
-  logger.info('SIGINT received, shutting down gracefully');
-  process.exit(0);
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('Unhandled promise rejection', { 
+    reason: String(reason),
+    promise: String(promise) 
+  });
 });
 
 export default app;

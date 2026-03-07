@@ -5,7 +5,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import User from '../models/User';
+import User from '../models/user';
 import { UserRole } from '../types';
 import { verifyToken } from '../services/JwtService';
 

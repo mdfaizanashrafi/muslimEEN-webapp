@@ -8,6 +8,12 @@ import { Router } from 'express';
 // Shared middleware
 import { authenticate, authorize } from './shared/middleware/auth';
 import { createBodyValidator, createQueryValidator } from './shared/middleware/validation';
+import {
+  authLimiter,
+  userLimiter,
+  marketplaceLimiter,
+  apiLimiter
+} from './shared/middleware/rateLimiter';
 
 // IAM Module
 import { AuthController } from './iam';
@@ -27,11 +33,6 @@ import * as MarketplaceController from './marketplace/controllers/MarketplaceCon
 // Islamic Finance Module
 import * as IslamicFinanceController from './islamic-finance/controllers/IslamicFinanceController';
 
-// Rate limiters (placeholder)
-const authLimiter = (_req: any, _res: any, next: any) => next();
-const userLimiter = (_req: any, _res: any, next: any) => next();
-const marketplaceLimiter = (_req: any, _res: any, next: any) => next();
-const apiLimiter = (_req: any, _res: any, next: any) => next();
 
 const router = Router();
 

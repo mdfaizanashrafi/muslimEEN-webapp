@@ -13,42 +13,33 @@
 $ErrorActionPreference = "Stop"
 
 # Colors for output
-function Write-ColorOutput($ForegroundColor) {
-    $fc = $host.UI.RawUI.ForegroundColor
-    $host.UI.RawUI.ForegroundColor = $ForegroundColor
-    if ($args) {
-        Write-Output $args
-    }
-    $host.UI.RawUI.ForegroundColor = $fc
-}
-
 function Write-Success($message) {
-    Write-ColorOutput Green "✅ $message"
+    Write-Host "✅ $message" -ForegroundColor Green
 }
 
 function Write-Info($message) {
-    Write-ColorOutput Cyan "ℹ️  $message"
+    Write-Host "ℹ️  $message" -ForegroundColor Cyan
 }
 
 function Write-Error($message) {
-    Write-ColorOutput Red "❌ $message"
+    Write-Host "❌ $message" -ForegroundColor Red
 }
 
 function Write-Warning($message) {
-    Write-ColorOutput Yellow "⚠️  $message"
+    Write-Host "⚠️  $message" -ForegroundColor Yellow
 }
 
 Write-Host ""
-Write-Host "═══════════════════════════════════════════════════════════" -ForegroundColor Blue
+Write-Host "============================================================" -ForegroundColor Blue
 Write-Host "     MuslimEEN Database Connection Setup for pgAdmin4" -ForegroundColor Blue
-Write-Host "═══════════════════════════════════════════════════════════" -ForegroundColor Blue
+Write-Host "============================================================" -ForegroundColor Blue
 Write-Host ""
 
 # Check if .env file exists
 $envPath = Join-Path $PSScriptRoot "backend/.env"
 if (-not (Test-Path $envPath)) {
     Write-Error "Environment file not found at: $envPath"
-    Write-Info "Please ensure you're running this from the project root"
+    Write-Info "Please ensure you are running this from the project root"
     exit 1
 }
 
@@ -131,9 +122,9 @@ try {
 }
 
 Write-Host ""
-Write-Host "═══════════════════════════════════════════════════════════" -ForegroundColor Blue
+Write-Host "============================================================" -ForegroundColor Blue
 Write-Host "     pgAdmin4 Connection Instructions" -ForegroundColor Blue
-Write-Host "═══════════════════════════════════════════════════════════" -ForegroundColor Blue
+Write-Host "============================================================" -ForegroundColor Blue
 Write-Host ""
 
 Write-Host "Step 1: Open pgAdmin4" -ForegroundColor Yellow
@@ -164,7 +155,7 @@ Write-Host "  - The server will appear in the left sidebar"
 Write-Host "  - Expand Servers → MuslimEEN Local → Databases → $($dbConfig.Name)"
 Write-Host ""
 
-Write-Host "═══════════════════════════════════════════════════════════" -ForegroundColor Blue
+Write-Host "============================================================" -ForegroundColor Blue
 Write-Host ""
 
 # Create pgAdmin4 shortcut if on Windows
@@ -175,11 +166,10 @@ if (-not (Test-Path $pgAdminPath)) {
 
 if (Test-Path $pgAdminPath) {
     Write-Success "pgAdmin4 found at: $pgAdminPath"
-    $launch = Read-Host "Would you like to launch pgAdmin4 now? (y/n)"
-    if ($launch -eq 'y' -or $launch -eq 'Y') {
-        Start-Process $pgAdminPath
-        Write-Success "pgAdmin4 launched!"
-    }
+    # Auto-launch without asking
+    Write-Info "Launching pgAdmin4..."
+    Start-Process $pgAdminPath
+    Write-Success "pgAdmin4 launched!"
 } else {
     Write-Warning "pgAdmin4 executable not found in standard locations"
     Write-Info "Please launch pgAdmin4 manually"
@@ -188,9 +178,5 @@ if (Test-Path $pgAdminPath) {
 Write-Host ""
 Write-Info "For detailed instructions, see: backend/DATABASE_PGADMIN_SETUP.md"
 Write-Host ""
-Write-Host "═══════════════════════════════════════════════════════════" -ForegroundColor Blue
+Write-Host "============================================================" -ForegroundColor Blue
 Write-Host ""
-
-# Keep window open
-Write-Host "Press any key to exit..." -ForegroundColor DarkGray
-$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")

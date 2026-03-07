@@ -126,7 +126,7 @@ class Invitation {
     await db.query(query, [invitationId, inviterId, outcome, trustImpact]);
 
     // Recalculate inviter's trust score
-    const TrustScore = require('./TrustScore');
+    const TrustScore = require('./trustScore');
     await TrustScore.recalculate(inviterId);
   }
 

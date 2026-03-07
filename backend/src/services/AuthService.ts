@@ -4,8 +4,8 @@
  * Manages: login, register, logout, token generation
  */
 
-import User from '../models/User';
-import Invitation from '../models/Invitation';
+import User from '../models/user';
+import Invitation from '../models/invitation';
 import * as JwtService from './JwtService';
 import * as PasswordService from './PasswordService';
 import { generateCsrfToken } from '../utils/security';
@@ -40,10 +40,39 @@ export interface AuthResult {
 // ============================================================================
 
 /**
- * Authenticate user with credentials
- * @param credentials Login credentials
- * @returns Auth result with tokens
- * @throws Error if authentication fails
+ * Authenticates a user with email and password credentials.
+ *
+ * Validates credentials against stored user data and returns JWT tokens
+ * upon successful authentication. Updates last login timestamp asynchronously.
+ * The user must be active (isActive === true) to successfully log in.
+ *
+ * @param credentials - User login credentials
+ * @param credentials.email - User's registered email address (case-insensitive match)
+ * @param credentials.password - User's plain text password (will be compared against bcrypt hash)
+ *
+ * @returns Authentication result containing user data and tokens
+ * @returns {User} result.user - User profile (password hash excluded for security)
+ * @returns {string} result.token - JWT access token with 24-hour expiry
+ * @returns {string} result.csrfToken - CSRF protection token for state-changing requests
+ *
+ * @throws {AuthError} INVALID_CREDENTIALS - Email not found or password incorrect
+ * @throws {AuthError} ACCOUNT_DISABLED - User account has been deactivated by admin
+ *
+ * @example
+ * ```typescript
+ * const result = await login({
+ *   email: 'ahmed@example.com',
+ *   password: 'securePassword123'
+ * });
+ *
+ * console.log(result.user.fullName); // "Ahmed Hassan"
+ * console.log(result.token); // "eyJhbGciOiJIUzI1NiIs..."
+ * console.log(result.csrfToken); // "a1b2c3d4e5f6..."
+ * ```
+ *
+ * @see {@link register} for creating new accounts
+ * @see {@link logout} for ending authenticated sessions
+ * @see {@link AuthError} for error handling patterns
  */
 export const login = async (credentials: LoginCredentials): Promise<AuthResult> => {
   const { email, password } = credentials;
@@ -94,10 +123,49 @@ export const login = async (credentials: LoginCredentials): Promise<AuthResult> 
 // ============================================================================
 
 /**
- * Register new user with invitation
- * @param data Registration data
- * @returns Auth result with tokens
- * @throws Error if registration fails
+ * Registers a new user with invitation-based access control.
+ *
+ * MuslimEEN uses an invitation-only model to maintain community quality
+ * and prevent spam. This function validates the invitation code, ensures
+ * the email matches the invited address, checks for existing accounts,
+ * hashes the password, creates the user record, and marks the invitation as accepted.
+ *
+ * New users are assigned the 'muslim_unverified' role and 'basic' verification tier
+ * with an initial trust score of 0.
+ *
+ * @param data - Registration data with invitation
+ * @param data.email - User's email address (must match invitation's inviteeEmail)
+ * @param data.password - User's chosen password (will be hashed with bcrypt, 12 rounds)
+ * @param data.firstName - User's first name
+ * @param data.lastName - User's last name
+ * @param data.invitationCode - Valid invitation code from existing member
+ *
+ * @returns Authentication result containing new user data and tokens
+ * @returns {User} result.user - Newly created user profile
+ * @returns {string} result.token - JWT access token for immediate authentication
+ * @returns {string} result.csrfToken - CSRF protection token
+ *
+ * @throws {AuthError} INVALID_INVITATION - Invitation code is invalid, expired, or already used
+ * @throws {AuthError} EMAIL_MISMATCH - Provided email doesn't match invitation's inviteeEmail
+ * @throws {AuthError} USER_EXISTS - An account with this email already exists
+ *
+ * @example
+ * ```typescript
+ * const result = await register({
+ *   email: 'fatima@example.com',
+ *   password: 'mySecurePassword123',
+ *   firstName: 'Fatima',
+ *   lastName: 'Rahman',
+ *   invitationCode: 'MUSLIMEEN-2024-A7B3C9D2'
+ * });
+ *
+ * console.log(result.user.role); // "muslim_unverified"
+ * console.log(result.user.verificationTier); // "basic"
+ * ```
+ *
+ * @see {@link login} for subsequent authentication
+ * @see {@link validateInvitation} for pre-registration invitation checking
+ * @see {@link AuthError} for error handling patterns
  */
 export const register = async (data: RegisterData): Promise<AuthResult> => {
   const { email, password, firstName, lastName, invitationCode } = data;
@@ -159,11 +227,31 @@ export const register = async (data: RegisterData): Promise<AuthResult> => {
 // ============================================================================
 
 /**
- * Logout user
- * In stateless JWT, this is primarily client-side
- * But we can implement token blacklist if needed
- * @param userId User ID
- * @returns Success status
+ * Logs out a user from the application.
+ *
+ * In the current stateless JWT implementation, this function serves as a
+ * placeholder for future token blacklist functionality. The actual logout
+ * is primarily handled client-side by removing the JWT from storage.
+ *
+ * Future implementation will include:
+ * - Redis-based token blacklist
+ * - Token expiration tracking
+ * - Multi-device session management
+ *
+ * @param _userId - User ID from authenticated session (reserved for future use)
+ *
+ * @returns Promise that resolves when logout processing is complete (currently immediate)
+ *
+ * @example
+ * ```typescript
+ * // Client-side logout (current implementation)
+ * await logout(currentUser.id);
+ * localStorage.removeItem('token');
+ * localStorage.removeItem('csrfToken');
+ * // Redirect to login page
+ * ```
+ *
+ * @see {@link login} for session establishment
  */
 export const logout = async (_userId: string): Promise<void> => {
   // Currently stateless - no server-side action needed

@@ -4,7 +4,7 @@
  * Coordinates between notification repository and business events
  */
 
-import Notification from '../models/Notification';
+import Notification from '../models/notification';
 import { NotificationsResponse } from '../types/api';
 
 // ============================================================================

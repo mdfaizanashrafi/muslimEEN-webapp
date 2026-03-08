@@ -37,11 +37,11 @@ const FIFTEEN_MINUTES = 15 * 60 * 1000;
 
 /**
  * Auth rate limiter - strict limits for authentication endpoints
- * 5 requests per 15 minutes
+ * 5 requests per 15 minutes in production, 100 in development
  */
 export const authLimiter = createLimiter(
   FIFTEEN_MINUTES,
-  5,
+  process.env.NODE_ENV === 'production' ? 5 : 100,
   'Too many authentication attempts, please try again later'
 );
 

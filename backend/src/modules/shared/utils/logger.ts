@@ -3,8 +3,9 @@
  * Winston logger configuration
  */
 
-import winston, { Logger as WinstonLogger, format } from 'winston';
+import winston, { format } from 'winston';
 import path from 'path';
+import { Request, Response, NextFunction } from 'express';
 
 // Define log level type
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
@@ -17,13 +18,10 @@ export interface Logger {
   error(message: string, meta?: Record<string, unknown> | Error): void;
 }
 
-// Logger configuration interface
-interface LoggerConfig {
-  level: LogLevel;
-  format: winston.Logform.Format;
-  defaultMeta: Record<string, string>;
-  transports: winston.transport[];
-}
+// Generate correlation ID
+export const generateCorrelationId = (): string => {
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+};
 
 // Define log format
 const logFormat = format.combine(
@@ -33,7 +31,7 @@ const logFormat = format.combine(
 );
 
 // Logger configuration
-const loggerConfig: LoggerConfig = {
+const loggerConfig = {
   level: (process.env.LOG_LEVEL as LogLevel) || 'info',
   format: logFormat,
   defaultMeta: { service: 'muslimeen-api' },
@@ -51,11 +49,11 @@ const loggerConfig: LoggerConfig = {
 };
 
 // Create logger
-const logger: WinstonLogger = winston.createLogger(loggerConfig);
+const winstonLogger = winston.createLogger(loggerConfig);
 
 // Add console transport in development
 if (process.env.NODE_ENV !== 'production') {
-  logger.add(new winston.transports.Console({
+  winstonLogger.add(new winston.transports.Console({
     format: format.combine(
       format.colorize(),
       format.simple()
@@ -63,5 +61,41 @@ if (process.env.NODE_ENV !== 'production') {
   }));
 }
 
-export default logger as Logger;
-export { logger };
+/**
+ * Request logging middleware
+ */
+export const requestLogger = (req: Request, res: Response, next: NextFunction): void => {
+  const correlationId = req.headers['x-correlation-id'] as string || generateCorrelationId();
+  
+  // Set correlation ID in response header
+  res.setHeader('X-Correlation-Id', correlationId);
+  
+  winstonLogger.info('Request started', {
+    correlationId,
+    method: req.method,
+    path: req.path,
+    query: req.query,
+    ip: req.ip,
+    userAgent: req.headers['user-agent'],
+  });
+  
+  const startTime = Date.now();
+  
+  res.on('finish', () => {
+    const duration = Date.now() - startTime;
+    const level = res.statusCode >= 400 ? 'warn' : 'info';
+    
+    winstonLogger.log(level, 'Request completed', {
+      correlationId,
+      method: req.method,
+      path: req.path,
+      statusCode: res.statusCode,
+      duration,
+    });
+  });
+  
+  next();
+};
+
+export const logger: Logger = winstonLogger;
+export default logger;

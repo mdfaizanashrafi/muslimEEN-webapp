@@ -1,5 +1,6 @@
 /**
  * User Repository
+ * 
  * Data access for user identity records
  * Owns: users table (core identity fields only)
  */
@@ -16,8 +17,8 @@ export interface UserIdentity {
   role: UserRole;
   verificationTier: VerificationTier;
   trustScore: number;
-  isWitnessEligible: boolean;
   isActive: boolean;
+  invitesRemaining: number;
   passwordHash?: string;
   lastLogin?: Date;
   createdAt: Date;
@@ -38,7 +39,7 @@ export interface CreateUserInput {
 export const findById = async (id: string): Promise<UserIdentity | null> => {
   const result = await pool.query(
     `SELECT id, email, first_name, last_name, role, verification_tier, 
-            trust_score, is_witness_eligible, is_active, password_hash, 
+            trust_score, is_active, password_hash, invites_remaining,
             last_login, created_at
      FROM users 
      WHERE id = $1`,
@@ -55,7 +56,7 @@ export const findById = async (id: string): Promise<UserIdentity | null> => {
 export const findByEmail = async (email: string): Promise<UserIdentity | null> => {
   const result = await pool.query(
     `SELECT id, email, first_name, last_name, role, verification_tier,
-            trust_score, is_witness_eligible, is_active, password_hash,
+            trust_score, is_active, password_hash, invites_remaining,
             last_login, created_at
      FROM users 
      WHERE email = $1`,
@@ -71,10 +72,10 @@ export const findByEmail = async (email: string): Promise<UserIdentity | null> =
  */
 export const create = async (input: CreateUserInput): Promise<UserIdentity> => {
   const result = await pool.query(
-    `INSERT INTO users (email, password_hash, first_name, last_name, role, verification_tier)
-     VALUES ($1, $2, $3, $4, $5, $6)
+    `INSERT INTO users (email, password_hash, first_name, last_name, role, verification_tier, invites_remaining)
+     VALUES ($1, $2, $3, $4, $5, $6, 0)
      RETURNING id, email, first_name, last_name, role, verification_tier,
-               trust_score, is_witness_eligible, is_active, last_login, created_at`,
+               trust_score, is_active, invites_remaining, last_login, created_at`,
     [input.email.toLowerCase(), input.passwordHash, input.firstName, input.lastName, input.role, input.verificationTier]
   );
   
@@ -102,6 +103,52 @@ export const updateRole = async (userId: string, role: UserRole): Promise<void> 
 };
 
 // ============================================================================
+// INVITE COUNT MANAGEMENT
+// ============================================================================
+
+/**
+ * Set user's invite count
+ */
+export const setInviteCount = async (userId: string, count: number): Promise<void> => {
+  await pool.query(
+    'UPDATE users SET invites_remaining = $1 WHERE id = $2',
+    [count, userId]
+  );
+};
+
+/**
+ * Decrease user's remaining invite count
+ */
+export const decreaseInviteCount = async (userId: string): Promise<void> => {
+  await pool.query(
+    'UPDATE users SET invites_remaining = GREATEST(0, invites_remaining - 1) WHERE id = $1',
+    [userId]
+  );
+};
+
+/**
+ * Increase user's remaining invite count
+ */
+export const increaseInviteCount = async (userId: string): Promise<void> => {
+  await pool.query(
+    'UPDATE users SET invites_remaining = invites_remaining + 1 WHERE id = $1',
+    [userId]
+  );
+};
+
+/**
+ * Get user's remaining invite count
+ */
+export const getInviteCount = async (userId: string): Promise<number> => {
+  const result = await pool.query(
+    'SELECT invites_remaining FROM users WHERE id = $1',
+    [userId]
+  );
+  
+  return result.rows.length > 0 ? result.rows[0].invites_remaining : 0;
+};
+
+// ============================================================================
 // MAPPER
 // ============================================================================
 
@@ -114,8 +161,8 @@ const mapToUserIdentity = (row: any): UserIdentity => ({
   role: row.role,
   verificationTier: row.verification_tier,
   trustScore: row.trust_score || 0,
-  isWitnessEligible: row.is_witness_eligible || false,
   isActive: row.is_active !== false,
+  invitesRemaining: row.invites_remaining || 0,
   passwordHash: row.password_hash,
   lastLogin: row.last_login,
   createdAt: row.created_at,

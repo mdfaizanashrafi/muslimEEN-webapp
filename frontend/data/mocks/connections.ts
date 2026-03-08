@@ -9,12 +9,6 @@ export interface ConnectionMockData {
   sentTime?: string;
 }
 
-export interface SuggestedConnection {
-  initials: string;
-  name: string;
-  meta: string;
-}
-
 export const connectionMockData: ConnectionMockData[] = [
   {
     initials: 'YI',
@@ -60,15 +54,4 @@ export const connectionMockData: ConnectionMockData[] = [
   },
 ];
 
-export const suggestedConnections: SuggestedConnection[] = [
-  {
-    initials: 'YI',
-    name: 'Yusuf Ibrahim',
-    meta: 'Islamic Finance • 12 mutual',
-  },
-  {
-    initials: 'AP',
-    name: 'Aisha Patel',
-    meta: 'Halal Food • 8 mutual',
-  },
-];
+

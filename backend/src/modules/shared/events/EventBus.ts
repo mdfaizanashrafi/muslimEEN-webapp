@@ -67,7 +67,6 @@ export const DomainEvents = {
   TRUST_SCORE_RECALCULATED: 'trust.score_recalculated',
   VERIFICATION_COMPLETED: 'verification.completed',
   VERIFICATION_REQUESTED: 'verification.requested',
-  WITNESS_APPROVED: 'verification.witness_approved',
 
   // Connection/Network Events
   CONNECTION_REQUEST_SENT: 'connection.request_sent',
@@ -79,10 +78,10 @@ export const DomainEvents = {
   NOTIFICATION_CREATED: 'notification.created',
   NOTIFICATION_READ: 'notification.read',
 
-  // Invitation Events
-  INVITATION_CREATED: 'invitation.created',
-  INVITATION_ACCEPTED: 'invitation.accepted',
-  INVITATION_REVOKED: 'invitation.revoked',
+  // Invite Events (New Invite-Only System)
+  INVITE_CREATED: 'invite.created',
+  INVITE_USED: 'invite.used',
+  INVITE_REVOKED: 'invite.revoked',
 
   // Marketplace Events
   LISTING_CREATED: 'marketplace.listing_created',
@@ -97,9 +96,6 @@ export const DomainEvents = {
   QARD_HASAN_REPAID: 'islamic_finance.qard_hasan_repaid',
   WAQF_CONTRIBUTION: 'islamic_finance.waqf_contribution',
   ZAKAT_CALCULATED: 'islamic_finance.zakat_calculated',
-  
-  // Additional Events
-  WITNESS_ELIGIBILITY_CHANGED: 'trust.witness_eligibility_changed',
 } as const;
 
 // Type for event names

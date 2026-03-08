@@ -3,7 +3,7 @@
  * Monitors system metrics and triggers alerts based on thresholds
  */
 
-import { logger } from '../utils/logger';
+import { logger } from '../modules/shared/utils/logger';
 import { captureMessage, addBreadcrumb } from './sentry';
 
 // Alert configuration types

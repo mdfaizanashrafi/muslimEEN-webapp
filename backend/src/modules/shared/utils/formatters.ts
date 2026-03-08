@@ -29,7 +29,7 @@ export const mapDatabaseUserToApiModel = (userRecord: Record<string, unknown> | 
     endorsements: userRecord.endorsements as number,
     connections: userRecord.connections as number,
     profileViews: userRecord.profile_views as number,
-    isWitnessEligible: userRecord.is_witness_eligible as boolean,
+    invitesRemaining: (userRecord.invites_remaining as number) ?? 0,
     isActive: userRecord.is_active !== false,
     badges: (userRecord.badges as string[]) || [],
     createdAt: userRecord.created_at as Date,

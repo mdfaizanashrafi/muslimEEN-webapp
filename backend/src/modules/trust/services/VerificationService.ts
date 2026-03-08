@@ -56,56 +56,6 @@ export const completeBiometricVerification = async (
 };
 
 /**
- * Request witness verification
- */
-export const requestWitnessVerification = async (
-  userId: string,
-  witnessIds: string[]
-): Promise<void> => {
-  // Validate witnesses are eligible
-  for (const witnessId of witnessIds) {
-    const isEligible = await TrustScoreRepository.isWitnessEligible(witnessId);
-    if (!isEligible) {
-      throw new VerificationError('INVALID_WITNESS', `User ${witnessId} is not eligible to be a witness`);
-    }
-  }
-
-  // Create witness verification requests
-  await VerificationRepository.createWitnessRequests(userId, witnessIds);
-};
-
-/**
- * Approve as witness
- */
-export const approveAsWitness = async (
-  userId: string,
-  witnessId: string
-): Promise<{ trustScoreChanged: boolean }> => {
-  // Record witness approval
-  await VerificationRepository.recordWitnessApproval(userId, witnessId);
-
-  // Check if we have enough approvals (2)
-  const approvalCount = await VerificationRepository.getWitnessApprovalCount(userId);
-
-  if (approvalCount >= 2) {
-    // Complete verification
-    await VerificationRepository.completeVerification(userId, 'identity');
-    await TrustScoreRepository.updateVerificationTier(userId, 'standard');
-
-    await eventBus.publish(DomainEvents.VERIFICATION_COMPLETED, {
-      userId,
-      type: 'witness',
-      tier: 'standard',
-      timestamp: new Date(),
-    });
-
-    return { trustScoreChanged: true };
-  }
-
-  return { trustScoreChanged: false };
-};
-
-/**
  * Request business verification
  */
 export const requestBusinessVerification = async (userId: string): Promise<void> => {

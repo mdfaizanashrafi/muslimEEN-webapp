@@ -8,7 +8,7 @@
  * - network: Network Connections
  * - marketplace: Marketplace
  * - islamic-finance: Islamic Finance Tools
- * - invitations: Invitation Management
+ * - invites: Invite-Only Onboarding System
  * - notifications: Notification Delivery
  * 
  * Shared:
@@ -28,7 +28,7 @@ export * as trust from './trust';
 export * as network from './network';
 export * as marketplace from './marketplace';
 export * as islamicFinance from './islamic-finance';
-export * as invitations from './invitations';
+export * as invites from './invites';
 export * as notifications from './notifications';
 
 // Export shared

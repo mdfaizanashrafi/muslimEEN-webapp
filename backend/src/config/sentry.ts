@@ -5,7 +5,7 @@
 
 import * as Sentry from '@sentry/node';
 import { Express } from 'express';
-import { logger } from '../utils/logger';
+import { logger } from '../modules/shared/utils/logger';
 
 /**
  * Initialize Sentry with Express integration

@@ -23,7 +23,7 @@ export const validateInvitation = async (
     res.json({
       success: result.valid,
       message: result.message,
-      ...(result.invitation && { data: { invitation: result.invitation } }),
+      ...(result.invite && { data: { invitation: result.invite } }),
     });
   } catch (error) {
     next(error);
@@ -77,7 +77,7 @@ export const register = async (
       password,
       firstName,
       lastName,
-      invitationCode,
+      inviteToken: invitationCode,
     });
 
     logger.info(`User registered: ${result.user.email}`);

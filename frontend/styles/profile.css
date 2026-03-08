@@ -313,3 +313,252 @@
 .w-full {
   width: 100%;
 }
+
+/* ==========================================================================
+   Profile Edit Modal Styles
+   ========================================================================== */
+
+.edit-profile-modal .modal-content {
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-lg {
+  max-width: 700px;
+}
+
+.edit-section {
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.edit-section:last-of-type {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.edit-section-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Cover Photo Edit */
+.cover-photo-edit {
+  position: relative;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.cover-preview {
+  height: 150px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+}
+
+.cover-change-btn {
+  position: absolute;
+  bottom: var(--space-3);
+  right: var(--space-3);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(4px);
+}
+
+/* Profile Photo Edit */
+.profile-photo-edit {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+/* Form Row */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+.form-label {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.form-hint {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  margin-top: var(--space-2);
+}
+
+/* ==========================================================================
+   Share Profile Modal Styles
+   ========================================================================== */
+
+.share-modal .modal-content {
+  max-width: 500px;
+}
+
+.share-section {
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.share-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.share-section-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-3);
+}
+
+.share-link-row {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.share-link-input {
+  flex: 1;
+  background: var(--bg-secondary);
+  font-size: var(--font-size-sm);
+}
+
+/* Share Options */
+.share-options {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-3);
+}
+
+.share-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-3);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.share-option:hover {
+  background: var(--color-emerald-50);
+  border-color: var(--color-emerald-200);
+}
+
+.share-option-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--color-emerald-600);
+  background: white;
+}
+
+.share-option:nth-child(1) .share-option-icon {
+  color: #0077b5;
+}
+
+.share-option:nth-child(2) .share-option-icon {
+  color: #000;
+}
+
+.share-option:nth-child(3) .share-option-icon {
+  color: #25d366;
+}
+
+.share-option:nth-child(4) .share-option-icon {
+  color: var(--text-secondary);
+}
+
+.share-option-label {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+/* QR Code */
+.qr-code-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+}
+
+.qr-code-placeholder {
+  width: 150px;
+  height: 150px;
+  background: white;
+  border: 2px dashed var(--border-color);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  color: var(--text-secondary);
+}
+
+.qr-code-placeholder svg {
+  color: var(--color-emerald-500);
+}
+
+/* Button Success State */
+.btn-success {
+  background: var(--color-emerald-600);
+  color: white;
+  border: none;
+}
+
+.btn-success:hover {
+  background: var(--color-emerald-700);
+}
+
+/* Profile Actions with Icon */
+.profile-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .share-options {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .share-link-row {
+    flex-direction: column;
+  }
+  
+  .cover-preview {
+    height: 120px;
+  }
+  
+  .profile-photo-edit {
+    flex-direction: column;
+    text-align: center;
+  }
+}

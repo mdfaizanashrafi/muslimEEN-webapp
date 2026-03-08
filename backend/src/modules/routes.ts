@@ -6,7 +6,7 @@
 import { Router } from 'express';
 
 // Shared middleware
-import { authenticate, authorize } from './shared/middleware/auth';
+import { authenticate, authorize, requireAdmin } from './shared/middleware/auth';
 import { createBodyValidator, createQueryValidator } from './shared/middleware/validation';
 import {
   authLimiter,
@@ -32,6 +32,18 @@ import * as MarketplaceController from './marketplace/controllers/MarketplaceCon
 
 // Islamic Finance Module
 import * as IslamicFinanceController from './islamic-finance/controllers/IslamicFinanceController';
+
+// Invites Module
+import {
+  getUserInvites,
+  createInvite,
+  getUserInviteQuota,
+  revokeInvite,
+  validateInvite,
+  createAdminInvite,
+  getInviteAnalytics,
+  getUserInviteAnalytics,
+} from './invites/controllers/InviteController';
 
 
 const router = Router();
@@ -60,6 +72,26 @@ router.put('/user/profile', authenticate, userLimiter, createBodyValidator('upda
 router.get('/users/:userId/profile', authenticate, ProfileController.getPublicProfile);
 
 // ============================================================================
+// Invites Module - User Invite Management
+// ============================================================================
+router.get('/invites', authenticate, userLimiter, getUserInvites);
+router.post('/invites', authenticate, userLimiter, createInvite);
+router.get('/invites/quota', authenticate, userLimiter, getUserInviteQuota);
+router.delete('/invites/:id', authenticate, userLimiter, revokeInvite);
+
+// ============================================================================
+// Invites Module - Public Validation
+// ============================================================================
+router.get('/invites/validate/:token', authLimiter, validateInvite);
+
+// ============================================================================
+// Invites Module - Admin Routes
+// ============================================================================
+router.post('/admin/invites', authenticate, requireAdmin, createAdminInvite);
+router.get('/admin/invites/analytics', authenticate, requireAdmin, getInviteAnalytics);
+router.get('/admin/invites/users', authenticate, requireAdmin, getUserInviteAnalytics);
+
+// ============================================================================
 // Trust Module - Trust Score
 // ============================================================================
 router.get('/user/trust-score', authenticate, userLimiter, TrustScoreController.getCurrentTrustScore);
@@ -71,8 +103,6 @@ router.get('/user/trust-score/history', authenticate, userLimiter, TrustScoreCon
 // ============================================================================
 router.post('/verification/biometric/request', authenticate, userLimiter, VerificationController.requestBiometricVerification);
 router.post('/verification/biometric/complete', authenticate, userLimiter, VerificationController.completeBiometricVerification);
-router.post('/verification/witness/request', authenticate, userLimiter, VerificationController.requestWitnessVerification);
-router.post('/verification/witness/:userId/approve', authenticate, userLimiter, VerificationController.approveAsWitness);
 router.post('/verification/business/request', authenticate, userLimiter, VerificationController.requestBusinessVerification);
 router.post('/verification/business/:userId/approve', authenticate, authorize('admin'), VerificationController.approveBusinessVerification);
 

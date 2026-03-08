@@ -104,13 +104,7 @@ export const recalculate = async (userId: string): Promise<RecalculationResult> 
       timestamp: new Date(),
     });
 
-    if (witnessEligibilityChanged) {
-      await eventBus.publish(DomainEvents.WITNESS_ELIGIBILITY_CHANGED, {
-        userId,
-        isEligible: isNowEligible,
-        timestamp: new Date(),
-      });
-    }
+    // Witness eligibility tracking removed - now using invite-based system
   }
 
   return {

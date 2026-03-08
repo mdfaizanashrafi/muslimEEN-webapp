@@ -1,5 +1,6 @@
 /**
  * Authentication Service
+ * 
  * Core identity and access management business logic
  */
 
@@ -24,7 +25,7 @@ export interface RegisterData {
   password: string;
   firstName: string;
   lastName: string;
-  invitationCode: string;
+  inviteToken: string;
 }
 
 export interface AuthResult {
@@ -37,7 +38,7 @@ export interface AuthResult {
     role: UserRole;
     verificationTier: VerificationTier;
     trustScore: number;
-    isWitnessEligible: boolean;
+    invitesRemaining: number;
   };
   token: string;
   csrfToken: string;
@@ -82,9 +83,6 @@ export const login = async (credentials: LoginCredentials): Promise<AuthResult> 
 
   const csrfToken = generateCsrfToken();
 
-  // Remove sensitive data
-  const { passwordHash, ...publicUser } = user as any;
-
   // Publish event
   eventBus.publish(DomainEvents.USER_AUTHENTICATED, {
     userId: user.id,
@@ -93,7 +91,17 @@ export const login = async (credentials: LoginCredentials): Promise<AuthResult> 
   });
 
   return {
-    user: publicUser,
+    user: {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      fullName: user.fullName,
+      role: user.role,
+      verificationTier: user.verificationTier,
+      trustScore: user.trustScore,
+      invitesRemaining: user.invitesRemaining,
+    },
     token,
     csrfToken,
   };
@@ -104,35 +112,29 @@ export const login = async (credentials: LoginCredentials): Promise<AuthResult> 
 // ============================================================================
 
 /**
- * Register new user with invitation
+ * Register new user with invite token
  */
 export const register = async (data: RegisterData): Promise<AuthResult> => {
-  const { email, password, firstName, lastName, invitationCode } = data;
+  const { email, password, firstName, lastName, inviteToken } = data;
 
-  // Note: Invitation validation is delegated to Invitations module
-  // This is a temporary coupling until full modularization
-  const { validateInvitationExternal } = await import('../../invitations/services/InvitationValidationService');
-  const invitationResult = await validateInvitationExternal(invitationCode);
+  // Validate invite token using the new invites module
+  const { validateInviteExternal } = await import('../../invites/services/InviteService');
+  const validationResult = await validateInviteExternal(inviteToken);
   
-  if (!invitationResult.valid) {
-    throw new AuthError('INVALID_INVITATION', invitationResult.message || 'Invalid invitation code');
-  }
-
-  // Check email matches invitation
-  if (invitationResult.invitation!.inviteeEmail !== email.toLowerCase()) {
-    throw new AuthError('EMAIL_MISMATCH', 'Email does not match the invitation');
+  if (!validationResult.valid) {
+    throw new AuthError('INVALID_INVITE', validationResult.message || 'Invalid invite token');
   }
 
   // Check if user already exists
   const existingUser = await UserRepository.findByEmail(email);
   if (existingUser) {
-    throw new AuthError('USER_EXISTS', 'User already exists');
+    throw new AuthError('USER_EXISTS', 'User already exists with this email');
   }
 
   // Hash password
   const passwordHash = await PasswordService.hashPassword(password);
 
-  // Create user
+  // Create user with default role
   const user = await UserRepository.create({
     email,
     passwordHash,
@@ -142,9 +144,9 @@ export const register = async (data: RegisterData): Promise<AuthResult> => {
     verificationTier: 'basic' as VerificationTier,
   });
 
-  // Mark invitation as accepted
-  const { acceptInvitationExternal } = await import('../../invitations/services/InvitationValidationService');
-  await acceptInvitationExternal(invitationCode, user.id);
+  // Mark invite as used and award invite credits
+  const { useInviteExternal } = await import('../../invites/services/InviteService');
+  await useInviteExternal(inviteToken, user.id, user.email);
 
   // Generate tokens
   const token = JwtService.generateToken({
@@ -161,11 +163,21 @@ export const register = async (data: RegisterData): Promise<AuthResult> => {
     email: user.email,
     firstName: user.firstName,
     lastName: user.lastName,
-    invitedBy: invitationResult.invitation!.createdBy,
+    invitedBy: validationResult.invite!.createdBy,
   });
 
   return {
-    user,
+    user: {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      fullName: user.fullName,
+      role: user.role,
+      verificationTier: user.verificationTier,
+      trustScore: user.trustScore,
+      invitesRemaining: 3, // New users get 3 invites
+    },
     token,
     csrfToken,
   };
@@ -204,11 +216,11 @@ export const getCurrentUser = async (userId: string): Promise<any> => {
 // ============================================================================
 
 /**
- * Validate invitation code (delegated to Invitations module)
+ * Validate invite token (delegated to Invites module)
  */
-export const validateInvitation = async (code: string) => {
-  const { validateInvitationExternal } = await import('../../invitations/services/InvitationValidationService');
-  return validateInvitationExternal(code);
+export const validateInvitation = async (token: string) => {
+  const { validateInviteExternal } = await import('../../invites/services/InviteService');
+  return validateInviteExternal(token);
 };
 
 // ============================================================================

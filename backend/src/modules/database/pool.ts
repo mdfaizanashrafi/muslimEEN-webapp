@@ -4,7 +4,7 @@
  */
 
 import { Pool, QueryResult } from 'pg';
-import logger from '../../utils/logger';
+import { logger } from '../shared/utils/logger';
 
 // Database connection pool
 const pool = new Pool({

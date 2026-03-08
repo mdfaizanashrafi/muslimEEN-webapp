@@ -50,53 +50,6 @@ export const completeBiometricVerification = async (
 };
 
 /**
- * Request witness verification
- */
-export const requestWitnessVerification = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  try {
-    const userId = req.user!.id;
-    const { witnessIds } = req.body;
-
-    await VerificationService.requestWitnessVerification(userId, witnessIds);
-
-    res.json({
-      success: true,
-      message: 'Witness verification requested',
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * Approve as witness
- */
-export const approveAsWitness = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  try {
-    const witnessId = req.user!.id;
-    const userId = req.params.userId;
-
-    const result = await VerificationService.approveAsWitness(userId, witnessId);
-
-    res.json({
-      success: true,
-      message: 'Witness verification approved',
-      trustScoreChanged: result.trustScoreChanged,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
  * Request business verification
  */
 export const requestBusinessVerification = async (

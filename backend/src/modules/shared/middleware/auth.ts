@@ -1,7 +1,6 @@
 /**
  * Authentication Middleware
  * JWT verification and authorization
- * Note: Token generation moved to JwtService
  */
 
 import { Request, Response, NextFunction } from 'express';
@@ -21,8 +20,8 @@ const mapToRequestUser = (userIdentity: UserRepository.UserIdentity): User => ({
   role: userIdentity.role,
   verificationTier: userIdentity.verificationTier,
   trustScore: userIdentity.trustScore,
-  isWitnessEligible: userIdentity.isWitnessEligible,
   isActive: userIdentity.isActive,
+  invitesRemaining: userIdentity.invitesRemaining,
   createdAt: userIdentity.createdAt,
   lastLogin: userIdentity.lastLogin,
   // Optional fields not in UserIdentity
@@ -164,4 +163,33 @@ export const authorize = (...roles: UserRole[]) => {
 
     next();
   };
+};
+
+/**
+ * Admin authorization middleware
+ */
+export const requireAdmin = (req: Request, res: Response, next: NextFunction): void => {
+  if (!req.user) {
+    res.status(401).json({
+      success: false,
+      error: {
+        code: 'UNAUTHORIZED',
+        message: 'Authentication required',
+      },
+    });
+    return;
+  }
+
+  if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+    res.status(403).json({
+      success: false,
+      error: {
+        code: 'FORBIDDEN',
+        message: 'Admin access required',
+      },
+    });
+    return;
+  }
+
+  next();
 };

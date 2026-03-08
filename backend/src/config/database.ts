@@ -4,7 +4,7 @@
  */
 
 import { Pool, PoolConfig, QueryResult, PoolClient } from 'pg';
-import logger from '../utils/logger';
+import { logger } from '../modules/shared/utils/logger';
 
 // Database connection configuration
 const poolConfig: PoolConfig = {

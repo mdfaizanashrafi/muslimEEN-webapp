@@ -11,11 +11,11 @@ import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 
-import routes from './routes';
+import routes from './modules/routes';
 import healthRoutes from './routes/health';
-import { logger, requestLogger } from './utils/logger';
-import { errorHandler, notFound } from './middleware/errorHandler';
-import { performanceMonitor } from './middleware/performance';
+import { logger, requestLogger } from './modules/shared/utils/logger';
+import { errorHandler, notFound } from './modules/shared/middleware/errorHandler';
+import { performanceMonitor } from './modules/shared/middleware/performance';
 import { initSentry, setupSentryRequestHandlers, setupSentryErrorHandler } from './config/sentry';
 
 const app = express();

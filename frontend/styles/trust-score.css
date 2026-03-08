@@ -1,0 +1,348 @@
+/* Trust Score Page Styles */
+
+.trust-score-page {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Header Section */
+.trust-score-header-section {
+  background: linear-gradient(135deg, var(--color-emerald-600) 0%, var(--color-emerald-800) 100%);
+  border-radius: 1rem;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  color: white;
+}
+
+.score-main-display {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.score-circle {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+}
+
+.score-value {
+  font-size: 3rem;
+  font-weight: 700;
+}
+
+.score-label {
+  font-size: 1rem;
+  opacity: 0.8;
+}
+
+.score-info h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.score-rank {
+  font-size: 1.1rem;
+  opacity: 0.9;
+  margin-bottom: 0.5rem;
+}
+
+.score-change {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.score-change.positive {
+  color: #86efac;
+}
+
+/* Content Layout */
+.trust-score-content {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 2rem;
+}
+
+.main-column {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.sidebar-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Sections */
+.trust-factors-section,
+.score-history-section,
+.comparison-section,
+.suggestions-section {
+  background: white;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.trust-factors-section h2,
+.score-history-section h2,
+.comparison-section h2,
+.suggestions-section h2 {
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+  color: var(--color-gray-900);
+}
+
+.section-description {
+  color: var(--color-gray-600);
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+/* Trust Factors */
+.factors-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.trust-factor-item {
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--color-gray-200);
+}
+
+.trust-factor-item:last-child {
+  border-bottom: none;
+}
+
+.factor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.factor-header h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-gray-800);
+}
+
+.factor-score {
+  font-weight: 600;
+  color: var(--color-emerald-600);
+}
+
+.factor-description {
+  font-size: 0.85rem;
+  color: var(--color-gray-600);
+  margin-bottom: 0.75rem;
+}
+
+/* Progress Bar */
+.progress-bar-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--color-gray-200);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-emerald-500), var(--color-emerald-600));
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  font-size: 0.85rem;
+  color: var(--color-gray-600);
+  min-width: 80px;
+  text-align: right;
+}
+
+/* Score History Chart */
+.history-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  height: 200px;
+  padding: 1rem 0;
+  gap: 1rem;
+}
+
+.chart-bar-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.chart-bar {
+  width: 100%;
+  background: linear-gradient(180deg, var(--color-emerald-500), var(--color-emerald-600));
+  border-radius: 4px 4px 0 0;
+  min-height: 40px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 0.25rem;
+  transition: height 0.3s ease;
+}
+
+.bar-value {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+}
+
+.bar-label {
+  font-size: 0.75rem;
+  color: var(--color-gray-600);
+}
+
+/* Comparison Section */
+.comparison-card {
+  background: var(--color-gray-50);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.percentile-display {
+  margin-bottom: 1rem;
+}
+
+.percentile-value {
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--color-emerald-600);
+}
+
+.percentile-label {
+  font-size: 1rem;
+  color: var(--color-gray-600);
+  display: block;
+}
+
+.comparison-text {
+  color: var(--color-gray-700);
+  margin-bottom: 1.5rem;
+}
+
+.comparison-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.stat-item {
+  background: white;
+  padding: 1rem;
+  border-radius: 0.5rem;
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  color: var(--color-gray-600);
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.stat-value.your-score {
+  color: var(--color-emerald-600);
+}
+
+.stat-value.avg-score {
+  color: var(--color-gray-700);
+}
+
+/* Suggestions Section */
+.suggestions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.suggestion-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--color-gray-50);
+  border-radius: 0.5rem;
+  transition: background 0.2s;
+}
+
+.suggestion-item:hover {
+  background: var(--color-gray-100);
+}
+
+.suggestion-icon {
+  font-size: 1.5rem;
+}
+
+.suggestion-content {
+  flex: 1;
+}
+
+.suggestion-action {
+  display: block;
+  font-weight: 600;
+  color: var(--color-gray-800);
+}
+
+.suggestion-points {
+  font-size: 0.85rem;
+  color: var(--color-emerald-600);
+  font-weight: 500;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .trust-score-content {
+    grid-template-columns: 1fr;
+  }
+  
+  .score-main-display {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+@media (max-width: 640px) {
+  .trust-score-page {
+    padding: 1rem;
+  }
+  
+  .history-chart {
+    height: 150px;
+  }
+  
+  .comparison-stats {
+    grid-template-columns: 1fr;
+  }
+}

@@ -77,9 +77,9 @@ export const getUserMetrics = async (userId: string): Promise<any> => {
        (SELECT COUNT(*) FROM connections 
         WHERE (requester_id = u.id OR recipient_id = u.id) 
         AND status = 'accepted') as connection_count,
-       (SELECT COUNT(*) FROM invitations 
+       (SELECT COUNT(*) FROM invites 
         WHERE created_by = u.id AND status = 'used') as successful_invites,
-       (SELECT COUNT(*) FROM invitations 
+       (SELECT COUNT(*) FROM invites 
         WHERE created_by = u.id AND status = 'expired') as failed_invites,
        CASE 
          WHEN u.bio IS NOT NULL AND u.location IS NOT NULL 
@@ -107,17 +107,6 @@ export const getUserMetrics = async (userId: string): Promise<any> => {
     connectionQuality: Math.min(50, (parseInt(row.connection_count) || 0) * 2),
     communityContributions: (parseInt(row.successful_invites) || 0) * 10,
   };
-};
-
-/**
- * Check if user is witness eligible
- */
-export const isWitnessEligible = async (userId: string): Promise<boolean> => {
-  const result = await pool.query(
-    'SELECT is_witness_eligible FROM users WHERE id = $1',
-    [userId]
-  );
-  return result.rows[0]?.is_witness_eligible || false;
 };
 
 /**

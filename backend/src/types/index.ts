@@ -13,13 +13,7 @@ export {};
 // ============================================================================
 
 export type UserRole = 
-  | 'muslim_unverified' 
-  | 'muslim_verified' 
-  | 'muslim_witness' 
-  | 'business_unverified' 
-  | 'business_verified' 
-  | 'institution_unverified' 
-  | 'institution_verified' 
+  | 'user'
   | 'admin' 
   | 'super_admin';
 
@@ -34,6 +28,7 @@ export interface User {
   role: UserRole;
   verificationTier: VerificationTier;
   trustScore: number;
+  invitesRemaining: number;
   bio?: string;
   location?: string;
   industry?: string;
@@ -42,13 +37,11 @@ export interface User {
   endorsements?: number;
   connections?: number;
   profileViews?: number;
-  isWitnessEligible: boolean;
+  isActive?: boolean;
   createdAt: Date;
   lastLogin?: Date;
   // Internal use only
   passwordHash?: string;
-  // Optional fields from database
-  isActive?: boolean;
   updatedAt?: Date;
 }
 
@@ -71,9 +64,9 @@ export interface UserUpdateInput {
   role?: UserRole;
   verificationTier?: VerificationTier;
   trustScore?: number;
-  isWitnessEligible?: boolean;
   badges?: string[];
   lastLogin?: Date;
+  invitesRemaining?: number;
 }
 
 // ============================================================================
@@ -151,23 +144,25 @@ export interface MarketplaceListing {
 }
 
 // ============================================================================
-// INVITATION TYPES
+// INVITE TYPES
 // ============================================================================
 
-export type InvitationStatus = 'pending' | 'used' | 'expired';
+export type InviteStatus = 'pending' | 'used' | 'expired' | 'revoked';
 
-export interface Invitation {
+export interface Invite {
   id: string;
-  code: string;
-  email?: string;
-  createdBy?: string;
-  status: InvitationStatus;
-  maxUses: number;
-  usedCount: number;
-  expiresAt?: Date;
+  token: string;
+  createdBy: string;
+  inviteeEmail?: string;
+  usedBy?: string;
+  status: InviteStatus;
+  expiresAt: Date;
   createdAt: Date;
   usedAt?: Date;
-  usedBy?: string;
+}
+
+export interface InviteWithInviter extends Invite {
+  inviterName: string;
 }
 
 // ============================================================================
@@ -196,7 +191,9 @@ export type NotificationType =
   | 'message_received'
   | 'verification_update'
   | 'trust_score_update'
-  | 'marketplace_update';
+  | 'marketplace_update'
+  | 'invite_created'
+  | 'invite_used';
 
 export interface Notification {
   id: string;

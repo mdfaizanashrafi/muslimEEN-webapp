@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { AppLayout } from '../../components/layout';
 import '../../styles/verification.css';
 
@@ -86,6 +87,16 @@ const TrustFactor = ({ name, points, percentage }: TrustFactorProps) => (
 );
 
 export default function VerificationPage() {
+  const router = useRouter();
+
+  const handleBusinessVerification = () => {
+    router.push('/verification/business');
+  };
+
+  const handleInstitutionalPartner = () => {
+    router.push('/verification/institutional');
+  };
+
   return (
     <AppLayout activeNav="verification">
       {/* Page Header */}
@@ -207,7 +218,9 @@ export default function VerificationPage() {
               <li>Enhanced trust indicators</li>
               <li>Business analytics dashboard</li>
             </ul>
-            <button className="upgrade-card-button">Apply for Business Verification</button>
+            <button className="upgrade-card-button" onClick={handleBusinessVerification}>
+              Apply for Business Verification
+            </button>
           </div>
           
           {/* Institutional Partner Card */}
@@ -227,7 +240,9 @@ export default function VerificationPage() {
               <li>Co-marketing opportunities</li>
               <li>Dedicated account manager</li>
             </ul>
-            <button className="upgrade-card-button">Apply for Institutional Partner</button>
+            <button className="upgrade-card-button" onClick={handleInstitutionalPartner}>
+              Apply for Institutional Partner
+            </button>
           </div>
         </div>
       </div>

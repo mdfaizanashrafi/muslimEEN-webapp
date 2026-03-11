@@ -192,6 +192,41 @@ Frontend will be available at `http://localhost:8080`
 
 ---
 
+## 🚀 Deploy to Production
+
+Deploy MuslimEEN for free using Vercel + Render + Neon + Upstash:
+
+### Quick Deploy (15 minutes)
+
+| Service | Purpose | Cost |
+|---------|---------|------|
+| [Vercel](https://vercel.com) | Frontend hosting | Free |
+| [Render](https://render.com) | Backend API | Free |
+| [Neon](https://neon.tech) | PostgreSQL database | Free |
+| [Upstash](https://upstash.com) | Redis cache | Free |
+
+**Step-by-step guides:**
+- 📋 [`DEPLOY-CHECKLIST.md`](DEPLOY-CHECKLIST.md) - Print and check off items
+- 📖 [`DEPLOY-STEP-BY-STEP.md`](DEPLOY-STEP-BY-STEP.md) - Detailed instructions with screenshots
+- 🔧 [`DEPLOY-QUICKREF.md`](DEPLOY-QUICKREF.md) - Quick reference for commands
+
+### Architecture
+
+```
+┌─────────────┐      ┌─────────────┐      ┌─────────────┐
+│   Vercel    │──────▶   Render    │──────▶    Neon     │
+│  (Frontend) │      │  (Backend)  │      │ (Database)  │
+└─────────────┘      └──────┬──────┘      └─────────────┘
+                            │
+                            ▼
+                     ┌─────────────┐
+                     │   Upstash   │
+                     │   (Redis)   │
+                     └─────────────┘
+```
+
+---
+
 ## 🧪 Development
 
 ### Available Scripts

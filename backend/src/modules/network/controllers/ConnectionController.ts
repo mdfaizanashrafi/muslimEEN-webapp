@@ -6,6 +6,7 @@
 import { Request, Response, NextFunction } from 'express';
 import * as ConnectionService from '../services/ConnectionService';
 import { ConnectionError } from '../services/ConnectionService';
+import { sendSuccess, sendError, sendValidationError } from '../../shared/utils/response';
 
 /**
  * Get current user's connections
@@ -19,7 +20,7 @@ export const getCurrentUserConnections = async (
     const userId = req.user!.id;
     const connections = await ConnectionService.getUserConnections(userId);
 
-    res.json(connections);
+    sendSuccess(res, connections);
   } catch (error) {
     next(error);
   }
@@ -37,7 +38,7 @@ export const getCurrentUserPendingConnections = async (
     const userId = req.user!.id;
     const pending = await ConnectionService.getPendingRequests(userId);
 
-    res.json(pending);
+    sendSuccess(res, pending);
   } catch (error) {
     next(error);
   }
@@ -57,16 +58,10 @@ export const sendConnectionRequestToUser = async (
 
     await ConnectionService.sendRequest(requesterId, recipientId);
 
-    res.json({
-      success: true,
-      message: 'Connection request sent',
-    });
+    sendSuccess(res, null, 'Connection request sent', 201);
   } catch (error) {
     if (error instanceof ConnectionError) {
-      res.status(error.statusCode).json({
-        success: false,
-        error: { code: error.code, message: error.message },
-      });
+      sendError(res, error.code, error.message, error.statusCode);
       return;
     }
     next(error);
@@ -74,7 +69,45 @@ export const sendConnectionRequestToUser = async (
 };
 
 /**
- * Accept connection request
+ * Update connection status (RESTful PATCH)
+ * Handles both accept and reject
+ */
+export const updateConnectionStatus = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const userId = req.user!.id;
+    const { connectionId } = req.params;
+    const { status } = req.body;
+
+    // Validate status
+    if (!['accepted', 'rejected'].includes(status)) {
+      sendValidationError(res, [
+        'Status must be either "accepted" or "rejected"'
+      ]);
+      return;
+    }
+
+    if (status === 'accepted') {
+      await ConnectionService.acceptRequest(connectionId, userId);
+      sendSuccess(res, null, 'Connection accepted');
+    } else {
+      await ConnectionService.rejectRequest(connectionId, userId);
+      sendSuccess(res, null, 'Connection rejected');
+    }
+  } catch (error) {
+    if (error instanceof ConnectionError) {
+      sendError(res, error.code, error.message, error.statusCode);
+      return;
+    }
+    next(error);
+  }
+};
+
+/**
+ * Accept connection request (DEPRECATED - use updateConnectionStatus)
  */
 export const acceptIncomingConnectionRequest = async (
   req: Request,
@@ -87,16 +120,10 @@ export const acceptIncomingConnectionRequest = async (
 
     await ConnectionService.acceptRequest(connectionId, recipientId);
 
-    res.json({
-      success: true,
-      message: 'Connection accepted',
-    });
+    sendSuccess(res, null, 'Connection accepted');
   } catch (error) {
     if (error instanceof ConnectionError) {
-      res.status(error.statusCode).json({
-        success: false,
-        error: { code: error.code, message: error.message },
-      });
+      sendError(res, error.code, error.message, error.statusCode);
       return;
     }
     next(error);
@@ -104,7 +131,7 @@ export const acceptIncomingConnectionRequest = async (
 };
 
 /**
- * Reject connection request
+ * Reject connection request (DEPRECATED - use updateConnectionStatus)
  */
 export const rejectIncomingConnectionRequest = async (
   req: Request,
@@ -117,16 +144,10 @@ export const rejectIncomingConnectionRequest = async (
 
     await ConnectionService.rejectRequest(connectionId, recipientId);
 
-    res.json({
-      success: true,
-      message: 'Connection rejected',
-    });
+    sendSuccess(res, null, 'Connection rejected');
   } catch (error) {
     if (error instanceof ConnectionError) {
-      res.status(error.statusCode).json({
-        success: false,
-        error: { code: error.code, message: error.message },
-      });
+      sendError(res, error.code, error.message, error.statusCode);
       return;
     }
     next(error);
@@ -147,16 +168,10 @@ export const removeConnection = async (
 
     await ConnectionService.removeConnection(connectionId, userId);
 
-    res.json({
-      success: true,
-      message: 'Connection removed',
-    });
+    sendSuccess(res, null, 'Connection removed');
   } catch (error) {
     if (error instanceof ConnectionError) {
-      res.status(error.statusCode).json({
-        success: false,
-        error: { code: error.code, message: error.message },
-      });
+      sendError(res, error.code, error.message, error.statusCode);
       return;
     }
     next(error);

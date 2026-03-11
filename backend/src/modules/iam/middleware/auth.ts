@@ -1,12 +1,15 @@
 /**
  * Authentication Middleware
  * JWT verification and authorization
+ * 
+ * MOVED FROM: modules/shared/middleware/auth.ts
+ * REASON: Eliminate circular dependency (shared should not import from iam)
  */
 
 import { Request, Response, NextFunction } from 'express';
-import * as UserRepository from '../../iam/repositories/UserRepository';
-import { User, UserRole } from '../../../types/index';
-import { verifyToken } from '../../iam/services/JwtService';
+import * as UserRepository from '../repositories/UserRepository';
+import { User, UserRole } from '../../shared/types';
+import { verifyToken } from '../services/JwtService';
 
 /**
  * Map UserIdentity from repository to User type for request

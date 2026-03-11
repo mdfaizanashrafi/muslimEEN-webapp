@@ -1,5 +1,9 @@
 /**
  * Marketplace Repository
+ * 
+ * SECURITY FIXES APPLIED:
+ * - Added provider_id check to update and remove operations
+ * - Added defense-in-depth ownership verification at database level
  */
 
 import pool from '../../database/pool';
@@ -36,19 +40,43 @@ export const create = async (data: any): Promise<any> => {
   return result.rows[0];
 };
 
-export const update = async (id: string, updates: any): Promise<any> => {
+/**
+ * Update listing with ownership verification
+ * SECURITY FIX: Added providerId check to prevent unauthorized updates
+ */
+export const update = async (id: string, providerId: string, updates: any): Promise<any> => {
   const result = await pool.query(
     `UPDATE marketplace_listings 
      SET title = $1, description = $2, location = $3, rate = $4, updated_at = NOW()
-     WHERE id = $5
+     WHERE id = $5 AND provider_id = $6
      RETURNING *`,
-    [updates.title, updates.description, updates.location, updates.rate, id]
+    [updates.title, updates.description, updates.location, updates.rate, id, providerId]
   );
-  return result.rows[0];
+  return result.rows[0] || null;
 };
 
-export const remove = async (id: string): Promise<void> => {
-  await pool.query('DELETE FROM marketplace_listings WHERE id = $1', [id]);
+/**
+ * Remove listing with ownership verification
+ * SECURITY FIX: Added providerId check to prevent unauthorized deletion
+ */
+export const remove = async (id: string, providerId: string): Promise<boolean> => {
+  const result = await pool.query(
+    'DELETE FROM marketplace_listings WHERE id = $1 AND provider_id = $2',
+    [id, providerId]
+  );
+  return (result.rowCount || 0) > 0;
+};
+
+/**
+ * Admin remove listing (no ownership check)
+ * For admin moderation purposes
+ */
+export const removeAsAdmin = async (id: string): Promise<boolean> => {
+  const result = await pool.query(
+    'DELETE FROM marketplace_listings WHERE id = $1',
+    [id]
+  );
+  return (result.rowCount || 0) > 0;
 };
 
 export const recordInvestment = async (listingId: string, investorId: string, amount: number): Promise<any> => {

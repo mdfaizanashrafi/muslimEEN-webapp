@@ -1,65 +1,53 @@
 /**
  * Jest Configuration
- * Test setup for MuslimEEN backend
+ * MuslimEEN Backend Test Configuration
  */
 
 module.exports = {
-  // Use ts-jest for TypeScript support
   preset: 'ts-jest',
-  
-  // Test environment
   testEnvironment: 'node',
-  
-  // Root directories for tests
-  roots: ['<rootDir>/tests'],
-  
-  // Test file patterns
+  roots: ['<rootDir>/src'],
   testMatch: [
-    '**/tests/**/*.test.ts',
-    '**/tests/**/*.test.js',
+    '**/__tests__/**/*.test.ts',
+    '**/?(*.)+(spec|test).ts'
   ],
-
-  // Test path ignore patterns
-  testPathIgnorePatterns: [
-    '/node_modules/',
-    '/dist/',
-  ],
-  
-  // Module file extensions
-  moduleFileExtensions: ['ts', 'js', 'json', 'node'],
-  
-  // Transform TypeScript files
   transform: {
     '^.+\\.ts$': 'ts-jest',
   },
-  
-  // Module name mapping for aliases
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1',
+    '^@shared/(.*)$': '<rootDir>/src/modules/shared/$1',
+    '^@iam/(.*)$': '<rootDir>/src/modules/iam/$1',
+    '^@profile/(.*)$': '<rootDir>/src/modules/profile/$1',
+    '^@trust/(.*)$': '<rootDir>/src/modules/trust/$1',
+    '^@network/(.*)$': '<rootDir>/src/modules/network/$1',
+    '^@marketplace/(.*)$': '<rootDir>/src/modules/marketplace/$1',
+    '^@islamic-finance/(.*)$': '<rootDir>/src/modules/islamic-finance/$1',
+    '^@invites/(.*)$': '<rootDir>/src/modules/invites/$1',
+    '^@database$': '<rootDir>/src/modules/database/pool',
+    '^@types$': '<rootDir>/src/modules/shared/types',
+    '^@config/(.*)$': '<rootDir>/src/config/$1',
   },
-  
-  // Setup files to run after Jest is initialized
-  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
-  
-  // Coverage configuration
+  setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'],
+  coverageThreshold: {
+    global: {
+      branches: 70,
+      functions: 70,
+      lines: 70,
+      statements: 70,
+    },
+  },
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/**/*.d.ts',
+    '!src/**/index.ts',
+    '!src/**/types.ts',
+    '!src/**/routes.ts',
     '!src/server.ts',
-    '!src/routes/**',
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
-  
-  // Test timeout
-  testTimeout: 10000,
-  
-  // Verbose output
   verbose: true,
-  
-  // Clear mocks between tests
   clearMocks: true,
-  
-  // Restore mocks after each test
   restoreMocks: true,
+  testTimeout: 30000,
 };

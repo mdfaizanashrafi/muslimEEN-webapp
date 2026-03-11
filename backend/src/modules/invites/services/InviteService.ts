@@ -36,35 +36,48 @@ const ADMIN_ROLES = ['admin', 'super_admin'];
 /**
  * Create a new invite for a regular user
  * Decreases the inviter's remaining invite count
+ * 
+ * SECURITY FIX: Uses atomic check-and-decrement to prevent race conditions
  */
 export const createInvite = async (input: CreateInviteInput): Promise<Invite> => {
   const { createdBy, createdByRole, inviterInviteCount = 0 } = input;
 
-  // Check if user has invites remaining (skip for admins)
-  if (!isAdmin(createdByRole) && inviterInviteCount <= 0) {
-    throw new InviteError('NO_INVITES_REMAINING', 'You have no invites remaining', 400);
-  }
-
-  // Create the invite
-  const invite = await InviteRepository.create(createdBy);
-
-  // Decrease inviter's invite count (skip for admins)
+  // Skip invite count check for admins
   if (!isAdmin(createdByRole)) {
-    await UserRepository.decreaseInviteCount(createdBy);
+    // SECURITY FIX: Atomic check-and-decrement prevents race conditions
+    // This updates the count and returns true only if user had invites remaining
+    const decremented = await UserRepository.decreaseInviteCount(createdBy);
+    
+    if (!decremented) {
+      throw new InviteError('NO_INVITES_REMAINING', 'You have no invites remaining', 400);
+    }
   }
 
-  // Publish event
-  await eventBus.publish(DomainEvents.INVITE_CREATED, {
-    inviteId: invite.id,
-    createdBy,
-    token: invite.token,
-  });
+  try {
+    // Create the invite
+    const invite = await InviteRepository.create(createdBy);
 
-  return invite;
+    // Publish event
+    await eventBus.publish(DomainEvents.INVITE_CREATED, {
+      inviteId: invite.id,
+      createdBy,
+      token: invite.token,
+    });
+
+    return invite;
+  } catch (error) {
+    // If invite creation fails, refund the invite credit (for non-admins)
+    if (!isAdmin(createdByRole)) {
+      await UserRepository.increaseInviteCount(createdBy);
+    }
+    throw error;
+  }
 };
 
 /**
  * Create an invite for a specific email address
+ * 
+ * SECURITY FIX: Uses atomic check-and-decrement to prevent race conditions
  */
 export const createInviteForEmail = async (
   input: CreateInviteForEmailInput
@@ -76,34 +89,42 @@ export const createInviteForEmail = async (
     throw new InviteError('INVALID_EMAIL', 'Invalid email format', 400);
   }
 
-  // Check if user has invites remaining (skip for admins)
-  if (!isAdmin(createdByRole) && inviterInviteCount <= 0) {
-    throw new InviteError('NO_INVITES_REMAINING', 'You have no invites remaining', 400);
-  }
-
   // Check if email is already registered
   const existingUser = await UserRepository.findByEmail(inviteeEmail);
   if (existingUser) {
     throw new InviteError('EMAIL_ALREADY_REGISTERED', 'This email is already registered', 400);
   }
 
-  // Create the invite with email
-  const invite = await InviteRepository.createAdminInvite(createdBy, inviteeEmail);
-
-  // Decrease inviter's invite count (skip for admins)
+  // Skip invite count check for admins
   if (!isAdmin(createdByRole)) {
-    await UserRepository.decreaseInviteCount(createdBy);
+    // SECURITY FIX: Atomic check-and-decrement prevents race conditions
+    const decremented = await UserRepository.decreaseInviteCount(createdBy);
+    
+    if (!decremented) {
+      throw new InviteError('NO_INVITES_REMAINING', 'You have no invites remaining', 400);
+    }
   }
 
-  // Publish event
-  await eventBus.publish(DomainEvents.INVITE_CREATED, {
-    inviteId: invite.id,
-    createdBy,
-    inviteeEmail,
-    token: invite.token,
-  });
+  try {
+    // Create the invite with email
+    const invite = await InviteRepository.createAdminInvite(createdBy, inviteeEmail);
 
-  return invite;
+    // Publish event
+    await eventBus.publish(DomainEvents.INVITE_CREATED, {
+      inviteId: invite.id,
+      createdBy,
+      inviteeEmail,
+      token: invite.token,
+    });
+
+    return invite;
+  } catch (error) {
+    // If invite creation fails, refund the invite credit (for non-admins)
+    if (!isAdmin(createdByRole)) {
+      await UserRepository.increaseInviteCount(createdBy);
+    }
+    throw error;
+  }
 };
 
 /**

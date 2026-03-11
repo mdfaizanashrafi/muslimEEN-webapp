@@ -31,7 +31,7 @@ info:
   version: 1.0.0
   contact:
     name: MuslimEEN Team
-    url: https://muslimeen.org
+    url: https://muslimeen.space
   license:
     name: AGPL-3.0
     url: https://www.gnu.org/licenses/agpl-3.0.html
@@ -39,7 +39,7 @@ info:
 servers:
   - url: http://localhost:3001/api
     description: Development server
-  - url: https://api.muslimeen.org/v1
+  - url: https://api.muslimeen.space/v1
     description: Production server
 
 security:
@@ -1815,7 +1815,7 @@ paths:
                 message: "Biometric verification initiated"
                 data:
                   sessionId: "session-12345"
-                  verificationUrl: "https://verify.muslimeen.org/session-12345"
+                  verificationUrl: "https://verify.muslimeen.space/session-12345"
         '401':
           $ref: '#/components/responses/Unauthorized'
         '500':
@@ -1985,7 +1985,7 @@ paths:
                   items:
                     type: string
                   description: Array of document URLs
-                  example: ["https://docs.muslimeen.org/doc1.pdf"]
+                  example: ["https://docs.muslimeen.space/doc1.pdf"]
       responses:
         '200':
           description: Business verification requested

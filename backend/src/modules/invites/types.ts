@@ -1,28 +1,16 @@
 /**
  * Invites Module Types
+ * 
+ * NOTE: Core types are re-exported from root types.
+ * Module-specific types are defined here.
  */
 
-// ============================================================================
-// INVITE TOKEN TYPES
-// ============================================================================
-
-export type InviteStatus = 'pending' | 'used' | 'expired' | 'revoked';
-
-export interface Invite {
-  id: string;
-  token: string;
-  createdBy: string;
-  usedBy: string | null;
-  status: InviteStatus;
-  expiresAt: Date;
-  createdAt: Date;
-  usedAt?: Date;
-}
-
-export interface InviteWithInviter extends Invite {
-  inviterEmail: string;
-  inviterName: string;
-}
+// Re-export core types from authoritative source
+export type { 
+  Invite,
+  InviteWithInviter, 
+  InviteStatus
+} from '../../types';
 
 // ============================================================================
 // INVITE CREATION TYPES
@@ -53,7 +41,7 @@ export interface CreateAdminInviteInput {
 
 export interface ValidateInviteResult {
   valid: boolean;
-  invite?: InviteWithInviter;
+  invite?: import('../../types').InviteWithInviter;
   message?: string;
 }
 
@@ -69,7 +57,7 @@ export interface UseInviteInput {
 
 export interface UseInviteResult {
   success: boolean;
-  invite?: Invite;
+  invite?: import('../../types').Invite;
   message?: string;
 }
 

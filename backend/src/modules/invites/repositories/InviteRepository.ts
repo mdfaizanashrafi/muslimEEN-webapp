@@ -41,11 +41,12 @@ export const create = async (
 ): Promise<Invite> => {
   const token = generateSecureToken();
   
+  // SECURITY: Using make_interval() with parameterized days prevents SQL injection
   const result = await pool.query(
     `INSERT INTO invites (token, created_by, status, expires_at, created_at)
-     VALUES ($1, $2, 'pending', NOW() + INTERVAL '${expiresInDays} days', NOW())
+     VALUES ($1, $2, 'pending', NOW() + make_interval(days => $3), NOW())
      RETURNING *`,
-    [token, createdBy]
+    [token, createdBy, expiresInDays]
   );
   
   return mapToInvite(result.rows[0]);
@@ -61,11 +62,12 @@ export const createAdminInvite = async (
 ): Promise<Invite> => {
   const token = generateSecureToken();
   
+  // SECURITY: Using make_interval() with parameterized days prevents SQL injection
   const result = await pool.query(
     `INSERT INTO invites (token, created_by, invitee_email, status, expires_at, created_at)
-     VALUES ($1, $2, $3, 'pending', NOW() + INTERVAL '${expiresInDays} days', NOW())
+     VALUES ($1, $2, $3, 'pending', NOW() + make_interval(days => $4), NOW())
      RETURNING *`,
-    [token, createdBy, inviteeEmail]
+    [token, createdBy, inviteeEmail, expiresInDays]
   );
   
   return mapToInvite(result.rows[0]);
@@ -116,8 +118,8 @@ export const findByTokenWithInviter = async (token: string): Promise<InviteWithI
   const row = result.rows[0];
   return {
     ...mapToInvite(row),
-    inviterEmail: row.inviter_email,
-    inviterName: row.inviter_name,
+    inviterEmail: row.inviter_email || row.invitee_email,
+    inviterName: row.inviter_name || row.invitee_email,
   };
 };
 

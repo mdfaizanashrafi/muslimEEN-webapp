@@ -43,7 +43,7 @@ LOG_LEVEL=info
 FRONTEND_URL=http://localhost:8080
 
 # Admin Configuration
-ADMIN_EMAIL=admin@muslimeen.org
+ADMIN_EMAIL=admin@muslimeen.space
 `;
 
   fs.writeFileSync(envPath, envContent);

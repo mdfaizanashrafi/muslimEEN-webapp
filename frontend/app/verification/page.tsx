@@ -1,8 +1,8 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { AppLayout } from '../../components/layout';
-import '../../styles/verification.css';
+import { AppLayout } from '@/components/layout';
+import '@/styles/verification.css';
 
 // Page-specific icons
 const CheckIcon = () => (

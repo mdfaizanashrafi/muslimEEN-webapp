@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { AppLayout } from '../../../components/layout';
-import '../../../styles/verification.css';
+import { AppLayout } from '@/components/layout';
+import '@/styles/verification.css';
 
 /**
  * Institutional Partner Verification Form

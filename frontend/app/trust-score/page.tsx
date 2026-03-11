@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { AppLayout } from '../../components/layout';
-import '../../styles/trust-score.css';
+import { AppLayout } from '@/components/layout';
+import '@/styles/trust-score.css';
 
 // Types
 interface TrustFactor {

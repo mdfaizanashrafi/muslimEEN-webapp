@@ -287,8 +287,8 @@ See [LICENSE](LICENSE) for full details.
 
 ## 📞 Contact & Support
 
-- **Website**: https://muslimeen.org
-- **Email**: contact@muslimeen.org
+- **Website**: https://muslimeen.space
+- **Email**: contact@muslimeen.space
 - **GitHub Issues**: For bug reports and feature requests
 - **Discord Community**: [Join our server](https://discord.gg/muslimeen)
 

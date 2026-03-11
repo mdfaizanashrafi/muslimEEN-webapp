@@ -3,8 +3,8 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { AppLayout } from '../../components/layout/AppLayout';
-import '../../styles/settings.css';
+import { AppLayout } from '@/components/layout/AppLayout';
+import '@/styles/settings.css';
 
 interface SettingsNavItem {
   href: string;

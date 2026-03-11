@@ -5,7 +5,7 @@
 
 ## Context
 
-MuslimEEN started as a monolithic Express.js application with a traditional MVC structure where controllers directly accessed database models. As the platform grew to include multiple complex domains (IAM, Islamic Finance, Marketplace, Trust & Verification, Network, Notifications), several critical issues emerged:
+MuslimEEN started as a monolithic Express.js application with a traditional MVC structure where controllers directly accessed database models. As the platform grew to include multiple complex domains (IAM, Islamic Finance, Marketplace, Trust & Verification, Network), several critical issues emerged:
 
 1. **Tight Coupling**: Business logic was scattered across controllers, making it difficult to understand which code owned which data
 2. **Unclear Boundaries**: The Islamic Finance module (handling Zakat, Qard Hasan, Sadaqah, Waqf) was intertwined with user profile logic
@@ -26,14 +26,15 @@ Each module is a self-contained unit with clear boundaries:
 backend/src/modules/
 ├── iam/                    # Identity & Access Management
 ├── profile/                # User profiles
-├── trust/                  # Trust scores & verification
+├── trust/                  # Trust scores & verification (biometric & business only)
 ├── network/                # Connections & networking
 ├── marketplace/            # EARN, BUILD, LIVE, PROTECT verticals
 ├── islamic-finance/        # Zakat, Qard Hasan, Sadaqah, Waqf
-├── invitations/            # Invitation system
-├── notifications/          # Notification system
+├── invites/                # Invitation-based onboarding system
 └── shared/                 # Cross-cutting concerns
 ```
+
+**Note**: The verification module only supports biometric and business verification. The witness verification system has been removed in favor of invitation-only onboarding.
 
 Each module contains:
 - `controllers/` - HTTP request handling
@@ -52,12 +53,13 @@ export const featureFlags = {
   useModularProfile: process.env.USE_MODULAR_PROFILE === 'true',
   useModularTrust: process.env.USE_MODULAR_TRUST === 'true',
   useModularNetwork: process.env.USE_MODULAR_NETWORK === 'true',
-  useModularNotifications: process.env.USE_MODULAR_NOTIFICATIONS === 'true',
-  useModularInvitations: process.env.USE_MODULAR_INVITATIONS === 'true',
+  useModularInvites: process.env.USE_MODULAR_INVITES === 'true',
   useModularMarketplace: process.env.USE_MODULAR_MARKETPLACE === 'true',
   useModularIslamicFinance: process.env.USE_MODULAR_ISLAMIC_FINANCE === 'true',
 };
 ```
+
+**Note**: Notifications feature flag has been removed as the module was not implemented.
 
 Route selection based on feature flags:
 ```typescript
@@ -88,6 +90,8 @@ router.use('/auth', featureFlags.useModularIAM
 
 7. **Reusability**: The IAM module's authentication services can be clearly exported for use by the admin panel or future mobile applications.
 
+8. **Invitation-Only Security**: The invites module provides controlled onboarding, replacing the witness verification system for better security and trust management.
+
 ### Negative
 
 1. **Initial Complexity**: Developers must understand the module structure and feature flag system before making changes. Onboarding time increases temporarily.
@@ -112,14 +116,17 @@ router.use('/auth', featureFlags.useModularIAM
 - **Partially Adopted**: We adopted the repository pattern and dependency inversion principles from Clean Architecture but kept the directory structure flatter for pragmatic development velocity. Full hexagonal architecture with ports and adapters was deemed overly abstract for the current team size.
 
 ### Status Quo (Monolithic MVC)
-- **Rejected**: Continuing with the existing structure would accumulate technical debt and make the Islamic Finance features increasingly risky to modify. The trust-based verification system requires high confidence in code quality that the old structure could not provide.
+- **Rejected**: Continuing with the existing structure would accumulate technical debt and make the Islamic Finance features increasingly risky to modify.
+
+## Changes Log
+
+- **2026-03-07**: Updated to reflect removal of witness verification system and notification module
+- **2026-03-07**: Changed module name from "invitations" to "invites" to match actual folder structure
 
 ## References
 
 - [Modular Monolith Architecture](https://www.deconstructconf.com/2019/stefan-tilkov-maxis-what-makes-modular-monoliths)
 - [Feature Toggles](https://martinfowler.com/articles/feature-toggles.html) - Martin Fowler
-- [Backend README: Module Structure](../../../BACKEND_README.md)
-- [SRP Refactoring Summary](../../../SRP_REFACTORING_SUMMARY.md)
 - Related ADRs:
   - ADR-005: Repository Pattern
   - ADR-004: JWT Authentication (implemented in IAM module)

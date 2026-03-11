@@ -8,7 +8,9 @@
     "start": "next start -p 8080",
     "lint": "next lint",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "seo:audit": "node scripts/seo-audit.js",
+    "analyze": "cross-env ANALYZE=true next build"
   },
   "dependencies": {
     "next": "14.2.5",

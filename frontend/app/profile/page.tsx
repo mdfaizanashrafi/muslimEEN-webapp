@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { AppLayout } from '../../components/layout';
-import { workHistory, education, skills } from '../../data/mocks/profile';
-import '../../styles/profile.css';
+import { AppLayout } from '@/components/layout';
+import { useAuth } from '@/lib/auth-context';
+import { trustScore, connections } from '@/lib/api';
+import '@/styles/profile.css';
 
 // Page-specific icons
 const LocationIcon = () => (
@@ -113,35 +114,6 @@ const Widget = ({ title, action, children }: WidgetProps) => (
   </div>
 );
 
-interface TimelineItemProps {
-  title: string;
-  subtitle: string;
-  date: string;
-  description?: string;
-}
-
-const TimelineItem = ({ title, subtitle, date, description }: TimelineItemProps) => (
-  <div className="timeline-item">
-    <div className="timeline-content">
-      <h5>{title}</h5>
-      <p className="text-secondary">{subtitle}</p>
-      <p className="text-sm text-tertiary">{date}</p>
-      {description && <p className="mt-2">{description}</p>}
-    </div>
-  </div>
-);
-
-interface SkillBadgeProps {
-  name: string;
-  count: number;
-}
-
-const SkillBadge = ({ name, count }: SkillBadgeProps) => (
-  <span className="badge badge-verified">
-    {name} <small>({count})</small>
-  </span>
-);
-
 interface ActivityItemProps {
   icon: string;
   text: string;
@@ -183,23 +155,79 @@ const ShareOption = ({ icon, label, onClick }: ShareOptionProps) => (
   </button>
 );
 
+// Skill Badge Component
+interface SkillBadgeProps {
+  name: string;
+  count?: number;
+}
+
+const SkillBadge = ({ name, count }: SkillBadgeProps) => (
+  <span className="badge badge-verified">
+    {name} {count !== undefined && count > 0 && <small>({count})</small>}
+  </span>
+);
+
 export default function ProfilePage() {
+  const { user, profile, isLoading: authLoading, updateProfile } = useAuth();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   
-  // Edit form state
+  // Real data states
+  const [trustData, setTrustData] = useState<{ score: number; factors: Array<{ name: string; score: number; weight: number }> } | null>(null);
+  const [connectionCount, setConnectionCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Edit form state - initialized from real profile data
   const [editForm, setEditForm] = useState({
-    firstName: 'Ahmed',
-    lastName: 'Hassan',
-    headline: 'Software Engineer | Islamic Finance Enthusiast | Building ethical tech solutions',
-    location: 'London, UK',
-    about: 'Passionate software engineer with 5+ years of experience building scalable web applications. Specialized in fintech solutions with a focus on Islamic finance compliance.\n\nCurrently leading development at HalalTech Solutions, where we\'re building the next generation of Shariah-compliant financial tools for the Muslim community.',
+    firstName: '',
+    lastName: '',
+    headline: '',
+    location: '',
+    bio: '',
   });
+
+  // Fetch additional data on mount
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      if (!user) return;
+      
+      setIsLoading(true);
+      try {
+        // Fetch trust score
+        const trustResponse = await trustScore.getCurrentScore();
+        setTrustData({ score: trustResponse.score, factors: trustResponse.factors });
+        
+        // Fetch connections count
+        const connectionsResponse = await connections.getConnections();
+        setConnectionCount(connectionsResponse.length);
+      } catch (error) {
+        console.error('Failed to fetch profile data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProfileData();
+  }, [user]);
+
+  // Initialize edit form when profile data is available
+  useEffect(() => {
+    if (profile) {
+      setEditForm({
+        firstName: profile.firstName || '',
+        lastName: profile.lastName || '',
+        headline: profile.industry || '',
+        location: profile.location || '',
+        bio: profile.bio || '',
+      });
+    }
+  }, [profile]);
 
   const profileUrl = typeof window !== 'undefined' 
     ? `${window.location.origin}/profile`
-    : 'https://muslimeen.org/profile';
+    : 'https://muslimeen.space/profile';
 
   const openEditModal = () => setIsEditModalOpen(true);
   const closeEditModal = () => setIsEditModalOpen(false);
@@ -211,10 +239,23 @@ export default function ProfilePage() {
     setEditForm(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSaveProfile = () => {
-    // TODO: API call to save profile
-    console.log('Saving profile:', editForm);
-    closeEditModal();
+  const handleSaveProfile = async () => {
+    setIsSaving(true);
+    try {
+      await updateProfile({
+        firstName: editForm.firstName,
+        lastName: editForm.lastName,
+        bio: editForm.bio,
+        location: editForm.location,
+        industry: editForm.headline,
+      });
+      closeEditModal();
+    } catch (error) {
+      console.error('Failed to save profile:', error);
+      alert('Failed to save profile changes. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleCopyLink = () => {
@@ -243,6 +284,42 @@ export default function ProfilePage() {
     }
   };
 
+  // Get user initials for avatar
+  const getInitials = () => {
+    const firstName = profile?.firstName || user?.firstName || '';
+    const lastName = profile?.lastName || user?.lastName || '';
+    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase() || 'ME';
+  };
+
+  // Get full name
+  const getFullName = () => {
+    return profile?.fullName || user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Member';
+  };
+
+  // Get trust score
+  const currentTrustScore = trustData?.score || user?.trustScore || 0;
+  
+  // Determine trust score class
+  const getTrustScoreClass = (score: number) => {
+    if (score >= 700) return 'high';
+    if (score >= 300) return 'medium';
+    return 'low';
+  };
+  
+  const trustClass = getTrustScoreClass(currentTrustScore);
+  const verificationStatus = user?.verificationTier || 'basic';
+
+  if (authLoading || isLoading) {
+    return (
+      <AppLayout activeNav="profile">
+        <div className="profile-loading">
+          <div className="loading-spinner"></div>
+          <p>Loading your profile...</p>
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <>
       <AppLayout activeNav="profile">
@@ -254,7 +331,7 @@ export default function ProfilePage() {
           <div className="profile-header-content">
             <div className="profile-avatar-section">
               <div className="profile-avatar">
-                <div className="avatar avatar-xl">AH</div>
+                <div className="avatar avatar-xl">{getInitials()}</div>
                 <button type="button" className="avatar-edit" aria-label="Change photo">
                   <CameraIcon />
                 </button>
@@ -263,31 +340,51 @@ export default function ProfilePage() {
             
             <div className="profile-info-section">
               <div className="profile-info-main">
-                <h1>Ahmed Hassan</h1>
-                <p className="profile-bio">Software Engineer | Islamic Finance Enthusiast | Building ethical tech solutions</p>
+                <h1>{getFullName()}</h1>
+                <p className="profile-bio">{profile?.bio || profile?.industry || 'Complete your profile to add a headline'}</p>
                 <p className="profile-location">
                   <LocationIcon />
-                  London, UK
+                  {profile?.location || 'Add your location'}
                 </p>
                 
                 <div className="verification-badges mt-3">
-                  <span className="verification-badge verified">✓ Biometric Verified</span>
-                  <span className="verification-badge verified">✓ Two-Witness Verified</span>
-                  <span className="verification-badge verified">✓ Institutional Fast-Track</span>
+                  {verificationStatus === 'basic' && (
+                    <span className="verification-badge pending">○ Email Verified</span>
+                  )}
+                  {verificationStatus === 'verified' && (
+                    <>
+                      <span className="verification-badge verified">✓ Biometric Verified</span>
+                      <span className="verification-badge verified">✓ Two-Witness Verified</span>
+                    </>
+                  )}
+                  {verificationStatus === 'business' && (
+                    <>
+                      <span className="verification-badge verified">✓ Biometric Verified</span>
+                      <span className="verification-badge verified">✓ Two-Witness Verified</span>
+                      <span className="verification-badge verified">✓ Business Verified</span>
+                    </>
+                  )}
+                  {verificationStatus === 'institutional' && (
+                    <>
+                      <span className="verification-badge verified">✓ Biometric Verified</span>
+                      <span className="verification-badge verified">✓ Two-Witness Verified</span>
+                      <span className="verification-badge verified">✓ Institutional Fast-Track</span>
+                    </>
+                  )}
                 </div>
               </div>
               
               <div className="profile-info-stats">
                 <div className="profile-stat">
-                  <span className="stat-number">234</span>
+                  <span className="stat-number">{connectionCount}</span>
                   <span className="stat-label">Connections</span>
                 </div>
                 <div className="profile-stat">
-                  <span className="stat-number">47</span>
+                  <span className="stat-number">{profile?.endorsements || 0}</span>
                   <span className="stat-label">Endorsements</span>
                 </div>
                 <div className="profile-stat">
-                  <span className="stat-number">128</span>
+                  <span className="stat-number">0</span>
                   <span className="stat-label">Profile Views</span>
                 </div>
               </div>
@@ -312,17 +409,21 @@ export default function ProfilePage() {
             {/* Trust Score Card */}
             <Card 
               title="Trust Score" 
-              action={<Link href="/trust-score" className="text-sm text-link">View Details</Link>}
+              action={<Link href="/verification" className="text-sm text-link">View Details</Link>}
             >
               <div className="trust-score-container">
                 <div className="trust-score-header">
-                  <span className="trust-score-value high">785</span>
+                  <span className={`trust-score-value ${trustClass}`}>{currentTrustScore}</span>
                   <span className="text-sm text-secondary">/1000</span>
                 </div>
                 <div className="trust-score-bar">
-                  <div className="trust-score-fill high" style={{ width: '78.5%' }}></div>
+                  <div className={`trust-score-fill ${trustClass}`} style={{ width: `${Math.min(currentTrustScore / 10, 100)}%` }}></div>
                 </div>
-                <p className="text-sm text-secondary mt-2">+15 points this month • Top 15% of members</p>
+                <p className="text-sm text-secondary mt-2">
+                  {currentTrustScore < 300 && 'Complete your profile to increase your score'}
+                  {currentTrustScore >= 300 && currentTrustScore < 700 && 'Good standing - verify to unlock more features'}
+                  {currentTrustScore >= 700 && 'Excellent trust score!'}
+                </p>
               </div>
             </Card>
             
@@ -331,32 +432,11 @@ export default function ProfilePage() {
               title="About"
               action={<button type="button" className="btn btn-ghost btn-sm" onClick={openEditModal}>Edit</button>}
             >
-              <p>Passionate software engineer with 5+ years of experience building scalable web applications. Specialized in fintech solutions with a focus on Islamic finance compliance.</p>
-              <p className="mt-2">Currently leading development at HalalTech Solutions, where we&apos;re building the next generation of Shariah-compliant financial tools for the Muslim community.</p>
-            </Card>
-            
-            {/* Experience Section */}
-            <Card 
-              title="Experience"
-              action={<button type="button" className="btn btn-ghost btn-sm" onClick={openEditModal}>+ Add</button>}
-            >
-              <div className="timeline">
-                {workHistory.map((item) => (
-                  <TimelineItem key={item.title} {...item} />
-                ))}
-              </div>
-            </Card>
-            
-            {/* Education Section */}
-            <Card 
-              title="Education"
-              action={<button type="button" className="btn btn-ghost btn-sm" onClick={openEditModal}>+ Add</button>}
-            >
-              <div className="timeline">
-                {education.map((item) => (
-                  <TimelineItem key={item.title} {...item} />
-                ))}
-              </div>
+              {profile?.bio ? (
+                <p>{profile.bio}</p>
+              ) : (
+                <p className="text-secondary">No bio yet. Click edit to add information about yourself.</p>
+              )}
             </Card>
             
             {/* Skills Section */}
@@ -364,11 +444,31 @@ export default function ProfilePage() {
               title="Skills & Endorsements"
               action={<button type="button" className="btn btn-ghost btn-sm" onClick={openEditModal}>+ Add</button>}
             >
-              <div className="flex flex-wrap gap-2">
-                {skills.map((skill) => (
-                  <SkillBadge key={skill.name} {...skill} />
-                ))}
-              </div>
+              {profile?.skills && profile.skills.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {profile.skills.map((skill) => (
+                    <SkillBadge key={skill} name={skill} />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-secondary">No skills added yet. Add skills to get endorsements from your network.</p>
+              )}
+            </Card>
+            
+            {/* Experience Section - Placeholder for future implementation */}
+            <Card 
+              title="Experience"
+              action={<button type="button" className="btn btn-ghost btn-sm" onClick={openEditModal}>+ Add</button>}
+            >
+              <p className="text-secondary">Work experience feature coming soon. Complete your profile to showcase your career journey.</p>
+            </Card>
+            
+            {/* Education Section - Placeholder for future implementation */}
+            <Card 
+              title="Education"
+              action={<button type="button" className="btn btn-ghost btn-sm" onClick={openEditModal}>+ Add</button>}
+            >
+              <p className="text-secondary">Education feature coming soon. Add your educational background to your profile.</p>
             </Card>
           </div>
           
@@ -377,17 +477,28 @@ export default function ProfilePage() {
             {/* Profile Completeness */}
             <Widget title="Profile Strength">
               <div className="progress mb-2">
-                <div className="progress-bar" style={{ width: '85%' }}></div>
+                <div 
+                  className="progress-bar" 
+                  style={{ width: `${profile ? Math.min(20 + (profile.bio ? 20 : 0) + (profile.location ? 20 : 0) + (profile.industry ? 20 : 0) + (profile.skills?.length ? 20 : 0), 100) : 20}%` }}
+                ></div>
               </div>
-              <p className="text-sm text-secondary">85% complete</p>
+              <p className="text-sm text-secondary">
+                {profile ? Math.min(20 + (profile.bio ? 20 : 0) + (profile.location ? 20 : 0) + (profile.industry ? 20 : 0) + (profile.skills?.length ? 20 : 0), 100) : 20}% complete
+              </p>
               <ul className="completeness-checklist mt-4">
                 <li className="complete">✓ Add profile photo</li>
-                <li className="complete">✓ Add headline</li>
-                <li className="complete">✓ Add location</li>
-                <li className="complete">✓ Add work experience</li>
-                <li className="complete">✓ Add education</li>
-                <li className="incomplete">○ Add 3 more skills</li>
-                <li className="incomplete">○ Get 5 endorsements</li>
+                <li className={profile?.industry ? 'complete' : 'incomplete'}>
+                  {profile?.industry ? '✓' : '○'} Add headline
+                </li>
+                <li className={profile?.location ? 'complete' : 'incomplete'}>
+                  {profile?.location ? '✓' : '○'} Add location
+                </li>
+                <li className="incomplete">○ Add work experience</li>
+                <li className="incomplete">○ Add education</li>
+                <li className={profile?.skills?.length ? 'complete' : 'incomplete'}>
+                  {profile?.skills?.length ? '✓' : '○'} Add skills
+                </li>
+                <li className="incomplete">○ Get endorsements</li>
               </ul>
             </Widget>
             
@@ -398,46 +509,46 @@ export default function ProfilePage() {
             >
               <div className="verification-status">
                 <div className="verification-tier">
-                  <span className="tier-badge full">Full Verification</span>
+                  <span className={`tier-badge ${verificationStatus}`}>
+                    {verificationStatus === 'basic' && 'Provisional'}
+                    {verificationStatus === 'verified' && 'Verified Member'}
+                    {verificationStatus === 'business' && 'Business Member'}
+                    {verificationStatus === 'institutional' && 'Institutional Member'}
+                  </span>
                 </div>
                 <ul className="verification-steps">
                   <li className="complete">
                     <CheckIcon />
                     Email verified
                   </li>
-                  <li className="complete">
-                    <CheckIcon />
+                  <li className={verificationStatus !== 'basic' ? 'complete' : 'incomplete'}>
+                    {verificationStatus !== 'basic' ? <CheckIcon /> : '○'}
                     Biometric verified
                   </li>
-                  <li className="complete">
-                    <CheckIcon />
+                  <li className={verificationStatus !== 'basic' ? 'complete' : 'incomplete'}>
+                    {verificationStatus !== 'basic' ? <CheckIcon /> : '○'}
                     Two-witness verified
                   </li>
                 </ul>
-                <Link href="/verification" className="btn btn-outline btn-sm w-full mt-4">
-                  Upgrade to Business
-                </Link>
+                {verificationStatus === 'basic' && (
+                  <Link href="/verification" className="btn btn-primary btn-sm w-full mt-4">
+                    Complete Verification
+                  </Link>
+                )}
+                {verificationStatus === 'verified' && (
+                  <Link href="/verification" className="btn btn-outline btn-sm w-full mt-4">
+                    Upgrade to Business
+                  </Link>
+                )}
               </div>
             </Widget>
             
             {/* Activity */}
             <Widget title="Recent Activity">
               <div className="activity-list">
-                <ActivityItem 
-                  icon="👤"
-                  text="Connected with Yusuf Ibrahim"
-                  time="2 days ago"
-                />
-                <ActivityItem 
-                  icon="⭐"
-                  text="Received endorsement for Islamic Finance"
-                  time="5 days ago"
-                />
-                <ActivityItem 
-                  icon="📝"
-                  text="Updated work experience"
-                  time="1 week ago"
-                />
+                <div className="text-center py-4">
+                  <p className="text-secondary text-sm">No recent activity</p>
+                </div>
               </div>
             </Widget>
           </aside>
@@ -472,7 +583,7 @@ export default function ProfilePage() {
               {/* Profile Photo Section */}
               <EditSection title="Profile Photo">
                 <div className="profile-photo-edit">
-                  <div className="avatar avatar-xl">AH</div>
+                  <div className="avatar avatar-xl">{getInitials()}</div>
                   <button type="button" className="btn btn-outline btn-sm">
                     <CameraIcon />
                     Change Photo
@@ -507,7 +618,7 @@ export default function ProfilePage() {
               </EditSection>
 
               {/* Headline Section */}
-              <EditSection title="Headline">
+              <EditSection title="Headline (Industry/Profession)">
                 <div className="form-group">
                   <input
                     type="text"
@@ -515,7 +626,7 @@ export default function ProfilePage() {
                     value={editForm.headline}
                     onChange={handleEditChange}
                     className="form-input"
-                    placeholder="e.g., Software Engineer at Company"
+                    placeholder="e.g., Software Engineer, Islamic Finance Consultant"
                   />
                 </div>
               </EditSection>
@@ -538,8 +649,8 @@ export default function ProfilePage() {
               <EditSection title="About">
                 <div className="form-group">
                   <textarea
-                    name="about"
-                    value={editForm.about}
+                    name="bio"
+                    value={editForm.bio}
                     onChange={handleEditChange}
                     className="form-textarea"
                     rows={6}
@@ -551,7 +662,14 @@ export default function ProfilePage() {
             </div>
             <div className="modal-footer">
               <button type="button" className="btn btn-ghost" onClick={closeEditModal}>Cancel</button>
-              <button type="button" className="btn btn-primary" onClick={handleSaveProfile}>Save Changes</button>
+              <button 
+                type="button" 
+                className="btn btn-primary" 
+                onClick={handleSaveProfile}
+                disabled={isSaving}
+              >
+                {isSaving ? 'Saving...' : 'Save Changes'}
+              </button>
             </div>
           </div>
         </div>

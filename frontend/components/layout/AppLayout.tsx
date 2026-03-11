@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { NavLink } from './NavLink';
+import { useAuth } from '@/lib/auth-context';
 import {
   MenuIcon,
   LogoIcon,
@@ -10,7 +11,7 @@ import {
   ProfileIcon,
   NetworkIcon,
   MessagesIcon,
-} from '../icons/LayoutIcons';
+} from '@/components/icons/LayoutIcons';
 
 export interface AppLayoutProps {
   children: React.ReactNode;
@@ -20,10 +21,33 @@ export interface AppLayoutProps {
 export const AppLayout = ({ children, activeNav }: AppLayoutProps) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const { user, profile, logout } = useAuth();
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
   const closeSidebar = () => setIsSidebarOpen(false);
   const toggleDropdown = () => setIsDropdownOpen(!isDropdownOpen);
+
+  // Get user display info
+  const firstName = user?.firstName || profile?.firstName || 'Guest';
+  const lastName = user?.lastName || profile?.lastName || '';
+  const fullName = user?.fullName || profile?.fullName || `${firstName} ${lastName}`.trim();
+  const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+  const trustScore = user?.trustScore || profile?.trustScore || 0;
+  const industry = profile?.industry || 'Member';
+
+  // Get trust score color
+  const getTrustScoreClass = (score: number) => {
+    if (score >= 800) return 'high';
+    if (score >= 500) return 'medium';
+    return 'low';
+  };
+
+  const trustClass = getTrustScoreClass(trustScore);
+
+  const handleLogout = async () => {
+    await logout();
+    window.location.href = '/login';
+  };
 
   return (
     <>
@@ -78,15 +102,15 @@ export const AppLayout = ({ children, activeNav }: AppLayoutProps) => {
                 aria-haspopup="true"
                 aria-expanded={isDropdownOpen}
               >
-                <div className="avatar avatar-sm">AH</div>
-                <span className="hidden md:inline">Ahmed Hassan</span>
+                <div className="avatar avatar-sm">{initials}</div>
+                <span className="hidden md:inline">{fullName}</span>
               </button>
               <div className="dropdown-menu">
                 <Link href="/profile" className="dropdown-item">Your Profile</Link>
                 <Link href="/verification" className="dropdown-item">Verification Status</Link>
                 <Link href="/settings" className="dropdown-item">Settings</Link>
                 <div className="dropdown-divider"></div>
-                <Link href="/" className="dropdown-item">Sign Out</Link>
+                <button onClick={handleLogout} className="dropdown-item">Sign Out</button>
               </div>
             </div>
           </div>
@@ -104,16 +128,16 @@ export const AppLayout = ({ children, activeNav }: AppLayoutProps) => {
       <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-content">
           <div className="sidebar-user">
-            <div className="avatar avatar-lg mx-auto">AH</div>
-            <h3 className="text-center mt-3 font-semibold">Ahmed Hassan</h3>
-            <p className="text-center text-sm text-secondary">Software Engineer</p>
+            <div className="avatar avatar-lg mx-auto">{initials}</div>
+            <h3 className="text-center mt-3 font-semibold">{fullName}</h3>
+            <p className="text-center text-sm text-secondary">{industry}</p>
             <div className="trust-score-container mt-3">
               <div className="trust-score-header justify-center">
-                <span className="trust-score-value high">785</span>
+                <span className={`trust-score-value ${trustClass}`}>{trustScore}</span>
                 <span className="text-sm text-secondary">/1000</span>
               </div>
               <div className="trust-score-bar">
-                <div className="trust-score-fill high" style={{ width: '78.5%' }}></div>
+                <div className={`trust-score-fill ${trustClass}`} style={{ width: `${Math.min(trustScore / 10, 100)}%` }}></div>
               </div>
             </div>
           </div>

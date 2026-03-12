@@ -34,7 +34,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Check for existing session on mount
   useEffect(() => {
     const initAuth = async () => {
-      const token = localStorage.getItem('muslimeen_token');
+      // Try localStorage first, then fall back to cookie
+      let token = localStorage.getItem('muslimeen_token');
+      if (!token) {
+        // Read from cookie
+        const cookieMatch = document.cookie.match(/token=([^;]+)/);
+        if (cookieMatch) {
+          token = cookieMatch[1];
+          // Sync to localStorage
+          localStorage.setItem('muslimeen_token', token);
+        }
+      }
       if (token) {
         try {
           // Get current user from /auth/me
@@ -62,9 +72,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await auth.login(email, password);
       
-      // Store tokens
+      // Store tokens in localStorage
       localStorage.setItem('muslimeen_token', response.token);
       localStorage.setItem('muslimeen_csrf', response.csrfToken);
+      
+      // Also set cookie for middleware (HTTP-only flag not possible from JS, but better than nothing)
+      document.cookie = `token=${response.token}; path=/; max-age=86400; SameSite=Lax`;
       
       // Set user
       setUser(response.user);
@@ -102,6 +115,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Clear local state regardless of API response
       localStorage.removeItem('muslimeen_token');
       localStorage.removeItem('muslimeen_csrf');
+      // Clear cookie
+      document.cookie = 'token=; path=/; max-age=0; SameSite=Lax';
       setUser(null);
       setProfile(null);
       setIsLoading(false);

@@ -5,7 +5,12 @@
  * Replaces the witness-based approval system with a controlled invite-only growth system.
  */
 
-// Export controller functions
+import * as InviteController from './controllers/InviteController';
+
+// Export controller as object (standard pattern)
+export { InviteController };
+
+// Export individual controller functions (backward compatibility)
 export {
   createInvite,
   createAdminInvite,

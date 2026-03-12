@@ -19,7 +19,23 @@
     "strictNullChecks": false,
     "noImplicitReturns": false,
     "noUnusedLocals": false,
-    "noUnusedParameters": false
+    "noUnusedParameters": false,
+    
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": ["src/modules/shared/*"],
+      "@iam/*": ["src/modules/iam/*"],
+      "@profile/*": ["src/modules/profile/*"],
+      "@trust/*": ["src/modules/trust/*"],
+      "@network/*": ["src/modules/network/*"],
+      "@marketplace/*": ["src/modules/marketplace/*"],
+      "@islamic-finance/*": ["src/modules/islamic-finance/*"],
+      "@invites/*": ["src/modules/invites/*"],
+      "@database": ["src/modules/database/pool"],
+      "@types": ["src/modules/shared/types"],
+      "@config/*": ["src/config/*"],
+      "@root-types": ["src/types"]
+    }
   },
   "include": [
     "src/**/*"

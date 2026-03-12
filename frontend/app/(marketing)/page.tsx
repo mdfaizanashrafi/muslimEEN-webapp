@@ -1,77 +1,43 @@
-'use client';
+/**
+ * Landing Page - Server Component
+ * 
+ * This page is rendered on the server for optimal SEO.
+ * All content is immediately available to search engines.
+ * 
+ * @see SEO_IMPLEMENTATION_PLAN.md for migration details
+ */
 
 import Link from 'next/link';
 import '../../styles/landing.css';
+import { Metadata } from 'next';
+import { generateHomepageMetadata } from '@/lib/seo/metadata';
+import { FAQSchema, homepageFAQs } from '@/components/seo';
+import {
+  StarIcon,
+  ArrowRightIcon,
+  ShieldIcon,
+  LockIcon,
+  CodeIcon,
+  UsersIcon,
+  LogOutIcon,
+  EyeIcon,
+  HeartIcon,
+  CheckIcon,
+} from '@/components/icons/LandingIcons';
 
-// Icons
-const StarIcon = () => (
-  <svg viewBox="0 0 32 32" width="32" height="32" fill="none">
-    <path d="M16 0L19 12L32 16L19 20L16 32L13 20L0 16L13 12L16 0Z" fill="currentColor"/>
-  </svg>
-);
-
-const ArrowRightIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M5 12h14M12 5l7 7-7 7"/>
-  </svg>
-);
-
-const ShieldIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-  </svg>
-);
-
-const LockIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-    <path d="M7 11V7a5 5 0 0110 0v4"/>
-  </svg>
-);
-
-const CodeIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polyline points="16 18 22 12 16 6"/>
-    <polyline points="8 6 2 12 8 18"/>
-  </svg>
-);
-
-const UsersIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
-    <circle cx="9" cy="7" r="4"/>
-    <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
-  </svg>
-);
-
-const LogOutIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
-  </svg>
-);
-
-const EyeIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-    <circle cx="12" cy="12" r="3"/>
-  </svg>
-);
-
-const HeartIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
-  </svg>
-);
-
-const CheckIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polyline points="20 6 9 17 4 12"/>
-  </svg>
-);
+/**
+ * SEO Metadata for Homepage
+ * Includes OpenGraph, Twitter Cards, and structured data
+ */
+export const metadata: Metadata = generateHomepageMetadata();
 
 export default function LandingPage() {
   return (
-    <div className="landing-page">
+    <>
+      {/* FAQ Schema for rich search results */}
+      <FAQSchema items={homepageFAQs} />
+      
+      <div className="landing-page">
       {/* Header */}
       <header className="landing-header">
         <div className="landing-header-content">
@@ -79,11 +45,10 @@ export default function LandingPage() {
             <StarIcon />
             <span>MuslimEEN</span>
           </Link>
-          <nav className="landing-nav">
+          <nav className="landing-nav" aria-label="Main navigation">
             <Link href="#pillars" className="landing-nav-link">Ecosystem</Link>
             <Link href="#immutables" className="landing-nav-link">Principles</Link>
             <Link href="#verification" className="landing-nav-link">Verification</Link>
-
           </nav>
           <Link href="/login" className="btn btn-primary landing-cta">
             Join Now
@@ -92,9 +57,9 @@ export default function LandingPage() {
       </header>
 
       {/* Hero Section */}
-      <section className="hero-section">
+      <section className="hero-section" aria-labelledby="hero-heading">
         <div className="hero-content">
-          <h1 className="hero-title">
+          <h1 id="hero-heading" className="hero-title">
             A Complete Economic Ecosystem for Muslims
           </h1>
           <p className="hero-subtitle">
@@ -111,22 +76,22 @@ export default function LandingPage() {
             </Link>
           </div>
         </div>
-        <div className="hero-pattern" />
+        <div className="hero-pattern" aria-hidden="true" />
       </section>
 
       {/* 4 Pillars Section */}
-      <section id="pillars" className="pillars-section">
+      <section id="pillars" className="pillars-section" aria-labelledby="pillars-heading">
         <div className="section-container">
-          <h2 className="section-title">
+          <h2 id="pillars-heading" className="section-title">
             <span className="arabic-text">الأركان الأربعة</span>
             Four Pillars of Economic Empowerment
           </h2>
           
           <div className="pillars-grid">
             {/* EARN */}
-            <div className="pillar-card pillar-earn">
+            <article className="pillar-card pillar-earn">
               <div className="pillar-icon">
-                <span className="arabic-icon">رزق</span>
+                <span className="arabic-icon" lang="ar">رزق</span>
               </div>
               <h3>EARN</h3>
               <ul>
@@ -136,12 +101,12 @@ export default function LandingPage() {
                 <li>Education</li>
                 <li>Trades</li>
               </ul>
-            </div>
+            </article>
 
             {/* BUILD */}
-            <div className="pillar-card pillar-build">
+            <article className="pillar-card pillar-build">
               <div className="pillar-icon">
-                <span className="arabic-icon">بناء</span>
+                <span className="arabic-icon" lang="ar">بناء</span>
               </div>
               <h3>BUILD</h3>
               <ul>
@@ -151,12 +116,12 @@ export default function LandingPage() {
                 <li>Agriculture</li>
                 <li>Tech</li>
               </ul>
-            </div>
+            </article>
 
             {/* LIVE */}
-            <div className="pillar-card pillar-live">
+            <article className="pillar-card pillar-live">
               <div className="pillar-icon">
-                <span className="arabic-icon">حياة</span>
+                <span className="arabic-icon" lang="ar">حياة</span>
               </div>
               <h3>LIVE</h3>
               <ul>
@@ -166,12 +131,12 @@ export default function LandingPage() {
                 <li>Wellness</li>
                 <li>Creative Services</li>
               </ul>
-            </div>
+            </article>
 
             {/* PROTECT */}
-            <div className="pillar-card pillar-protect">
+            <article className="pillar-card pillar-protect">
               <div className="pillar-icon">
-                <span className="arabic-icon">حفظ</span>
+                <span className="arabic-icon" lang="ar">حفظ</span>
               </div>
               <h3>PROTECT</h3>
               <ul>
@@ -181,19 +146,19 @@ export default function LandingPage() {
                 <li>Legal</li>
                 <li>Advocacy</li>
               </ul>
-            </div>
+            </article>
           </div>
         </div>
       </section>
 
       {/* Immutables Section */}
-      <section id="immutables" className="immutables-section">
+      <section id="immutables" className="immutables-section" aria-labelledby="immutables-heading">
         <div className="section-container">
           <div className="section-header">
-            <h2 className="section-title">Our Immutables</h2>
+            <h2 id="immutables-heading" className="section-title">Our Immutables</h2>
             <p className="section-subtitle">
               The principles that can never be compromised. 
-              These aren't features — they are the foundation of trust.
+              These aren&apos;t features — they are the foundation of trust.
             </p>
           </div>
 
@@ -243,9 +208,9 @@ export default function LandingPage() {
       </section>
 
       {/* Verification Section */}
-      <section id="verification" className="verification-section">
+      <section id="verification" className="verification-section" aria-labelledby="verification-heading">
         <div className="section-container">
-          <h2 className="section-title">Universal Muslim Verification</h2>
+          <h2 id="verification-heading" className="section-title">Universal Muslim Verification</h2>
           <p className="section-subtitle">
             Two-witness attestation of Islam unlocks access to the complete economic ecosystem
           </p>
@@ -256,19 +221,19 @@ export default function LandingPage() {
               <h4>Invitation</h4>
               <p>Invitation-only with two-member validation</p>
             </div>
-            <div className="process-arrow">→</div>
+            <div className="process-arrow" aria-hidden="true">→</div>
             <div className="process-step">
               <div className="step-number">2</div>
               <h4>Witness Vouch</h4>
               <p>Two-witness attestation of Islam</p>
             </div>
-            <div className="process-arrow">→</div>
+            <div className="process-arrow" aria-hidden="true">→</div>
             <div className="process-step">
               <div className="step-number">3</div>
               <h4>Biometric Lock</h4>
               <p>Reputation tied to biometric hash</p>
             </div>
-            <div className="process-arrow">→</div>
+            <div className="process-arrow" aria-hidden="true">→</div>
             <div className="process-step">
               <div className="step-number">4</div>
               <h4>Trust Score</h4>
@@ -297,9 +262,9 @@ export default function LandingPage() {
       </section>
 
       {/* Revenue Model Section */}
-      <section id="revenue" className="revenue-section">
+      <section id="revenue" className="revenue-section" aria-labelledby="revenue-heading">
         <div className="section-container">
-          <h2 className="section-title">Sustainable Model</h2>
+          <h2 id="revenue-heading" className="section-title">Sustainable Model</h2>
           <p className="section-subtitle">B2B/Institutional Only — Users never pay for access</p>
 
           <div className="revenue-grid">
@@ -347,9 +312,9 @@ export default function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="cta-section">
+      <section className="cta-section" aria-labelledby="cta-heading">
         <div className="section-container">
-          <h2>Ready to Join the Ecosystem?</h2>
+          <h2 id="cta-heading">Ready to Join the Ecosystem?</h2>
           <p>Become part of a verified economic network built by and for the Muslim community.</p>
           <Link href="/login" className="btn btn-primary btn-lg">
             Get Started
@@ -366,16 +331,17 @@ export default function LandingPage() {
             <span>MuslimEEN</span>
           </div>
           <p className="footer-tagline">Muslim Economic Empowerment Network</p>
-          <div className="footer-links">
+          <nav className="footer-links" aria-label="Footer navigation">
             <Link href="/login">Login</Link>
             <Link href="#pillars">Ecosystem</Link>
             <Link href="#immutables">Principles</Link>
             <Link href="#verification">Verification</Link>
             <Link href="#revenue">Revenue</Link>
-          </div>
+          </nav>
           <p className="footer-copyright">© 2026 MuslimEEN. Open Source Forever.</p>
         </div>
       </footer>
     </div>
+    </>
   );
 }

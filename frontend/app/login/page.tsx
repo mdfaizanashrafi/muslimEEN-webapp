@@ -1,10 +1,15 @@
 'use client';
 
 import { useState, useEffect, FormEvent } from 'react';
-import { auth } from '../../lib/api';
-import '../../styles/login.css';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/auth-context';
+import { auth } from '@/lib/api';
+import '@/styles/login.css';
 
 export default function LoginPage() {
+  const router = useRouter();
+  const { login, isAuthenticated } = useAuth();
+  
   const [invitationCode, setInvitationCode] = useState('');
   const [isInvitationValid, setIsInvitationValid] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
@@ -15,6 +20,13 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [showForgotModal, setShowForgotModal] = useState(false);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/dashboard');
+    }
+  }, [isAuthenticated, router]);
 
   const validateInvitation = async () => {
     if (!invitationCode || invitationCode.length !== 12) {
@@ -52,21 +64,9 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const response = await auth.login(email, password, isInvitationValid ? invitationCode : undefined);
-      if (response.success) {
-        // Store session
-        localStorage.setItem('muslimeen_session', JSON.stringify({
-          token: response.token,
-          user: response.user,
-          expiresAt: Date.now() + 24 * 60 * 60 * 1000
-        }));
-        localStorage.setItem('muslimeen_csrf', response.csrfToken);
-        
-        // Redirect to dashboard
-        window.location.href = '/dashboard';
-      } else {
-        setError(response.message || 'Login failed');
-      }
+      await login(email, password);
+      // Redirect to dashboard (handled by useEffect watching isAuthenticated)
+      router.push('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {

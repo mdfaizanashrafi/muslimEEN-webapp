@@ -163,6 +163,7 @@ export interface Invite {
 
 export interface InviteWithInviter extends Invite {
   inviterName: string;
+  inviterEmail?: string;
 }
 
 // ============================================================================

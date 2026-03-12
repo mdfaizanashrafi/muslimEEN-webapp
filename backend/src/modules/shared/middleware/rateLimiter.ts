@@ -1,12 +1,33 @@
 /**
  * Rate Limiter Middleware
- * Express rate limiting configuration
+ * Express rate limiting configuration with security hardening
  */
 
 import rateLimit from 'express-rate-limit';
+import { Request, Response } from 'express';
+import { logger } from '../utils/logger';
 
-// Trust proxy setting for rate limiter
-const trustProxy = process.env.TRUST_PROXY === 'true';
+// ============================================================================
+// SECURITY NOTE
+// ============================================================================
+// Previously, this middleware had a critical vulnerability where setting
+// TRUST_PROXY=true would completely disable rate limiting. This has been
+// removed. Rate limiting now always applies regardless of proxy configuration.
+// ============================================================================
+
+/**
+ * Get client IP address
+ * Respects X-Forwarded-For header when behind trusted proxy
+ */
+const getClientIp = (req: Request): string => {
+  // Use Express's built-in IP detection (respects trust proxy settings)
+  return req.ip || 
+         (typeof req.headers['x-forwarded-for'] === 'string' 
+           ? req.headers['x-forwarded-for'].split(',')[0].trim() 
+           : null) || 
+         req.socket.remoteAddress || 
+         'unknown';
+};
 
 /**
  * Create a rate limiter with custom options
@@ -14,7 +35,8 @@ const trustProxy = process.env.TRUST_PROXY === 'true';
 const createLimiter = (
   windowMs: number,
   max: number,
-  message: string
+  message: string,
+  skipSuccessfulRequests: boolean = false
 ) => {
   return rateLimit({
     windowMs,
@@ -28,7 +50,43 @@ const createLimiter = (
     },
     standardHeaders: true,
     legacyHeaders: false,
-    skip: () => trustProxy
+    
+    // Key generator - uses client IP
+    keyGenerator: (req: Request): string => {
+      return getClientIp(req);
+    },
+    
+    // Skip successful requests for certain endpoints if needed
+    skipSuccessfulRequests,
+    
+    // Handler for when limit is exceeded
+    handler: (req: Request, res: Response) => {
+      const clientIp = getClientIp(req);
+      logger.warn('Rate limit exceeded', {
+        ip: clientIp,
+        path: req.path,
+        method: req.method,
+      });
+      
+      res.status(429).json({
+        success: false,
+        error: {
+          code: 'RATE_LIMIT_EXCEEDED',
+          message,
+          retryAfter: Math.ceil(windowMs / 1000)
+        }
+      });
+    },
+    
+    // Skip function - NEVER skip based on proxy settings
+    // Only skip for health checks
+    skip: (req: Request): boolean => {
+      // Allow health checks without rate limiting
+      if (req.path === '/health' || req.path.startsWith('/health/')) {
+        return true;
+      }
+      return false;
+    }
   });
 };
 
@@ -37,11 +95,13 @@ const FIFTEEN_MINUTES = 15 * 60 * 1000;
 
 /**
  * Auth rate limiter - strict limits for authentication endpoints
- * 5 requests per 15 minutes in production, 100 in development
+ * 5 requests per 15 minutes in production, 20 in development
+ * 
+ * SECURITY: This protects against brute force attacks on login/registration
  */
 export const authLimiter = createLimiter(
   FIFTEEN_MINUTES,
-  process.env.NODE_ENV === 'production' ? 5 : 100,
+  process.env.NODE_ENV === 'production' ? 5 : 20,
   'Too many authentication attempts, please try again later'
 );
 
@@ -83,4 +143,24 @@ export const apiLimiter = createLimiter(
   FIFTEEN_MINUTES,
   1000,
   'API rate limit exceeded'
+);
+
+/**
+ * Admin rate limiter - more permissive for admin operations
+ * 200 requests per 15 minutes
+ */
+export const adminLimiter = createLimiter(
+  FIFTEEN_MINUTES,
+  200,
+  'Admin API rate limit exceeded'
+);
+
+/**
+ * Strict rate limiter for sensitive operations
+ * 10 requests per hour
+ */
+export const strictLimiter = createLimiter(
+  60 * 60 * 1000, // 1 hour
+  10,
+  'Too many attempts. Please try again in an hour.'
 );

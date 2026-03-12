@@ -6,7 +6,7 @@
  */
 
 import pool from '../../database/pool';
-import { UserRole, VerificationTier } from '../../../types/index';
+import { UserRole, VerificationTier } from '../../shared/types';
 
 export interface UserIdentity {
   id: string;
@@ -118,12 +118,18 @@ export const setInviteCount = async (userId: string, count: number): Promise<voi
 
 /**
  * Decrease user's remaining invite count
+ * SECURITY FIX: Atomic check-and-decrement prevents race conditions
+ * @returns true if decrement succeeded (user had invites), false otherwise
  */
-export const decreaseInviteCount = async (userId: string): Promise<void> => {
-  await pool.query(
-    'UPDATE users SET invites_remaining = GREATEST(0, invites_remaining - 1) WHERE id = $1',
+export const decreaseInviteCount = async (userId: string): Promise<boolean> => {
+  const result = await pool.query(
+    `UPDATE users 
+     SET invites_remaining = invites_remaining - 1 
+     WHERE id = $1 AND invites_remaining > 0
+     RETURNING invites_remaining`,
     [userId]
   );
+  return result.rowCount !== null && result.rowCount > 0;
 };
 
 /**

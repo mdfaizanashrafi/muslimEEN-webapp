@@ -30,7 +30,7 @@ const hashPassword = (password) => {
 };
 
 // Admin details from env or defaults
-const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL || 'admin@muslimeen.org';
+const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL || 'admin@muslimeen.space';
 const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD || 'Admin123!';
 const ADMIN_FIRST_NAME = process.env.SEED_ADMIN_FIRST_NAME || 'Admin';
 const ADMIN_LAST_NAME = process.env.SEED_ADMIN_LAST_NAME || 'User';

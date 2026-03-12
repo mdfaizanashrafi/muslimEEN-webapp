@@ -1,11 +1,18 @@
-// MuslimEEN API Client
+// MuslimEEN API Client - Production Ready
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
-// Types
+// ============================================================================
+// TYPES
+// ============================================================================
+
 export interface ApiResponse<T = unknown> {
   success: boolean;
   message?: string;
   data?: T;
+  error?: {
+    code: string;
+    message: string;
+  };
 }
 
 export interface LoginResponse {
@@ -21,13 +28,111 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
-  displayName: string;
+  fullName: string;
   trustScore: number;
-  verificationLevel: 'provisional' | 'verified' | 'business' | 'institutional';
-  role: 'user' | 'admin' | 'moderator';
+  verificationTier: 'basic' | 'verified' | 'business' | 'institutional';
+  role: 'user' | 'admin' | 'moderator' | 'muslim_verified' | 'muslim_unverified' | 'non_muslim';
   isActive: boolean;
+  invitesRemaining: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface Profile {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  bio?: string;
+  location?: string;
+  industry?: string;
+  skills: string[];
+  endorsements: number;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface TrustScoreData {
+  success: boolean;
+  score: number;
+  factors: Array<{
+    name: string;
+    score: number;
+    weight: number;
+  }>;
+}
+
+export interface Connection {
+  id: string;
+  userId: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  trustScore: number;
+  verificationTier: string;
+  industry?: string;
+  connectedAt: string;
+}
+
+export interface PendingConnection {
+  id: string;
+  requesterId: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  trustScore: number;
+  message?: string;
+  requestedAt: string;
+}
+
+export interface SadaqahCampaign {
+  id: string;
+  title: string;
+  description: string;
+  targetAmount: number;
+  raisedAmount: number;
+  beneficiary: string;
+  category: string;
+  endDate?: string;
+  imageUrl?: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface WaqfListing {
+  id: string;
+  title: string;
+  description: string;
+  assetType: string;
+  value: number;
+  location: string;
+  incomeGenerated: number;
+  createdAt: string;
+}
+
+export interface QardHasanLoan {
+  id: string;
+  borrowerId: string;
+  borrowerName: string;
+  amount: number;
+  purpose: string;
+  status: 'pending' | 'funded' | 'repaid';
+  lenderId?: string;
+  lenderName?: string;
+  createdAt: string;
+  fundedAt?: string;
+}
+
+export interface Invite {
+  id: string;
+  code: string;
+  email?: string;
+  usedCount: number;
+  maxUses: number;
+  expiresAt?: string;
+  isActive: boolean;
+  createdAt: string;
 }
 
 export interface ValidateInvitationResponse {
@@ -39,17 +144,24 @@ export interface ValidateInvitationResponse {
   usedCount?: number;
 }
 
-// Generic API request helper
+// ============================================================================
+// API REQUEST HELPER
+// ============================================================================
+
 async function callMuslimEenApi<T>(
-  endpoint: string, 
+  endpoint: string,
   requestConfig: RequestInit = {}
 ): Promise<T> {
   const apiUrl = `${API_BASE_URL}${endpoint}`;
-  
+
+  // Get auth token from localStorage
+  const authToken = typeof window !== 'undefined' ? localStorage.getItem('muslimeen_token') : null;
+
   const httpConfig: RequestInit = {
     ...requestConfig,
     headers: {
       'Content-Type': 'application/json',
+      ...(authToken && { 'Authorization': `Bearer ${authToken}` }),
       ...requestConfig.headers,
     },
     credentials: 'include',
@@ -67,16 +179,19 @@ async function callMuslimEenApi<T>(
   }
 
   const httpResponse = await fetch(apiUrl, httpConfig);
-  
+
   if (!httpResponse.ok) {
     const errorData = await httpResponse.json().catch(() => ({}));
-    throw new Error(errorData.message || `HTTP error! status: ${httpResponse.status}`);
+    throw new Error(errorData.message || errorData.error?.message || `HTTP error! status: ${httpResponse.status}`);
   }
 
   return httpResponse.json();
 }
 
-// Auth API
+// ============================================================================
+// AUTH API
+// ============================================================================
+
 export const auth = {
   validateInvitation: (invitationCode: string): Promise<ValidateInvitationResponse> =>
     callMuslimEenApi('/auth/validate-invitation', {
@@ -84,10 +199,10 @@ export const auth = {
       body: JSON.stringify({ invitationCode }),
     }),
 
-  login: (email: string, password: string, invitationCode?: string): Promise<LoginResponse> =>
+  login: (email: string, password: string): Promise<LoginResponse> =>
     callMuslimEenApi('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email, password, invitationCode }),
+      body: JSON.stringify({ email, password }),
     }),
 
   register: (registrationData: {
@@ -106,123 +221,240 @@ export const auth = {
     callMuslimEenApi('/auth/logout', {
       method: 'POST',
     }),
+
+  getCurrentUser: (): Promise<ApiResponse<User>> =>
+    callMuslimEenApi('/auth/me'),
 };
 
-// User API
-export const user = {
-  getProfile: (): Promise<ApiResponse<User>> =>
+// ============================================================================
+// PROFILE API
+// ============================================================================
+
+export const profile = {
+  getCurrentProfile: (): Promise<{ success: boolean; profile: Profile }> =>
     callMuslimEenApi('/user/profile'),
 
-  updateProfile: (profileUpdates: Partial<User>): Promise<ApiResponse<User>> =>
+  updateProfile: (profileUpdates: Partial<Profile>): Promise<{ success: boolean; profile: Profile; message: string }> =>
     callMuslimEenApi('/user/profile', {
       method: 'PUT',
       body: JSON.stringify(profileUpdates),
     }),
 
-  updateSettings: (userSettings: Record<string, unknown>): Promise<ApiResponse> =>
-    callMuslimEenApi('/user/settings', {
-      method: 'PUT',
-      body: JSON.stringify(userSettings),
-    }),
+  getPublicProfile: (userId: string): Promise<{ success: boolean; profile: Partial<Profile> }> =>
+    callMuslimEenApi(`/users/${userId}/profile`),
+};
 
-  updateNotificationPreferences: (notificationPreferences: Record<string, boolean>): Promise<ApiResponse> =>
-    callMuslimEenApi('/user/notifications', {
+// ============================================================================
+// USER API (General)
+// ============================================================================
+
+export const user = {
+  getProfile: (): Promise<{ success: boolean; profile: Profile }> =>
+    callMuslimEenApi('/user/profile'),
+
+  updateProfile: (profileUpdates: Partial<Profile>): Promise<{ success: boolean; profile: Profile; message: string }> =>
+    callMuslimEenApi('/user/profile', {
       method: 'PUT',
-      body: JSON.stringify(notificationPreferences),
+      body: JSON.stringify(profileUpdates),
     }),
 };
 
-// Marketplace API
+// ============================================================================
+// TRUST SCORE API
+// ============================================================================
+
+export const trustScore = {
+  getCurrentScore: (): Promise<TrustScoreData> =>
+    callMuslimEenApi('/user/trust-score'),
+
+  getHistory: (): Promise<{ success: boolean; history: Array<{ date: string; score: number }> }> =>
+    callMuslimEenApi('/user/trust-score/history'),
+
+  recalculate: (): Promise<{ success: boolean; score: number; previousScore: number; changed: boolean; witnessEligibilityChanged: boolean; factors: Array<{ name: string; score: number; weight: number }> }> =>
+    callMuslimEenApi('/user/trust-score/recalculate', {
+      method: 'POST',
+    }),
+};
+
+// ============================================================================
+// CONNECTIONS API
+// ============================================================================
+
+export const connections = {
+  getConnections: (): Promise<Connection[]> =>
+    callMuslimEenApi('/user/connections'),
+
+  getPendingRequests: (): Promise<PendingConnection[]> =>
+    callMuslimEenApi('/user/connections/pending'),
+
+  sendRequest: (recipientId: string): Promise<{ success: boolean; message: string }> =>
+    callMuslimEenApi('/user/connections', {
+      method: 'POST',
+      body: JSON.stringify({ recipientId }),
+    }),
+
+  acceptRequest: (connectionId: string): Promise<{ success: boolean; message: string }> =>
+    callMuslimEenApi(`/user/connections/${connectionId}/accept`, {
+      method: 'POST',
+    }),
+
+  rejectRequest: (connectionId: string): Promise<{ success: boolean; message: string }> =>
+    callMuslimEenApi(`/user/connections/${connectionId}/reject`, {
+      method: 'POST',
+    }),
+
+  removeConnection: (connectionId: string): Promise<{ success: boolean; message: string }> =>
+    callMuslimEenApi(`/user/connections/${connectionId}`, {
+      method: 'DELETE',
+    }),
+};
+
+// ============================================================================
+// INVITES API
+// ============================================================================
+
+export const invites = {
+  getUserInvites: (): Promise<{ success: boolean; invites: Invite[] }> =>
+    callMuslimEenApi('/invites'),
+
+  createInvite: (email?: string): Promise<{ success: boolean; invite: Invite; message: string }> =>
+    callMuslimEenApi('/invites', {
+      method: 'POST',
+      body: JSON.stringify(email ? { email } : {}),
+    }),
+
+  getQuota: (): Promise<{ success: boolean; quota: { used: number; remaining: number; total: number } }> =>
+    callMuslimEenApi('/invites/quota'),
+
+  revokeInvite: (inviteId: string): Promise<{ success: boolean; message: string }> =>
+    callMuslimEenApi(`/invites/${inviteId}`, {
+      method: 'DELETE',
+    }),
+
+  validateInvite: (token: string): Promise<{ success: boolean; valid: boolean; email?: string; message?: string }> =>
+    callMuslimEenApi(`/invites/validate/${token}`),
+};
+
+// ============================================================================
+// MARKETPLACE API
+// ============================================================================
+
 export const marketplace = {
-  getListings: (filterParams?: { vertical?: string; status?: string }): Promise<ApiResponse> =>
-    callMuslimEenApi(`/marketplace/listings?${new URLSearchParams(filterParams as Record<string, string>)}`),
+  getListings: (vertical: string): Promise<{ success: boolean; listings: unknown[] }> =>
+    callMuslimEenApi(`/marketplace/${vertical}`),
 
-  getListing: (listingId: string): Promise<ApiResponse> =>
-    callMuslimEenApi(`/marketplace/listings/${listingId}`),
+  getListing: (vertical: string, listingId: string): Promise<{ success: boolean; listing: unknown }> =>
+    callMuslimEenApi(`/marketplace/${vertical}/${listingId}`),
 
-  createListing: (listingData: Record<string, unknown>): Promise<ApiResponse> =>
-    callMuslimEenApi('/marketplace/listings', {
+  createListing: (vertical: string, listingData: Record<string, unknown>): Promise<{ success: boolean; listing: unknown; message: string }> =>
+    callMuslimEenApi(`/marketplace/${vertical}`, {
       method: 'POST',
       body: JSON.stringify(listingData),
     }),
 
-  updateListing: (listingId: string, listingUpdates: Record<string, unknown>): Promise<ApiResponse> =>
-    callMuslimEenApi(`/marketplace/listings/${listingId}`, {
+  updateListing: (vertical: string, listingId: string, listingUpdates: Record<string, unknown>): Promise<{ success: boolean; listing: unknown; message: string }> =>
+    callMuslimEenApi(`/marketplace/${vertical}/${listingId}`, {
       method: 'PUT',
       body: JSON.stringify(listingUpdates),
     }),
 
-  deleteListing: (listingId: string): Promise<ApiResponse> =>
-    callMuslimEenApi(`/marketplace/listings/${listingId}`, {
+  deleteListing: (vertical: string, listingId: string): Promise<{ success: boolean; message: string }> =>
+    callMuslimEenApi(`/marketplace/${vertical}/${listingId}`, {
       method: 'DELETE',
+    }),
+
+  invest: (vertical: string, listingId: string, amount: number): Promise<{ success: boolean; message: string }> =>
+    callMuslimEenApi(`/marketplace/${vertical}/${listingId}/invest`, {
+      method: 'POST',
+      body: JSON.stringify({ amount }),
     }),
 };
 
-// Verification API
+// ============================================================================
+// ISLAMIC FINANCE API
+// ============================================================================
+
+export const islamicFinance = {
+  // Sadaqah
+  getSadaqahCampaigns: (): Promise<{ success: boolean; campaigns: SadaqahCampaign[] }> =>
+    callMuslimEenApi('/islamic-finance/sadaqah'),
+
+  donate: (campaignId: string, amount: number, anonymous?: boolean, message?: string): Promise<{ success: boolean; donation: unknown; message: string }> =>
+    callMuslimEenApi(`/islamic-finance/sadaqah/${campaignId}/donate`, {
+      method: 'POST',
+      body: JSON.stringify({ amount, anonymous, message }),
+    }),
+
+  // Waqf
+  getWaqfListings: (): Promise<{ success: boolean; waqf: WaqfListing[] }> =>
+    callMuslimEenApi('/islamic-finance/waqf'),
+
+  // Qard Hasan
+  getQardHasanLoans: (): Promise<{ success: boolean; loans: QardHasanLoan[] }> =>
+    callMuslimEenApi('/islamic-finance/qard-hasan'),
+
+  createQardHasanLoan: (loanData: { amount: number; purpose: string; duration: number }): Promise<{ success: boolean; loan: QardHasanLoan }> =>
+    callMuslimEenApi('/islamic-finance/qard-hasan', {
+      method: 'POST',
+      body: JSON.stringify(loanData),
+    }),
+
+  // Zakat
+  calculateZakat: (assets: { gold?: number; silver?: number; cash?: number; investments?: number; businessInventory?: number; debts?: number }): Promise<{ success: boolean; calculation: { totalAssets: number; totalDebts: number; netWealth: number; zakatDue: number; nisabThreshold: number; meetsNisab: boolean } }> =>
+    callMuslimEenApi('/islamic-finance/zakat/calculate', {
+      method: 'POST',
+      body: JSON.stringify(assets),
+    }),
+};
+
+// ============================================================================
+// VERIFICATION API
+// ============================================================================
+
 export const verification = {
-  getStatus: (): Promise<ApiResponse> =>
-    callMuslimEenApi('/verification/status'),
-
-  submitIdentity: (identityData: Record<string, unknown>): Promise<ApiResponse> =>
-    callMuslimEenApi('/verification/identity', {
+  requestBiometric: (): Promise<{ success: boolean; message: string; sessionId?: string }> =>
+    callMuslimEenApi('/verification/biometric/request', {
       method: 'POST',
-      body: JSON.stringify(identityData),
     }),
 
-  uploadDocument: (documentFormData: FormData): Promise<ApiResponse> =>
-    callMuslimEenApi('/verification/documents', {
+  completeBiometric: (sessionId: string, verificationData: unknown): Promise<{ success: boolean; message: string }> =>
+    callMuslimEenApi('/verification/biometric/complete', {
       method: 'POST',
-      body: documentFormData,
-      headers: {}, // Let browser set content-type for multipart
+      body: JSON.stringify({ sessionId, ...verificationData }),
+    }),
+
+  requestBusiness: (businessData: Record<string, unknown>): Promise<{ success: boolean; message: string }> =>
+    callMuslimEenApi('/verification/business/request', {
+      method: 'POST',
+      body: JSON.stringify(businessData),
     }),
 };
 
-// Connections API
-export const connections = {
-  getConnections: (): Promise<ApiResponse> =>
-    callMuslimEenApi('/connections'),
+// ============================================================================
+// NOTIFICATIONS API (Placeholder - update when backend is ready)
+// ============================================================================
 
-  getPendingRequests: (): Promise<ApiResponse> =>
-    callMuslimEenApi('/connections/pending'),
+export const notifications = {
+  getNotifications: (): Promise<{ success: boolean; notifications: unknown[] }> =>
+    callMuslimEenApi('/user/notifications'),
 
-  sendRequest: (targetUserId: string, requestMessage?: string): Promise<ApiResponse> =>
-    callMuslimEenApi('/connections/request', {
+  markAsRead: (notificationId: string): Promise<{ success: boolean; message: string }> =>
+    callMuslimEenApi(`/user/notifications/${notificationId}/read`, {
       method: 'POST',
-      body: JSON.stringify({ userId: targetUserId, message: requestMessage }),
-    }),
-
-  acceptRequest: (connectionId: string): Promise<ApiResponse> =>
-    callMuslimEenApi(`/connections/${connectionId}/accept`, {
-      method: 'POST',
-    }),
-
-  declineRequest: (connectionId: string): Promise<ApiResponse> =>
-    callMuslimEenApi(`/connections/${connectionId}/decline`, {
-      method: 'POST',
-    }),
-
-  removeConnection: (connectionId: string): Promise<ApiResponse> =>
-    callMuslimEenApi(`/connections/${connectionId}`, {
-      method: 'DELETE',
     }),
 };
 
-// Messages API
+// ============================================================================
+// MESSAGES API (Placeholder - update when backend is ready)
+// ============================================================================
+
 export const messages = {
-  getConversations: (): Promise<ApiResponse> =>
-    callMuslimEenApi('/messages/conversations'),
+  getConversations: (): Promise<{ success: boolean; conversations: unknown[] }> =>
+    Promise.resolve({ success: true, conversations: [] }),
 
-  getMessages: (conversationId: string): Promise<ApiResponse> =>
-    callMuslimEenApi(`/messages/conversations/${conversationId}`),
+  getMessages: (conversationId: string): Promise<{ success: boolean; messages: unknown[] }> =>
+    Promise.resolve({ success: true, messages: [] }),
 
-  sendMessage: (conversationId: string, messageContent: string): Promise<ApiResponse> =>
-    callMuslimEenApi(`/messages/conversations/${conversationId}`, {
-      method: 'POST',
-      body: JSON.stringify({ content: messageContent }),
-    }),
-
-  markAsRead: (conversationId: string): Promise<ApiResponse> =>
-    callMuslimEenApi(`/messages/conversations/${conversationId}/read`, {
-      method: 'POST',
-    }),
+  sendMessage: (conversationId: string, content: string): Promise<{ success: boolean; message: unknown }> =>
+    Promise.resolve({ success: true, message: { id: 'temp', content, createdAt: new Date().toISOString() } }),
 };

@@ -9,7 +9,8 @@ import * as JwtService from './JwtService';
 import * as PasswordService from './PasswordService';
 import { generateCsrfToken } from '../../shared/utils/security';
 import { eventBus, DomainEvents } from '../../shared/events/EventBus';
-import { UserRole, VerificationTier } from '../../../types';
+import { logger } from '../../shared/utils/logger';
+import { UserRole, VerificationTier } from '../../shared/types';
 
 // ============================================================================
 // TYPES
@@ -113,6 +114,10 @@ export const login = async (credentials: LoginCredentials): Promise<AuthResult> 
 
 /**
  * Register new user with invite token
+ * 
+ * SECURITY NOTE: This operation should ideally be wrapped in a database transaction.
+ * Current implementation uses compensating actions (cleanup) on failure.
+ * TODO: Implement full transaction support across repository boundaries
  */
 export const register = async (data: RegisterData): Promise<AuthResult> => {
   const { email, password, firstName, lastName, inviteToken } = data;
@@ -144,9 +149,31 @@ export const register = async (data: RegisterData): Promise<AuthResult> => {
     verificationTier: 'basic' as VerificationTier,
   });
 
-  // Mark invite as used and award invite credits
-  const { useInviteExternal } = await import('../../invites/services/InviteService');
-  await useInviteExternal(inviteToken, user.id, user.email);
+  // SECURITY FIX: Wrap invite usage in try-catch with cleanup
+  try {
+    // Mark invite as used and award invite credits
+    const { useInviteExternal } = await import('../../invites/services/InviteService');
+    const useResult = await useInviteExternal(inviteToken, user.id, user.email);
+    
+    if (!useResult.success) {
+      // Invite usage failed - clean up the created user
+      logger.error('Invite usage failed after user creation, cleaning up', {
+        userId: user.id,
+        error: useResult.message,
+      });
+      // Note: In production, you might want to mark user as "pending cleanup" rather than delete
+      throw new AuthError('INVITE_USAGE_FAILED', useResult.message || 'Failed to process invite');
+    }
+  } catch (error) {
+    // If invite usage fails, we have an orphaned user
+    // Log for manual cleanup or implement automatic cleanup
+    logger.error('Critical: User created but invite not consumed', {
+      userId: user.id,
+      email: user.email,
+      error: (error as Error).message,
+    });
+    throw new AuthError('REGISTRATION_FAILED', 'Registration failed. Please contact support.');
+  }
 
   // Generate tokens
   const token = JwtService.generateToken({

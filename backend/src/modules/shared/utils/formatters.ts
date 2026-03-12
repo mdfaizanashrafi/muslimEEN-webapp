@@ -3,7 +3,7 @@
  * Pure functions for data transformation - No side effects
  */
 
-import { User, UserRole, VerificationTier } from '../../../types/index';
+import { User, UserRole, VerificationTier } from '../types';
 
 /**
  * Maps a database user record to the API response format

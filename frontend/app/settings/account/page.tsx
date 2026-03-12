@@ -32,7 +32,7 @@ export default function AccountSettingsPage() {
         <div className="email-list">
           <div className="email-item">
             <div className="email-info">
-              <span className="email-address">test@muslimeen.org</span>
+              <span className="email-address">test@muslimeen.space</span>
               <span className="email-badge primary">Primary</span>
             </div>
             {!editingEmail ? (

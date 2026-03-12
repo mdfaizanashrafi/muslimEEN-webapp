@@ -5,7 +5,7 @@
 
 import { Router, Request, Response } from 'express';
 import os from 'os';
-import { pool } from '../config/database';
+import pool from '../modules/database/pool';
 import { logger } from '../modules/shared/utils/logger';
 
 const router = Router();

@@ -50,7 +50,7 @@ As a platform serving the Muslim community, we hold ourselves to the highest eth
 - ❌ Publishing others' private information without permission
 - ❌ Introducing riba-based (interest) financial logic in any form
 
-**Violations** can be reported confidentially to: conduct@muslimeen.org
+**Violations** can be reported confidentially to: conduct@muslimeen.space
 
 ---
 
@@ -713,7 +713,7 @@ Once your PR is merged:
 | Discord | Real-time chat, quick questions | [Join Server](https://discord.gg/muslimeen) |
 | GitHub Discussions | Design discussions, ideas | [Discussions Tab](https://github.com/muslimeen/muslimeen/discussions) |
 | GitHub Issues | Bug reports, feature requests | [Issues Tab](https://github.com/muslimeen/muslimeen/issues) |
-| Email | Private/sensitive matters | dev@muslimeen.org |
+| Email | Private/sensitive matters | dev@muslimeen.space |
 
 ### How to Ask Questions
 
@@ -770,7 +770,7 @@ Need one-on-one guidance? We're here to help!
 - **Code Review Guidance:** Request extra feedback on your PR
 - **Architecture Questions:** Book a 30-min architecture discussion
 
-Contact: mentorship@muslimeen.org
+Contact: mentorship@muslimeen.space
 
 ---
 

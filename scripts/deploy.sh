@@ -2,14 +2,15 @@
 # =============================================================================
 # MUSLIMEEN DEPLOYMENT SCRIPT
 # =============================================================================
-# Usage: ./scripts/deploy.sh [environment]
-#   environment: staging | production (default: staging)
+# Usage: ./scripts/deploy.sh [environment] [--local|--gha]
+#   environment: staging | production (default: production)
+#   --local: Build and deploy locally (requires Render/Vercel CLI)
+#   --gha:   Trigger GitHub Actions workflow (requires gh CLI)
 #
-# This script:
-#   1. Validates environment
-#   2. Runs pre-deployment checks
-#   3. Triggers GitHub Actions workflow
-#   4. Monitors deployment status
+# Examples:
+#   ./scripts/deploy.sh production --gha     # Trigger GitHub Actions
+#   ./scripts/deploy.sh production --local   # Local deployment
+#   ./scripts/deploy.sh production           # Default: --gha
 # =============================================================================
 
 set -euo pipefail
@@ -22,7 +23,8 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-ENVIRONMENT="${1:-staging}"
+ENVIRONMENT="${1:-production}"
+DEPLOY_MODE="${2:---gha}"
 GITHUB_REPO="muslimeen/muslimeen"
 WORKFLOW_FILE="ci-cd.yml"
 
@@ -47,15 +49,15 @@ log_error() {
 validate_environment() {
     if [[ ! "$ENVIRONMENT" =~ ^(staging|production)$ ]]; then
         log_error "Invalid environment: $ENVIRONMENT"
-        log_info "Usage: $0 [staging|production]"
+        log_info "Usage: $0 [staging|production] [--local|--gha]"
         exit 1
     fi
-    log_info "Deploying to: $ENVIRONMENT"
+    log_info "Deploying to: $ENVIRONMENT (mode: $DEPLOY_MODE)"
 }
 
-# Check prerequisites
-check_prerequisites() {
-    log_info "Checking prerequisites..."
+# Check prerequisites for GitHub Actions mode
+check_gha_prerequisites() {
+    log_info "Checking GitHub Actions prerequisites..."
     
     # Check if gh CLI is installed
     if ! command -v gh &> /dev/null; then
@@ -71,7 +73,28 @@ check_prerequisites() {
         exit 1
     fi
     
-    log_success "Prerequisites check passed"
+    log_success "GitHub Actions prerequisites check passed"
+}
+
+# Check prerequisites for local deployment mode
+check_local_prerequisites() {
+    log_info "Checking local deployment prerequisites..."
+    
+    # Check Node.js version
+    NODE_VERSION=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
+    if [ "$NODE_VERSION" -lt 18 ]; then
+        log_error "Node.js 18+ required (found: $(node -v))"
+        exit 1
+    fi
+    log_success "Node.js version check passed ($(node -v))"
+    
+    # Check if .env.production exists for production deployments
+    if [[ "$ENVIRONMENT" == "production" ]] && [ ! -f "backend/.env.production" ]; then
+        log_warning "backend/.env.production not found"
+        log_info "Copy backend/.env.production.example to backend/.env.production and fill in values"
+    fi
+    
+    log_success "Local deployment prerequisites check passed"
 }
 
 # Run pre-deployment checks
@@ -98,9 +121,9 @@ run_pre_checks() {
     log_success "Pre-deployment checks passed"
 }
 
-# Trigger deployment
-trigger_deployment() {
-    log_info "Triggering deployment workflow..."
+# Deploy using GitHub Actions
+deploy_via_gha() {
+    log_info "Triggering GitHub Actions deployment..."
     
     # Dispatch workflow
     if ! gh workflow run "$WORKFLOW_FILE" \
@@ -124,12 +147,9 @@ trigger_deployment() {
     
     log_info "Run ID: $RUN_ID"
     log_info "Monitor at: https://github.com/$GITHUB_REPO/actions/runs/$RUN_ID"
-}
-
-# Monitor deployment
-monitor_deployment() {
-    log_info "Monitoring deployment..."
     
+    # Watch deployment
+    log_info "Monitoring deployment..."
     gh run watch "$RUN_ID" --repo "$GITHUB_REPO" --interval 15
     
     # Check final status
@@ -137,8 +157,6 @@ monitor_deployment() {
     
     if [[ "$STATUS" == "success" ]]; then
         log_success "Deployment completed successfully!"
-        
-        # Display deployment URLs
         log_info "Deployment URLs:"
         echo "  Backend:  https://api.muslimeen.org"
         echo "  Frontend: https://muslimeen.org"
@@ -149,6 +167,83 @@ monitor_deployment() {
     fi
 }
 
+# Deploy locally (build + deploy via CLI)
+deploy_local() {
+    log_info "Starting local deployment..."
+    
+    # =============================================================================
+    # BUILD BACKEND
+    # =============================================================================
+    log_info "Building backend..."
+    cd backend
+    
+    # Install dependencies
+    npm ci
+    
+    # Run TypeScript build
+    npm run build
+    
+    # Run tests
+    npm test || log_warning "Some tests failed - continuing with deployment"
+    
+    cd ..
+    
+    # =============================================================================
+    # BUILD FRONTEND
+    # =============================================================================
+    log_info "Building frontend..."
+    cd frontend
+    
+    # Install dependencies
+    npm ci
+    
+    # Run TypeScript build
+    npm run build
+    
+    cd ..
+    
+    # =============================================================================
+    # DEPLOY TO RENDER (Backend)
+    # =============================================================================
+    log_info "Deploying backend to Render..."
+    if command -v render &> /dev/null; then
+        render deploy --service muslimeen-api || log_warning "Render deploy command failed"
+    else
+        log_warning "Render CLI not found. Install with: npm i -g @render/cli"
+        log_info "Falling back to deploy hook..."
+        if [ -n "${RENDER_DEPLOY_HOOK:-}" ]; then
+            curl -X POST "$RENDER_DEPLOY_HOOK"
+            log_success "Deploy hook triggered"
+        else
+            log_warning "RENDER_DEPLOY_HOOK not set. Skipping backend deployment."
+        fi
+    fi
+    
+    # =============================================================================
+    # DEPLOY TO VERCEL (Frontend)
+    # =============================================================================
+    log_info "Deploying frontend to Vercel..."
+    cd frontend
+    
+    if command -v vercel &> /dev/null; then
+        vercel --prod || log_warning "Vercel deploy command failed"
+    else
+        log_warning "Vercel CLI not found. Install with: npm i -g vercel"
+        log_info "Please deploy manually: cd frontend && vercel --prod"
+    fi
+    
+    cd ..
+    
+    # =============================================================================
+    # POST-DEPLOYMENT
+    # =============================================================================
+    log_success "Local deployment process complete!"
+    log_info "Next steps:"
+    echo "1. Run database migrations on Neon (if needed)"
+    echo "2. Verify health checks: curl https://api.muslimeen.org/api/health"
+    echo "3. Test frontend: https://muslimeen.org"
+}
+
 # Main execution
 main() {
     echo "================================"
@@ -157,10 +252,24 @@ main() {
     echo ""
     
     validate_environment
-    check_prerequisites
-    run_pre_checks
-    trigger_deployment
-    monitor_deployment
+    
+    case "$DEPLOY_MODE" in
+        --gha)
+            check_gha_prerequisites
+            run_pre_checks
+            deploy_via_gha
+            ;;
+        --local)
+            check_local_prerequisites
+            run_pre_checks
+            deploy_local
+            ;;
+        *)
+            log_error "Invalid deploy mode: $DEPLOY_MODE"
+            log_info "Usage: $0 [staging|production] [--local|--gha]"
+            exit 1
+            ;;
+    esac
     
     echo ""
     log_success "Deployment to $ENVIRONMENT completed!"

@@ -85,7 +85,7 @@ jobs:
       # Step 1: Checkout Repository
       # -----------------------------------------------------------------------
       - name: Checkout code
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
 
@@ -196,7 +196,7 @@ jobs:
       # Step 1: Checkout Repository
       # -----------------------------------------------------------------------
       - name: Checkout code
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       # -----------------------------------------------------------------------
       # Step 2: Setup Node.js
@@ -288,7 +288,7 @@ jobs:
       # Step 1: Checkout Repository
       # -----------------------------------------------------------------------
       - name: Checkout code
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       # -----------------------------------------------------------------------
       # Step 2: Run npm Audit (Backend)
@@ -340,7 +340,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@8a470fafaabb0af865ab420d0e9f0de374cc773c # v3
@@ -430,7 +430,7 @@ jobs:
       # Step 1: Checkout Repository
       # -----------------------------------------------------------------------
       - name: Checkout code
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       # -----------------------------------------------------------------------
       # Step 2: Install Vercel CLI

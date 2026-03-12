@@ -1,52 +1,63 @@
 /**
- * Jest Configuration
- * Test setup for MuslimEEN backend
+ * Jest Configuration for MuslimEEN Backend
+ * 
+ * Supports:
+ * - TypeScript via ts-jest
+ * - Module path mapping for @shared/*, @iam/*, @database
+ * - Coverage collection from src/
+ * - Test timeout: 10s
+ * 
+ * @type {import('jest').Config}
  */
-
 module.exports = {
   // Use ts-jest for TypeScript support
   preset: 'ts-jest',
   
-  // Test environment
+  // Node environment for backend
   testEnvironment: 'node',
   
-  // Root directories for tests
-  roots: ['<rootDir>/tests'],
+  // Look for tests in these locations
+  roots: ['<rootDir>/src'],
   
   // Test file patterns
   testMatch: [
-    '**/tests/**/*.test.ts',
-    '**/tests/**/*.test.js',
+    '**/__tests__/**/*.test.ts',
+    '**/tests/**/*.test.ts'
   ],
-
-  // Test path ignore patterns
+  
+  // Ignore these paths
   testPathIgnorePatterns: [
     '/node_modules/',
     '/dist/',
+    '/coverage/'
   ],
   
-  // Module file extensions
+  // File extensions to consider
   moduleFileExtensions: ['ts', 'js', 'json', 'node'],
   
   // Transform TypeScript files
   transform: {
-    '^.+\\.ts$': 'ts-jest',
+    '^.+\\.ts$': 'ts-jest'
   },
   
-  // Module name mapping for aliases
+  // Module path mapping (must match tsconfig.json paths)
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1',
+    '^@shared/(.*)$': '<rootDir>/src/modules/shared/$1',
+    '^@iam/(.*)$': '<rootDir>/src/modules/iam/$1',
+    '^@database$': '<rootDir>/src/modules/database/pool',
+    '^@types$': '<rootDir>/src/modules/shared/types'
   },
   
-  // Setup files to run after Jest is initialized
-  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
+  // Setup file to run after jest is initialized
+  setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'],
   
   // Coverage configuration
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/**/*.d.ts',
     '!src/server.ts',
-    '!src/routes/**',
+    '!src/__tests__/**',
+    '!src/**/__mocks__/**'
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
@@ -54,12 +65,13 @@ module.exports = {
   // Test timeout
   testTimeout: 10000,
   
+  // Mock clearing between tests
+  clearMocks: true,
+  restoreMocks: true,
+  
   // Verbose output
   verbose: true,
   
-  // Clear mocks between tests
-  clearMocks: true,
-  
-  // Restore mocks after each test
-  restoreMocks: true,
+  // Fail on console errors during tests
+  errorOnDeprecated: true
 };

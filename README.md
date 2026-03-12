@@ -1,5 +1,91 @@
 # MuslimEEN - Muslim Economic Empowerment Network
 
+> An invitation-only professional networking platform for the Muslim community with Shariah-compliant financial tools.
+
+## Project Overview
+
+MuslimEEN is a full-stack LinkedIn-equivalent professional networking platform built specifically for the Muslim community's economic participation.
+
+### Core Platform Immutables
+
+- ✅ No advertising or user data sales
+- ✅ Open source forever (AGPL-3.0) with data portability
+- ✅ Non-discrimination by sect or ethnicity
+- ✅ No interest-based finance (riba-free operations)
+- ✅ Complete transparency in governance, finances, and code
+- ✅ No user fees; revenue only from B2B institutional services directed to Waqf surplus
+
+## Quick Links
+
+| Resource | Description |
+|----------|-------------|
+| [AGENTS.md](AGENTS.md) | Development guide for contributors |
+| [CI_CD_README.md](CI_CD_README.md) | CI/CD pipeline documentation |
+| [DEVOPS_ARCHITECTURE.md](DEVOPS_ARCHITECTURE.md) | Complete DevOps architecture |
+| [BACKEND_README.md](BACKEND_README.md) | Backend integration guide |
+| [API_CONTRACT.md](API_CONTRACT.md) | API specification |
+| [DEPLOYMENT.md](DEPLOYMENT.md) | Deployment guides |
+
+## Technology Stack
+
+| Layer | Technology |
+|-------|------------|
+| Frontend | Next.js 14 + TypeScript + React |
+| Backend | Node.js + Express + TypeScript |
+| Database | PostgreSQL 14+ |
+| Cache | Redis |
+| CI/CD | GitHub Actions |
+| Hosting | Render (backend), Vercel (frontend) |
+
+## Quick Start
+
+```bash
+# Clone repository
+git clone <repo-url>
+cd muslimeen
+
+# Install dependencies
+cd backend && npm install
+cd ../frontend && npm install
+
+# Setup database
+# See DATABASE_SETUP.md for instructions
+
+# Run development servers
+cd backend && npm run dev     # Port 3001
+cd frontend && npm run dev    # Port 8080
+```
+
+## CI/CD Pipeline
+
+This project uses GitHub Actions for continuous integration and deployment:
+
+```bash
+# Deploy to production
+./scripts/deploy.sh production
+
+# Check health
+./scripts/health-check.sh production
+```
+
+See [CI_CD_README.md](CI_CD_README.md) for complete documentation.
+
+## Contributing
+
+1. Read [AGENTS.md](AGENTS.md) for development guidelines
+2. Create feature branch from `main`
+3. Submit pull request
+4. Ensure CI checks pass
+
+## License
+
+AGPL-3.0 - See [LICENSE](LICENSE) for details.
+
+---
+
+**Built with ❤️ by the MuslimEEN Team**
+# MuslimEEN - Muslim Economic Empowerment Network
+
 > **LinkedIn for the Muslim Community**  
 > An invitation-only professional networking platform with Shariah-compliant financial tools.
 

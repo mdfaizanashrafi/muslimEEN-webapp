@@ -1,0 +1,308 @@
+# =============================================================================
+# MUSLIMEEN NIGHTLY WORKFLOW
+# =============================================================================
+# Scheduled nightly jobs for:
+#   - Full test suite (unit + integration)
+#   - Dependency vulnerability scan
+#   - Code coverage reporting
+#   - Database migration dry-run
+#
+# Schedule: Daily at 2:00 AM UTC
+#
+# Author: Senior DevOps Engineer
+# Version: 1.0.0
+# =============================================================================
+
+name: Nightly Tests
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # Daily at 2:00 AM UTC
+  workflow_dispatch:  # Manual trigger
+
+# =============================================================================
+# PERMISSIONS
+# =============================================================================
+permissions:
+  contents: read
+  security-events: write
+
+# =============================================================================
+# ENVIRONMENT VARIABLES
+# =============================================================================
+env:
+  NODE_VERSION: '18'
+  BACKEND_DIR: 'backend'
+  FRONTEND_DIR: 'frontend'
+
+jobs:
+  # ==========================================================================
+  # JOB 1: FULL BACKEND TEST SUITE
+  # ==========================================================================
+  backend-full-test:
+    name: Backend Full Test Suite
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.BACKEND_DIR }}
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: muslimeen_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ env.BACKEND_DIR }}/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Run unit tests
+        env:
+          NODE_ENV: test
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: muslimeen_test
+          DB_USER: test
+          DB_PASSWORD: test
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: test-secret-key-for-nightly
+        run: npm run test:unit -- --coverage
+
+      - name: Run integration tests
+        env:
+          NODE_ENV: test
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: muslimeen_test
+          DB_USER: test
+          DB_PASSWORD: test
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: test-secret-key-for-nightly
+        run: npm run test:integration
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
+        with:
+          name: coverage-report
+          path: ${{ env.BACKEND_DIR }}/coverage/
+          retention-days: 30
+
+  # ==========================================================================
+  # JOB 2: DEPENDENCY VULNERABILITY SCAN
+  # ==========================================================================
+  dependency-scan:
+    name: Dependency Vulnerability Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies (Backend)
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Install dependencies (Frontend)
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Run npm audit (Backend)
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: |
+          npm audit --audit-level=high --json > audit-backend.json || true
+          cat audit-backend.json
+
+      - name: Run npm audit (Frontend)
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: |
+          npm audit --audit-level=high --json > audit-frontend.json || true
+          cat audit-frontend.json
+
+      - name: Upload audit reports
+        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
+        with:
+          name: audit-reports
+          path: |
+            ${{ env.BACKEND_DIR }}/audit-*.json
+            ${{ env.FRONTEND_DIR }}/audit-*.json
+          retention-days: 30
+
+      - name: Check for critical vulnerabilities
+        run: |
+          BACKEND_CRITICAL=$(cat ${{ env.BACKEND_DIR }}/audit-backend.json | jq '.metadata.vulnerabilities.critical // 0' || echo "0")
+          FRONTEND_CRITICAL=$(cat ${{ env.FRONTEND_DIR }}/audit-frontend.json | jq '.metadata.vulnerabilities.critical // 0' || echo "0")
+          
+          echo "Backend critical vulnerabilities: $BACKEND_CRITICAL"
+          echo "Frontend critical vulnerabilities: $FRONTEND_CRITICAL"
+          
+          if [ "$BACKEND_CRITICAL" -gt 0 ] || [ "$FRONTEND_CRITICAL" -gt 0 ]; then
+            echo "::error::Critical vulnerabilities found! Please review and fix immediately."
+            exit 1
+          fi
+
+  # ==========================================================================
+  # JOB 3: DATABASE MIGRATION DRY-RUN
+  # ==========================================================================
+  migration-dry-run:
+    name: Database Migration Dry-Run
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: muslimeen_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ env.BACKEND_DIR }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Apply migrations
+        working-directory: ${{ env.BACKEND_DIR }}
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: muslimeen_test
+          DB_USER: test
+          DB_PASSWORD: test
+        run: |
+          echo "Applying database migrations..."
+          for file in database/migrations/*.sql; do
+            echo "Applying $file..."
+            psql postgresql://test:test@localhost:5432/muslimeen_test -f "$file" || exit 1
+          done
+          echo "Migrations applied successfully!"
+
+      - name: Verify schema
+        working-directory: ${{ env.BACKEND_DIR }}
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: muslimeen_test
+          DB_USER: test
+          DB_PASSWORD: test
+        run: |
+          psql postgresql://test:test@localhost:5432/muslimeen_test -c "\dt" || true
+
+  # ==========================================================================
+  # JOB 4: PERFORMANCE BENCHMARK
+  # ==========================================================================
+  performance-benchmark:
+    name: Performance Benchmark
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.BACKEND_DIR }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ env.BACKEND_DIR }}/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Measure build time
+        run: |
+          echo "Measuring build time..."
+          START_TIME=$(date +%s)
+          npm run build
+          END_TIME=$(date +%s)
+          DURATION=$((END_TIME - START_TIME))
+          echo "Build completed in ${DURATION}s"
+          echo "::set-output name=build_time::${DURATION}"
+
+      - name: Measure test time
+        run: |
+          echo "Measuring test time..."
+          START_TIME=$(date +%s)
+          npm run test:unit
+          END_TIME=$(date +%s)
+          DURATION=$((END_TIME - START_TIME))
+          echo "Tests completed in ${DURATION}s"
+          echo "::set-output name=test_time::${DURATION}"
+
+  # ==========================================================================
+  # JOB 5: NOTIFY RESULTS
+  # ==========================================================================
+  notify-results:
+    name: Notify Results
+    runs-on: ubuntu-latest
+    needs: [backend-full-test, dependency-scan, migration-dry-run, performance-benchmark]
+    if: always()
+
+    steps:
+      - name: Summary
+        run: |
+          echo "=== Nightly Test Results ==="
+          echo "Backend Full Test: ${{ needs.backend-full-test.result }}"
+          echo "Dependency Scan: ${{ needs.dependency-scan.result }}"
+          echo "Migration Dry-Run: ${{ needs.migration-dry-run.result }}"
+          echo "Performance Benchmark: ${{ needs.performance-benchmark.result }}"
+          echo "==========================="
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "::error::Nightly tests failed! Please investigate immediately."
+          exit 1

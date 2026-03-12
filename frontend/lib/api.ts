@@ -232,10 +232,10 @@ export const auth = {
 
 export const profile = {
   getCurrentProfile: (): Promise<{ success: boolean; profile: Profile }> =>
-    callMuslimEenApi('/user/profile'),
+    callMuslimEenApi('/users/me'),
 
   updateProfile: (profileUpdates: Partial<Profile>): Promise<{ success: boolean; profile: Profile; message: string }> =>
-    callMuslimEenApi('/user/profile', {
+    callMuslimEenApi('/users/me', {
       method: 'PUT',
       body: JSON.stringify(profileUpdates),
     }),

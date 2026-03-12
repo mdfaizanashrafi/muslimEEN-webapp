@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { auth, profile, User, Profile } from './api';
+import { auth, profile as profileApi, User, Profile } from './api';
 
 interface AuthContextType {
   user: User | null;
@@ -24,7 +24,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Fetch profile function
   const fetchProfile = useCallback(async () => {
     try {
-      const response = await profile.getCurrentProfile();
+      const response = await profileApi.getCurrentProfile();
       setProfile(response.profile);
     } catch (error) {
       console.error('Failed to fetch profile:', error);
@@ -109,7 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const updateProfile = useCallback(async (updates: Partial<Profile>) => {
-    const response = await profile.updateProfile(updates);
+    const response = await profileApi.updateProfile(updates);
     setProfile(response.profile);
   }, []);
 

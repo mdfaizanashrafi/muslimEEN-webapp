@@ -250,10 +250,10 @@ export const profile = {
 
 export const user = {
   getProfile: (): Promise<{ success: boolean; profile: Profile }> =>
-    callMuslimEenApi('/user/profile'),
+    callMuslimEenApi('/users/me'),
 
   updateProfile: (profileUpdates: Partial<Profile>): Promise<{ success: boolean; profile: Profile; message: string }> =>
-    callMuslimEenApi('/user/profile', {
+    callMuslimEenApi('/users/me', {
       method: 'PUT',
       body: JSON.stringify(profileUpdates),
     }),
@@ -265,13 +265,13 @@ export const user = {
 
 export const trustScore = {
   getCurrentScore: (): Promise<TrustScoreData> =>
-    callMuslimEenApi('/user/trust-score'),
+    callMuslimEenApi('/users/me/trust-score'),
 
   getHistory: (): Promise<{ success: boolean; history: Array<{ date: string; score: number }> }> =>
-    callMuslimEenApi('/user/trust-score/history'),
+    callMuslimEenApi('/users/me/trust-score/history'),
 
   recalculate: (): Promise<{ success: boolean; score: number; previousScore: number; changed: boolean; witnessEligibilityChanged: boolean; factors: Array<{ name: string; score: number; weight: number }> }> =>
-    callMuslimEenApi('/user/trust-score/recalculate', {
+    callMuslimEenApi('/users/me/trust-score/recalculate', {
       method: 'POST',
     }),
 };
@@ -282,29 +282,31 @@ export const trustScore = {
 
 export const connections = {
   getConnections: (): Promise<Connection[]> =>
-    callMuslimEenApi('/user/connections'),
+    callMuslimEenApi('/users/me/connections'),
 
   getPendingRequests: (): Promise<PendingConnection[]> =>
-    callMuslimEenApi('/user/connections/pending'),
+    callMuslimEenApi('/users/me/connections/pending'),
 
   sendRequest: (recipientId: string): Promise<{ success: boolean; message: string }> =>
-    callMuslimEenApi('/user/connections', {
+    callMuslimEenApi('/users/me/connections', {
       method: 'POST',
       body: JSON.stringify({ recipientId }),
     }),
 
   acceptRequest: (connectionId: string): Promise<{ success: boolean; message: string }> =>
-    callMuslimEenApi(`/user/connections/${connectionId}/accept`, {
-      method: 'POST',
+    callMuslimEenApi(`/connections/${connectionId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'accepted' }),
     }),
 
   rejectRequest: (connectionId: string): Promise<{ success: boolean; message: string }> =>
-    callMuslimEenApi(`/user/connections/${connectionId}/reject`, {
-      method: 'POST',
+    callMuslimEenApi(`/connections/${connectionId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'rejected' }),
     }),
 
   removeConnection: (connectionId: string): Promise<{ success: boolean; message: string }> =>
-    callMuslimEenApi(`/user/connections/${connectionId}`, {
+    callMuslimEenApi(`/connections/${connectionId}`, {
       method: 'DELETE',
     }),
 };

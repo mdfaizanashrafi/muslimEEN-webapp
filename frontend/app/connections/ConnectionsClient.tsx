@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { AppLayout } from '@/components/layout';
 import { MoreIcon } from '@/components/icons/ConnectionIcons';
 import { connections as connectionsApi } from '@/lib/api';

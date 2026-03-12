@@ -63,7 +63,7 @@ jobs:
           cache-dependency-path: ${{ env.BACKEND_DIR }}/package-lock.json
 
       - name: Cache node_modules
-        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
           path: ${{ env.BACKEND_DIR }}/node_modules
           key: ${{ runner.os }}-backend-${{ hashFiles('**/backend/package-lock.json') }}
@@ -102,13 +102,13 @@ jobs:
           cache-dependency-path: ${{ env.FRONTEND_DIR }}/package-lock.json
 
       - name: Cache node_modules
-        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
           path: ${{ env.FRONTEND_DIR }}/node_modules
           key: ${{ runner.os }}-frontend-${{ hashFiles('**/frontend/package-lock.json') }}
 
       - name: Cache Next.js build
-        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
           path: ${{ env.FRONTEND_DIR }}/.next/cache
           key: ${{ runner.os }}-nextjs-${{ hashFiles('**/frontend/package-lock.json') }}-${{ hashFiles('**/frontend/**/*.tsx') }}

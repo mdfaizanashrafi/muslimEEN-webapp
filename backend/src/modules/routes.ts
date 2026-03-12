@@ -13,17 +13,17 @@ import { Router } from 'express';
 
 // IAM Module - Authentication & Authorization
 import { authenticate, authorize, requireAdmin } from './iam/middleware/auth';
-import { createBodyValidator, createQueryValidator } from './shared/middleware/validation';
-import {
-  authLimiter,
-  userLimiter,
-  marketplaceLimiter,
-  apiLimiter
-} from './shared/middleware/rateLimiter';
+import { AUDIT_ACTIONS, auditLog } from './shared/middleware/auditLogger';
 import { csrfTokenSetter, csrfValidator } from './shared/middleware/csrf';
 import { deprecate } from './shared/middleware/deprecation';
-import { sanitizeInput, preventNoSqlInjection } from './shared/middleware/sanitization';
-import { auditLog, AUDIT_ACTIONS } from './shared/middleware/auditLogger';
+import {
+  apiLimiter,
+  authLimiter,
+  marketplaceLimiter,
+  userLimiter
+} from './shared/middleware/rateLimiter';
+import { preventNoSqlInjection, sanitizeInput } from './shared/middleware/sanitization';
+import { createBodyValidator, createQueryValidator } from './shared/middleware/validation';
 
 // IAM Module
 import { AuthController } from './iam';
@@ -47,6 +47,39 @@ import { IslamicFinanceController } from './islamic-finance';
 import { InviteController } from './invites';
 
 const router = Router();
+
+// ============================================================================
+// Dynamic API Index Route
+// Lists all registered endpoints automatically
+// ============================================================================
+
+router.get('/', (_req, res) => {
+  const routes: any[] = [];
+
+  const stack = router.stack;
+
+  stack.forEach((layer: any) => {
+    if (layer.route && layer.route.path) {
+      const path = layer.route.path;
+      const methods = Object.keys(layer.route.methods)
+        .map((m) => m.toUpperCase());
+
+      routes.push({
+        path: `/api${path}`,
+        methods
+      });
+    }
+  });
+
+  res.json({
+    name: 'MuslimEEN API',
+    version: 'v1',
+    status: 'running',
+    health: '/api/health',
+    totalEndpoints: routes.length,
+    endpoints: routes
+  });
+});
 
 // Sunset date for deprecated endpoints
 const SUNSET_DATE = '2026-06-01';

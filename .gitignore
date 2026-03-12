@@ -253,3 +253,4 @@ docs/generated/
 backups/
 *.backup.sql
 *.dump
+.env*.local

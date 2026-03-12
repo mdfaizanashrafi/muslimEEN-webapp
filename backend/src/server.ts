@@ -15,7 +15,7 @@ import { helmetConfig, initializeCookieParser, configureTrustProxy } from './con
 import { setupGracefulShutdown } from './config/shutdown';
 
 // Route modules
-import routes from './modules/routes';
+import router from './modules/router';
 import healthRoutes from './routes/health';
 
 // Middleware
@@ -71,7 +71,7 @@ app.use(performanceMonitor);
 app.use('/', healthRoutes);
 
 // API routes
-app.use('/api', routes);
+app.use('/api', router);
 
 // Root route
 app.get('/', (_req: Request, res: Response) => {

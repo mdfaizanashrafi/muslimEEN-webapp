@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { auth, profile as profileApi, User, Profile } from './api';
+import { auth, users, User, Profile } from './api';
 
 interface AuthContextType {
   user: User | null;
@@ -24,7 +24,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Fetch profile function
   const fetchProfile = useCallback(async () => {
     try {
-      const response = await profileApi.getCurrentProfile();
+      const response = await users.getMe();
       setProfile(response.profile);
     } catch (error) {
       console.error('Failed to fetch profile:', error);

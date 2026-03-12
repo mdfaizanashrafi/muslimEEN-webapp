@@ -11,6 +11,7 @@
 
 const { Pool } = require('pg');
 const crypto = require('crypto');
+const bcrypt = require('bcrypt');
 require('dotenv').config();
 
 // Database connection
@@ -23,11 +24,10 @@ const pool = new Pool({
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-// Password hashing (simple version for seeds)
-const hashPassword = (password) => {
-  const salt = crypto.randomBytes(16).toString('hex');
-  const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
-  return `${salt}:${hash}`;
+// Password hashing using bcrypt (matches backend)
+const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS || '12', 10);
+const hashPassword = async (password) => {
+  return bcrypt.hash(password, BCRYPT_ROUNDS);
 };
 
 // Admin details from env or defaults
@@ -39,14 +39,14 @@ const ADMIN_LAST_NAME = process.env.SEED_ADMIN_LAST_NAME || 'User';
 async function seedAdmin() {
   console.log('🌱 Seeding admin user...');
   
-  const passwordHash = hashPassword(ADMIN_PASSWORD);
+  const passwordHash = await hashPassword(ADMIN_PASSWORD);
   
   // Check if admin exists
   const existing = await pool.query('SELECT id FROM users WHERE email = $1', [ADMIN_EMAIL]);
   
   let adminId;
   if (existing.rows.length > 0) {
-    // Update to admin
+    // Update to admin with new password
     adminId = existing.rows[0].id;
     await pool.query(
       `UPDATE users 
@@ -54,11 +54,12 @@ async function seedAdmin() {
            verification_tier = 'advanced',
            trust_score = 1000,
            invites_remaining = 999999,
-           is_active = true
+           is_active = true,
+           password_hash = $2
        WHERE id = $1`,
-      [adminId]
+      [adminId, passwordHash]
     );
-    console.log(`  ✅ Updated existing user ${ADMIN_EMAIL} to admin`);
+    console.log(`  ✅ Updated existing user ${ADMIN_EMAIL} to admin with new password`);
   } else {
     // Create new admin
     const result = await pool.query(

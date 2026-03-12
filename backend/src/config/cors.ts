@@ -13,6 +13,7 @@ const allowedOrigins = [
   'https://muslimeen.space',
   'https://www.muslimeen.space',
   'https://app.muslimeen.space',
+  'https://muslimeen-webapp.vercel.app',
 ];
 
 // Add environment-specific origins

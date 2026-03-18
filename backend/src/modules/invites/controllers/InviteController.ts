@@ -6,6 +6,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
+import { env } from '../../../config/env';
 import * as InviteService from '../services/InviteService';
 import { InviteError } from '../services/InviteService';
 import { AuthRequest } from '../../shared/types';
@@ -53,7 +54,7 @@ export const createInvite = async (
     const updatedQuota = await InviteService.getUserInviteQuota(userId);
 
     // Build invite link
-    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
+    const baseUrl = env.FRONTEND_URL;
     const inviteLink = `${baseUrl}/register?invite_token=${invite.token}`;
 
     res.status(201).json({
@@ -87,7 +88,7 @@ export const getUserInvites = async (
     const userId = req.user!.id;
     const invites = await InviteService.getUserInvites(userId);
 
-    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
+    const baseUrl = env.FRONTEND_URL;
 
     res.json({
       success: true,
@@ -227,7 +228,7 @@ export const createAdminInvite = async (
       expiresInDays,
     });
 
-    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
+    const baseUrl = env.FRONTEND_URL;
     const inviteLink = `${baseUrl}/register?invite_token=${invite.token}`;
 
     res.status(201).json({

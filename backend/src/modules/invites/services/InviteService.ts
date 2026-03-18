@@ -8,6 +8,7 @@
 import * as InviteRepository from '../repositories/InviteRepository';
 import * as UserRepository from '../../iam/repositories/UserRepository';
 import { eventBus, DomainEvents } from '../../shared/events/EventBus';
+import { PoolClient } from 'pg';
 import {
   Invite,
   InviteWithInviter,
@@ -382,6 +383,40 @@ export const useInviteExternal = async (
   userEmail: string
 ): Promise<UseInviteResult> => {
   return useInvite({ token, userId, userEmail });
+};
+
+/**
+ * Use invite within a transaction (external API for Auth module)
+ * This version accepts a transaction client for atomic operations
+ */
+export const useInviteWithClient = async (
+  client: PoolClient,
+  token: string,
+  userId: string,
+  userEmail: string
+): Promise<UseInviteResult> => {
+  // Mark invite as used using transaction client
+  const invite = await InviteRepository.markAsUsedWithClient(client, token, userId);
+
+  if (!invite) {
+    return { success: false, message: 'Failed to use invite. It may have expired.' };
+  }
+
+  // Award invite credits to new user using transaction client
+  await UserRepository.setInviteCountWithClient(client, userId, DEFAULT_USER_INVITE_LIMIT);
+
+  // Publish event (outside transaction - best effort)
+  eventBus.publish(DomainEvents.INVITE_USED, {
+    inviteId: invite.id,
+    usedBy: userId,
+    userEmail,
+    invitedBy: invite.createdBy,
+  }).catch(() => {}); // Non-blocking
+
+  return {
+    success: true,
+    invite,
+  };
 };
 
 // ============================================================================

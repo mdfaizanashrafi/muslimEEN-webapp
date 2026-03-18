@@ -4,12 +4,17 @@
  * 
  * MOVED FROM: modules/shared/middleware/auth.ts
  * REASON: Eliminate circular dependency (shared should not import from iam)
+ * 
+ * SECURITY: Supports both httpOnly cookies and Authorization header
+ * Cookie-based auth is preferred (XSS protection)
  */
 
 import { Request, Response, NextFunction } from 'express';
 import * as UserRepository from '../repositories/UserRepository';
 import { User, UserRole } from '../../shared/types';
 import { verifyToken } from '../services/JwtService';
+import { logger } from '../../shared/utils/logger';
+import { setUserContext, clearUserContext } from '../../../config/sentry';
 
 /**
  * Map UserIdentity from repository to User type for request
@@ -40,8 +45,31 @@ const mapToRequestUser = (userIdentity: UserRepository.UserIdentity): User => ({
 });
 
 /**
+ * Extract token from request
+ * Priority: 1. httpOnly cookie, 2. Authorization header
+ * SECURITY: Cookie-based auth prevents XSS token theft
+ */
+const extractToken = (req: Request): string | null => {
+  // First, try to get token from httpOnly cookie (preferred, XSS-safe)
+  const cookieToken = req.cookies?.access_token;
+  if (cookieToken) {
+    return cookieToken;
+  }
+
+  // Fallback to Authorization header (for API clients, mobile apps)
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith('Bearer ')) {
+    return authHeader.substring(7);
+  }
+
+  return null;
+};
+
+/**
  * Authentication middleware
  * Verifies JWT token and attaches user to request
+ * 
+ * SECURITY: Token can be in httpOnly cookie OR Authorization header
  */
 export const authenticate = async (
   req: Request,
@@ -49,9 +77,9 @@ export const authenticate = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const authHeader = req.headers.authorization;
+    const token = extractToken(req);
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!token) {
       res.status(401).json({
         success: false,
         error: {
@@ -62,7 +90,6 @@ export const authenticate = async (
       return;
     }
 
-    const token = authHeader.substring(7);
     const decoded = verifyToken(token);
 
     if (!decoded) {
@@ -101,15 +128,37 @@ export const authenticate = async (
       return;
     }
 
-    req.user = mapToRequestUser(userIdentity);
+    const user = mapToRequestUser(userIdentity);
+    req.user = user;
+    
+    // Set Sentry user context for error tracking
+    setUserContext({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    });
+    
+    // Log authentication for security monitoring
+    logger.debug('User authenticated', {
+      userId: userIdentity.id,
+      path: req.path,
+      method: req.method,
+      authMethod: req.cookies?.access_token ? 'cookie' : 'header',
+    });
+    
     next();
   } catch (error) {
+    logger.error('Authentication error', {
+      error: (error as Error).message,
+      path: req.path,
+    });
     next(error);
   }
 };
 
 /**
  * Optional authentication - doesn't fail if no token
+ * Used for endpoints that work for both authenticated and anonymous users
  */
 export const optionalAuth = async (
   req: Request,
@@ -117,10 +166,9 @@ export const optionalAuth = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const authHeader = req.headers.authorization;
+    const token = extractToken(req);
 
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.substring(7);
+    if (token) {
       const decoded = verifyToken(token);
 
       if (decoded) {
@@ -133,12 +181,14 @@ export const optionalAuth = async (
 
     next();
   } catch {
+    // Continue without user on error
     next();
   }
 };
 
 /**
  * Authorization middleware - check user roles
+ * Must be used AFTER authenticate middleware
  */
 export const authorize = (...roles: UserRole[]) => {
   return (req: Request, res: Response, next: NextFunction): void => {
@@ -170,6 +220,7 @@ export const authorize = (...roles: UserRole[]) => {
 
 /**
  * Admin authorization middleware
+ * Convenience middleware for admin-only routes
  */
 export const requireAdmin = (req: Request, res: Response, next: NextFunction): void => {
   if (!req.user) {

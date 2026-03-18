@@ -7,6 +7,7 @@
  * - Added authorization validation
  */
 
+import { env } from '../../../config/env';
 import * as IslamicFinanceRepository from '../repositories/IslamicFinanceRepository';
 import { eventBus, DomainEvents } from '../../shared/events/EventBus';
 import { logger } from '../../shared/utils/logger';
@@ -16,11 +17,11 @@ import { logger } from '../../shared/utils/logger';
 const NISAB_CONFIG = {
   // Gold nisab: 85 grams of gold (approximate value in currency units)
   // This value should be updated periodically based on current gold prices
-  gold: parseInt(process.env.NISAB_GOLD_VALUE || '85000', 10),
+  gold: env.NISAB_GOLD_VALUE,
   // Silver nisab: 595 grams of silver (approximate value)
-  silver: parseInt(process.env.NISAB_SILVER_VALUE || '6000', 10),
+  silver: env.NISAB_SILVER_VALUE,
   // Default to gold nisab (more common practice)
-  defaultType: (process.env.NISAB_DEFAULT_TYPE as 'gold' | 'silver') || 'gold',
+  defaultType: env.NISAB_DEFAULT_TYPE,
 };
 
 // Validate configuration on startup

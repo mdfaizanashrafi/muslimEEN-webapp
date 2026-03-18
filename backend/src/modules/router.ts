@@ -19,6 +19,8 @@ import invitesRoutes from './invites/routes';
 import verificationRoutes from './verification/routes';
 import marketplaceRoutes from './marketplace/routes';
 import islamicFinanceRoutes from './islamic-finance/routes';
+import analyticsRoutes from './analytics/routes';
+import feedbackRoutes from './feedback/routes';
 
 // Import shared middleware
 import { authenticate } from './iam/middleware/auth';
@@ -43,6 +45,8 @@ router.get('/', apiLimiter, (_req: Request, res: Response) => {
       verification: '/api/verification',
       marketplace: '/api/marketplace',
       'islamic-finance': '/api/islamic-finance',
+      analytics: '/api/analytics',
+      feedback: '/api/feedback',
     },
     endpoints: [
       // Auth (public)
@@ -73,6 +77,15 @@ router.get('/', apiLimiter, (_req: Request, res: Response) => {
       
       // Islamic Finance (protected)
       { path: 'GET /api/islamic-finance/sadaqah', description: 'Get sadaqah campaigns' },
+      
+      // Analytics (protected)
+      { path: 'POST /api/analytics/events', description: 'Track analytics events' },
+      { path: 'GET /api/analytics/metrics', description: 'Get beta metrics' },
+      { path: 'GET /api/analytics/funnel', description: 'Get onboarding funnel' },
+      
+      // Feedback (protected)
+      { path: 'POST /api/feedback', description: 'Submit feedback' },
+      { path: 'GET /api/feedback/stats', description: 'Get feedback statistics' },
     ],
   });
 });
@@ -112,5 +125,11 @@ router.use('/marketplace', marketplaceRoutes);
 
 // Islamic Finance routes
 router.use('/islamic-finance', islamicFinanceRoutes);
+
+// Analytics routes
+router.use('/analytics', analyticsRoutes);
+
+// Feedback routes
+router.use('/feedback', feedbackRoutes);
 
 export default router;

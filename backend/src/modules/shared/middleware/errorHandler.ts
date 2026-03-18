@@ -4,6 +4,7 @@
  * Prevents sensitive information leakage in production
  */
 
+import { env } from '../../../config/env';
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger';
 
@@ -174,7 +175,7 @@ export const errorHandler = (
   res: Response,
   _next: NextFunction
 ): void => {
-  const isDevelopment = process.env.NODE_ENV === 'development';
+  const isDevelopment = env.NODE_ENV === 'development';
   
   // Log full error details server-side (with sensitive data protection)
   logger.error('Error occurred', {

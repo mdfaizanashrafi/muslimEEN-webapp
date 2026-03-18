@@ -63,4 +63,7 @@ router.post(
 
 router.get('/me', authenticate, AuthController.getCurrentUser);
 
+// Token refresh endpoint
+router.post('/refresh', authenticate, csrfValidator, AuthController.refreshToken);
+
 export default router;

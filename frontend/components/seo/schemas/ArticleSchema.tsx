@@ -23,8 +23,12 @@ interface ArticleSchemaProps {
     image?: string;
   };
   publisher?: {
+    '@type': 'Organization';
     name: string;
-    logo: string;
+    logo: {
+      '@type': 'ImageObject';
+      url: string;
+    };
   };
   datePublished: string;
   dateModified?: string;
@@ -110,11 +114,11 @@ export default function ArticleSchema({
       ...(author.url && { url: author.url }),
       ...(author.image && { image: author.image }),
     },
-    publisher: publisher || {
-      '@type': 'Organization',
+    publisher: publisher ?? {
+      '@type': 'Organization' as const,
       name: 'MuslimEEN',
       logo: {
-        '@type': 'ImageObject',
+        '@type': 'ImageObject' as const,
         url: 'https://muslimeen.space/logo.png',
       },
     },

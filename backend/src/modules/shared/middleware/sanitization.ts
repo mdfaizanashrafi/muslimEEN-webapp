@@ -1,36 +1,45 @@
 /**
  * Input Sanitization Middleware
- * 
- * Protects against XSS, NoSQL injection, and other injection attacks
+ * Protects against XSS and NoSQL injection attacks
  */
 
 import { Request, Response, NextFunction } from 'express';
+import { logger } from '../utils/logger';
 
-// Characters that could be used for XSS
-const XSS_PATTERN = /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>|<[^>]*on\w+\s*=|javascript:|data:text\/html/i;
-
-// Characters that could be used for NoSQL injection
-const NOSQL_PATTERN = /[$\{\}\[\]\\]/;
+// ============================================================================
+// XSS PROTECTION
+// ============================================================================
 
 /**
- * Sanitize a string value
- * Removes potentially dangerous characters
+ * Patterns that indicate XSS attempts
  */
-const sanitizeString = (str: string): string => {
-  return str
-    .replace(/[<>]/g, '') // Remove < and > to prevent HTML tags
-    .replace(/['"`]/g, '') // Remove quotes to prevent injection
-    .trim();
+const XSS_PATTERNS = [
+  /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+  /<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi,
+  /<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi,
+  /<embed\b[^<]*(?:(?!<\/embed>)<[^<]*)*<\/embed>/gi,
+  /javascript:/gi,
+  /on\w+\s*=/gi, // Event handlers like onclick, onerror, etc.
+  /<\s*\/\s*script\s*>/gi,
+  /\\x3cscript/gi,
+  /\\x3c\\x73\\x63\\x72\\x69\\x70\\x74/gi,
+];
+
+/**
+ * Sanitize a string value by removing XSS patterns
+ */
+const sanitizeString = (value: string): string => {
+  let sanitized = value;
+  XSS_PATTERNS.forEach(pattern => {
+    sanitized = sanitized.replace(pattern, '');
+  });
+  return sanitized;
 };
 
 /**
  * Recursively sanitize an object
  */
 const sanitizeObject = (obj: any): any => {
-  if (obj === null || obj === undefined) {
-    return obj;
-  }
-  
   if (typeof obj === 'string') {
     return sanitizeString(obj);
   }
@@ -39,48 +48,20 @@ const sanitizeObject = (obj: any): any => {
     return obj.map(sanitizeObject);
   }
   
-  if (typeof obj === 'object') {
+  if (obj && typeof obj === 'object') {
     const sanitized: any = {};
     for (const [key, value] of Object.entries(obj)) {
-      // Sanitize the key as well
-      const sanitizedKey = sanitizeString(key);
-      sanitized[sanitizedKey] = sanitizeObject(value);
+      sanitized[key] = sanitizeObject(value);
     }
     return sanitized;
   }
   
-  // Return primitive values as-is
   return obj;
 };
 
 /**
- * Check if string contains potential XSS patterns
- */
-const containsXss = (str: string): boolean => {
-  return XSS_PATTERN.test(str);
-};
-
-/**
- * Check if object contains potential NoSQL injection
- */
-const containsNoSqlInjection = (obj: any): boolean => {
-  if (typeof obj === 'string') {
-    return NOSQL_PATTERN.test(obj);
-  }
-  
-  if (obj && typeof obj === 'object') {
-    for (const [key, value] of Object.entries(obj)) {
-      if (NOSQL_PATTERN.test(key)) return true;
-      if (containsNoSqlInjection(value)) return true;
-    }
-  }
-  
-  return false;
-};
-
-/**
- * Middleware to sanitize all input
- * Removes XSS vectors and sanitizes strings
+ * XSS Sanitization middleware
+ * Sanitizes request body, query, and params
  */
 export const sanitizeInput = (
   req: Request,
@@ -88,90 +69,202 @@ export const sanitizeInput = (
   next: NextFunction
 ): void => {
   try {
-    // Check for XSS in body
     if (req.body && typeof req.body === 'object') {
-      const bodyString = JSON.stringify(req.body);
-      if (containsXss(bodyString)) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: 'XSS_DETECTED',
-            message: 'Input contains potentially dangerous content',
-          },
-        });
-        return;
-      }
-      
       req.body = sanitizeObject(req.body);
     }
     
-    // Sanitize query parameters
-    if (req.query) {
+    if (req.query && typeof req.query === 'object') {
       req.query = sanitizeObject(req.query);
     }
     
-    // Sanitize route parameters
-    if (req.params) {
+    if (req.params && typeof req.params === 'object') {
       req.params = sanitizeObject(req.params);
     }
     
     next();
   } catch (error) {
+    logger.error('Sanitization error', { error: (error as Error).message });
     next(error);
   }
 };
 
 /**
- * Middleware to prevent NoSQL injection
- * Blocks requests with prohibited characters
+ * XSS Protection header middleware
+ * Sets X-XSS-Protection header (legacy browsers)
+ */
+export const xssProtection = (
+  _req: Request,
+  res: Response,
+  next: NextFunction
+): void => {
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  next();
+};
+
+// ============================================================================
+// NOSQL INJECTION PROTECTION
+// ============================================================================
+
+/**
+ * Patterns that indicate NoSQL injection attempts
+ */
+const NOSQL_INJECTION_PATTERNS = [
+  /\$where\s*:/i,
+  /\$ne\s*:/i,
+  /\$gt\s*:/i,
+  /\$lt\s*:/i,
+  /\$gte\s*:/i,
+  /\$lte\s*:/i,
+  /\$regex\s*:/i,
+  /\$options\s*:/i,
+  /\$in\s*:/i,
+  /\$nin\s*:/i,
+  /\$exists\s*:/i,
+  /\$type\s*:/i,
+  /\$mod\s*:/i,
+  /\$all\s*:/i,
+  /\$size\s*:/i,
+];
+
+/**
+ * Check if value contains NoSQL injection patterns
+ */
+const containsNoSqlInjection = (value: any): boolean => {
+  if (typeof value === 'string') {
+    return NOSQL_INJECTION_PATTERNS.some(pattern => pattern.test(value));
+  }
+  
+  if (Array.isArray(value)) {
+    return value.some(containsNoSqlInjection);
+  }
+  
+  if (value && typeof value === 'object') {
+    return Object.values(value).some(containsNoSqlInjection);
+  }
+  
+  return false;
+};
+
+/**
+ * NoSQL Injection prevention middleware
+ * Blocks requests containing NoSQL operators
  */
 export const preventNoSqlInjection = (
   req: Request,
   res: Response,
   next: NextFunction
 ): void => {
-  try {
-    // Check body
-    if (req.body && containsNoSqlInjection(req.body)) {
-      res.status(400).json({
-        success: false,
-        error: {
-          code: 'INVALID_INPUT',
-          message: 'Input contains prohibited characters',
-        },
-      });
-      return;
+  const suspiciousFields: string[] = [];
+  
+  const checkObject = (obj: any, path: string = ''): void => {
+    if (typeof obj === 'string') {
+      if (containsNoSqlInjection(obj)) {
+        suspiciousFields.push(path);
+      }
+    } else if (Array.isArray(obj)) {
+      obj.forEach((item, index) => checkObject(item, `${path}[${index}]`));
+    } else if (obj && typeof obj === 'object') {
+      for (const [key, value] of Object.entries(obj)) {
+        // Check the key itself for NoSQL operators
+        if (key.startsWith('$')) {
+          suspiciousFields.push(path ? `${path}.${key}` : key);
+        }
+        checkObject(value, path ? `${path}.${key}` : key);
+      }
     }
-    
-    // Check query
-    if (req.query && containsNoSqlInjection(req.query)) {
-      res.status(400).json({
-        success: false,
-        error: {
-          code: 'INVALID_INPUT',
-          message: 'Query parameters contain prohibited characters',
-        },
-      });
-      return;
-    }
-    
-    next();
-  } catch (error) {
-    next(error);
+  };
+  
+  // Check request body
+  if (req.body) {
+    checkObject(req.body, 'body');
   }
+  
+  // Check query parameters
+  if (req.query) {
+    checkObject(req.query, 'query');
+  }
+  
+  if (suspiciousFields.length > 0) {
+    logger.warn('Potential NoSQL injection attempt blocked', {
+      ip: req.ip,
+      path: req.path,
+      fields: suspiciousFields,
+    });
+    
+    res.status(400).json({
+      success: false,
+      error: {
+        code: 'INVALID_INPUT',
+        message: 'Invalid characters in request',
+      },
+    });
+    return;
+  }
+  
+  next();
 };
 
-/**
- * XSS Protection middleware
- * Legacy export for compatibility
- */
-export const xssProtection = sanitizeInput;
+// ============================================================================
+// SQL INJECTION PROTECTION
+// ============================================================================
 
 /**
- * Combined security middleware
- * Applies all sanitization and protection
+ * SQL injection patterns to detect
  */
-export const securityMiddleware = [
-  preventNoSqlInjection,
-  sanitizeInput,
+const SQL_INJECTION_PATTERNS = [
+  /(\%27)|(\')|(\-\-)|(\%23)|(#)/i,
+  /((\%3D)|(=))[^\n]*((\%27)|(\')|(\-\-)|(\%3B)|(;))/i,
+  /\w*((\%27)|(\'))((\%6F)|o|(\%4F))((\%72)|r|(\%52))/i,
+  /((\%27)|(\'))union/i,
+  /exec(\s|\+)+(s|x)p\w+/i,
+  /UNION\s+SELECT/i,
+  /INSERT\s+INTO/i,
+  /DELETE\s+FROM/i,
+  /DROP\s+TABLE/i,
 ];
+
+/**
+ * SQL Injection detection middleware
+ * Note: This is a secondary defense - parameterized queries are primary
+ */
+export const detectSqlInjection = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void => {
+  const checkValue = (value: any): boolean => {
+    if (typeof value !== 'string') return false;
+    return SQL_INJECTION_PATTERNS.some(pattern => pattern.test(value));
+  };
+  
+  const checkObject = (obj: any): boolean => {
+    if (typeof obj === 'string') {
+      return checkValue(obj);
+    }
+    if (Array.isArray(obj)) {
+      return obj.some(checkObject);
+    }
+    if (obj && typeof obj === 'object') {
+      return Object.values(obj).some(checkObject);
+    }
+    return false;
+  };
+  
+  if (checkObject(req.body) || checkObject(req.query)) {
+    logger.warn('Potential SQL injection attempt detected', {
+      ip: req.ip,
+      path: req.path,
+    });
+    
+    res.status(400).json({
+      success: false,
+      error: {
+        code: 'INVALID_INPUT',
+        message: 'Invalid input detected',
+      },
+    });
+    return;
+  }
+  
+  next();
+};

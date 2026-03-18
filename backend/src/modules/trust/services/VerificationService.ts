@@ -7,6 +7,7 @@
  * MuslimEEN uses invitation-only onboarding.
  */
 
+import { env } from '../../../config/env';
 import * as VerificationRepository from '../repositories/VerificationRepository';
 import * as TrustScoreRepository from '../repositories/TrustScoreRepository';
 import { eventBus, DomainEvents } from '../../shared/events/EventBus';
@@ -128,7 +129,7 @@ async function verifyBiometricData(data: any): Promise<boolean> {
   // This is a placeholder that should be replaced with actual WebAuthn/FIDO2 integration
   
   // Feature flag check - disable if not properly configured
-  const BIOMETRIC_ENABLED = process.env.BIOMETRIC_VERIFICATION_ENABLED === 'true';
+  const BIOMETRIC_ENABLED = env.BIOMETRIC_VERIFICATION_ENABLED;
   
   if (!BIOMETRIC_ENABLED) {
     throw new VerificationError(

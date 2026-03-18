@@ -58,6 +58,7 @@ interface PageMetadataParams {
   author?: string;
   publishedAt?: string;
   modifiedAt?: string;
+  priority?: number;
 }
 
 /**
@@ -74,6 +75,7 @@ export function generatePageMetadata({
   author,
   publishedAt,
   modifiedAt,
+  priority,
 }: PageMetadataParams): Metadata {
   const fullTitle = `${title} | ${SITE_CONFIG.name}`;
   const url = `${SITE_CONFIG.baseUrl}${path}`;
@@ -147,8 +149,6 @@ export function generatePageMetadata({
     // Verification (add your codes in environment variables)
     verification: {
       google: process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION,
-      bing: process.env.NEXT_PUBLIC_BING_VERIFICATION,
-      yandex: process.env.NEXT_PUBLIC_YANDEX_VERIFICATION,
     },
     
     // Metadata base

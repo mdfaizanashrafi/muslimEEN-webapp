@@ -5,6 +5,7 @@
 
 import { Router, Request, Response } from 'express';
 import os from 'os';
+import { env } from '../config/env';
 import pool from '../modules/database/pool';
 import { logger } from '../modules/shared/utils/logger';
 
@@ -24,7 +25,11 @@ interface HealthMetrics {
   loadAverage: number[];
 }
 
-// Database health check
+// Track recent response times for trend analysis
+const responseTimeHistory: number[] = [];
+const MAX_HISTORY = 100;
+
+// Database health check with connection pool status
 const checkDatabase = async (): Promise<HealthCheck> => {
   const start = Date.now();
   try {
@@ -49,7 +54,7 @@ const checkDatabase = async (): Promise<HealthCheck> => {
   }
 };
 
-// Memory health check
+// Memory health check with detailed metrics
 const checkMemory = (): HealthCheck => {
   const used = process.memoryUsage();
   const total = os.totalmem();
@@ -77,8 +82,6 @@ const checkMemory = (): HealthCheck => {
 
 // Disk space check (using simple heuristics)
 const checkDiskSpace = (): HealthCheck => {
-  // Note: Full disk check requires additional packages like 'check-disk-space'
-  // This is a simplified version that checks process memory as proxy
   const used = process.memoryUsage();
   const rssMB = Math.round(used.rss / 1024 / 1024);
   
@@ -102,8 +105,22 @@ const checkUptime = (): HealthCheck => {
   };
 };
 
+// Response time trend analysis
+const getResponseTimeTrend = (): { average: number; p95: number; p99: number } => {
+  if (responseTimeHistory.length === 0) {
+    return { average: 0, p95: 0, p99: 0 };
+  }
+  
+  const sorted = [...responseTimeHistory].sort((a, b) => a - b);
+  const average = sorted.reduce((a, b) => a + b, 0) / sorted.length;
+  const p95 = sorted[Math.floor(sorted.length * 0.95)] || sorted[sorted.length - 1];
+  const p99 = sorted[Math.floor(sorted.length * 0.99)] || sorted[sorted.length - 1];
+  
+  return { average, p95, p99 };
+};
+
 // Main health endpoint - comprehensive health check
-router.get('/health', async (_req: Request, res: Response) => {
+router.get('/health', async (req: Request, res: Response) => {
   const startTime = Date.now();
   
   const checks = await Promise.all([
@@ -119,6 +136,14 @@ router.get('/health', async (_req: Request, res: Response) => {
   const statusCode = isUnhealthy ? 503 : 200;
   const overallStatus = isUnhealthy ? 'unhealthy' : isDegraded ? 'degraded' : 'healthy';
   
+  const responseTime = Date.now() - startTime;
+  
+  // Track response time
+  responseTimeHistory.push(responseTime);
+  if (responseTimeHistory.length > MAX_HISTORY) {
+    responseTimeHistory.shift();
+  }
+  
   const metrics: HealthMetrics = {
     uptime: process.uptime(),
     memory: process.memoryUsage(),
@@ -126,22 +151,33 @@ router.get('/health', async (_req: Request, res: Response) => {
     loadAverage: os.loadavg(),
   };
   
-  res.status(statusCode).json({
+  const response = {
     status: overallStatus,
     timestamp: new Date().toISOString(),
-    version: process.env.npm_package_version || '1.0.0',
-    environment: process.env.NODE_ENV || 'development',
-    responseTime: Date.now() - startTime,
+    version: env.npm_package_version,
+    environment: env.NODE_ENV,
+    responseTime,
     checks,
     metrics: {
       uptime: `${Math.floor(metrics.uptime / 3600)}h ${Math.floor((metrics.uptime % 3600) / 60)}m`,
       memory: {
         used: `${Math.round(metrics.memory.heapUsed / 1024 / 1024)}MB`,
         total: `${Math.round(metrics.memory.heapTotal / 1024 / 1024)}MB`,
+        percentUsed: Math.round((metrics.memory.heapUsed / metrics.memory.heapTotal) * 100),
       },
       loadAverage: metrics.loadAverage.map(l => l.toFixed(2)),
     },
-  });
+  };
+  
+  // Log health check failures
+  if (isUnhealthy || isDegraded) {
+    logger.warn('Health check detected issues', {
+      status: overallStatus,
+      failedChecks: checks.filter(c => c.status !== 'healthy').map(c => c.name),
+    });
+  }
+  
+  res.status(statusCode).json(response);
 });
 
 // Liveness probe (Kubernetes)
@@ -188,6 +224,7 @@ router.get('/health/startup', async (_req: Request, res: Response) => {
 // Detailed metrics endpoint (for monitoring systems)
 router.get('/metrics', async (_req: Request, res: Response) => {
   const dbCheck = await checkDatabase();
+  const responseTrend = getResponseTimeTrend();
   
   res.json({
     timestamp: new Date().toISOString(),
@@ -212,6 +249,18 @@ router.get('/metrics', async (_req: Request, res: Response) => {
       status: dbCheck.status,
       responseTime: dbCheck.responseTime,
     },
+    performance: {
+      responseTime: responseTrend,
+      historySize: responseTimeHistory.length,
+    },
+  });
+});
+
+// Simple status endpoint for load balancers
+router.get('/status', (_req: Request, res: Response) => {
+  res.status(200).json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
   });
 });
 

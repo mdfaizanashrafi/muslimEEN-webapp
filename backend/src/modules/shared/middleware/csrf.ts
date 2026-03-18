@@ -5,6 +5,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
+import { env } from '../../../config/env';
 import { logger } from '../utils/logger';
 
 // CSRF Token cookie name
@@ -56,7 +57,7 @@ export const csrfTokenSetter = (
     // Set cookie with security options
     res.cookie(CSRF_COOKIE_NAME, csrfToken, {
       httpOnly: true, // JavaScript cannot read this
-      secure: process.env.NODE_ENV === 'production',
+      secure: env.NODE_ENV === 'production',
       sameSite: 'strict',
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       path: '/',

@@ -6,6 +6,7 @@
  */
 
 import pool from '../../database/pool';
+import { PoolClient } from 'pg';
 import { Invite, InviteWithInviter, InviteStatus } from '../types';
 
 // ============================================================================
@@ -172,6 +173,30 @@ export const countUsedByCreator = async (createdBy: string): Promise<number> => 
  */
 export const markAsUsed = async (token: string, userId: string): Promise<Invite | null> => {
   const result = await pool.query(
+    `UPDATE invites 
+     SET status = 'used', 
+         used_by = $2, 
+         used_at = NOW()
+     WHERE token = $1 
+     AND status = 'pending' 
+     AND expires_at > NOW()
+     RETURNING *`,
+    [token, userId]
+  );
+  
+  return result.rows.length > 0 ? mapToInvite(result.rows[0]) : null;
+};
+
+/**
+ * Mark invite as used (with transaction client)
+ * Used within database transactions for atomic operations
+ */
+export const markAsUsedWithClient = async (
+  client: PoolClient,
+  token: string, 
+  userId: string
+): Promise<Invite | null> => {
+  const result = await client.query(
     `UPDATE invites 
      SET status = 'used', 
          used_by = $2, 

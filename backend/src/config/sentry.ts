@@ -5,28 +5,29 @@
 
 import * as Sentry from '@sentry/node';
 import { Express } from 'express';
+import { env } from './env';
 import { logger } from '../modules/shared/utils/logger';
 
 /**
  * Initialize Sentry with Express integration
  */
 export const initSentry = (app: Express): void => {
-  if (!process.env.SENTRY_DSN) {
+  if (!env.SENTRY_DSN) {
     logger.info('Sentry DSN not configured, skipping error tracking setup');
     return;
   }
   
   try {
     Sentry.init({
-      dsn: process.env.SENTRY_DSN,
-      environment: process.env.NODE_ENV || 'development',
-      release: process.env.npm_package_version || '1.0.0',
+      dsn: env.SENTRY_DSN,
+      environment: env.NODE_ENV,
+      release: env.npm_package_version,
       
       // Enable performance monitoring
-      tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
+      tracesSampleRate: env.NODE_ENV === 'production' ? 0.1 : 1.0,
       
       // Enable profiling (requires @sentry/profiling-node)
-      profilesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
+      profilesSampleRate: env.NODE_ENV === 'production' ? 0.1 : 1.0,
       
       // Attach stack traces to messages
       attachStacktrace: true,
@@ -54,7 +55,7 @@ export const initSentry = (app: Express): void => {
  * Must be added BEFORE all routes
  */
 export const setupSentryRequestHandlers = (app: Express): void => {
-  if (!process.env.SENTRY_DSN) return;
+  if (!env.SENTRY_DSN) return;
   
   // The request handler must be the first middleware
   app.use(Sentry.Handlers.requestHandler());
@@ -70,7 +71,7 @@ export const setupSentryRequestHandlers = (app: Express): void => {
  * Must be added AFTER all routes and BEFORE other error handlers
  */
 export const setupSentryErrorHandler = (app: Express): void => {
-  if (!process.env.SENTRY_DSN) return;
+  if (!env.SENTRY_DSN) return;
   
   // The error handler must be before any other error middleware
   app.use(Sentry.Handlers.errorHandler());
@@ -82,7 +83,7 @@ export const setupSentryErrorHandler = (app: Express): void => {
  * Capture an error with optional context
  */
 export const captureError = (error: Error, context?: Record<string, unknown>): string | null => {
-  if (!process.env.SENTRY_DSN) {
+  if (!env.SENTRY_DSN) {
     logger.debug('Sentry not configured, error not sent to Sentry', { error: error.message });
     return null;
   }
@@ -109,7 +110,7 @@ export const captureError = (error: Error, context?: Record<string, unknown>): s
  * Capture a message (for non-error events)
  */
 export const captureMessage = (message: string, level: Sentry.SeverityLevel = 'info', context?: Record<string, unknown>): string | null => {
-  if (!process.env.SENTRY_DSN) {
+  if (!env.SENTRY_DSN) {
     logger.debug('Sentry not configured, message not sent', { message });
     return null;
   }
@@ -132,7 +133,7 @@ export const captureMessage = (message: string, level: Sentry.SeverityLevel = 'i
  * Set user context for Sentry
  */
 export const setUserContext = (user: { id: string; email: string; role?: string }): void => {
-  if (!process.env.SENTRY_DSN) return;
+  if (!env.SENTRY_DSN) return;
   
   Sentry.setUser({
     id: user.id,
@@ -145,7 +146,7 @@ export const setUserContext = (user: { id: string; email: string; role?: string 
  * Clear user context (call on logout)
  */
 export const clearUserContext = (): void => {
-  if (!process.env.SENTRY_DSN) return;
+  if (!env.SENTRY_DSN) return;
   
   Sentry.setUser(null);
 };
@@ -159,7 +160,7 @@ export const addBreadcrumb = (
   level: Sentry.SeverityLevel = 'info',
   data?: Record<string, unknown>
 ): void => {
-  if (!process.env.SENTRY_DSN) return;
+  if (!env.SENTRY_DSN) return;
   
   Sentry.addBreadcrumb({
     message,

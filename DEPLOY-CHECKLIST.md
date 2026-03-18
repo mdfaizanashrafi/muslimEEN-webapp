@@ -1,160 +1,80 @@
-# Deployment Checklist
+# MuslimEEN Production Deployment Checklist
 
-Print this and check off each item as you complete it.
+Use this checklist before every production deployment.
 
----
+## ✅ Pre-Deployment
 
-## PRE-DEPLOYMENT
+### Environment Variables
+- [ ] `NODE_ENV=production` is set
+- [ ] `DATABASE_URL` points to production database
+- [ ] `JWT_SECRET` is at least 64 characters and unique
+- [ ] `COOKIE_SECRET` is at least 32 characters and unique
+- [ ] `CSRF_SECRET` is at least 32 characters and unique
+- [ ] `FRONTEND_URL` matches production domain
+- [ ] `SENTRY_DSN` is configured (recommended)
 
-- [ ] All code committed and pushed to GitHub
-- [ ] GitHub repository is public or you have access
-- [ ] Accounts created: Neon, Upstash, Render, Vercel
+### Security
+- [ ] No secrets in code (use environment variables)
+- [ ] CORS origins properly configured
+- [ ] Rate limiting enabled
+- [ ] Security headers configured
+- [ ] CSP policy active
 
----
+### Database
+- [ ] All migrations run
+- [ ] Database backups configured
+- [ ] Connection pool size appropriate
 
-## STEP 1: NEON DATABASE
+### Monitoring
+- [ ] Health endpoints accessible (/health, /health/ready)
+- [ ] Logs aggregating to monitoring service
+- [ ] Error tracking (Sentry) configured
 
-**URL**: https://console.neon.tech
+## ✅ Deployment
 
-- [ ] Click "New Project"
-- [ ] Name: `muslimeen-prod`
-- [ ] Region selected (matching your users)
-- [ ] Project created
-- [ ] Clicked "Connection Details"
-- [ ] Copied connection string to Notepad
-- [ ] Ran all 6 migration files
-- [ ] Verified with `SELECT 1;` query
+### Backend (Render)
+1. [ ] Push code to main branch
+2. [ ] Verify build succeeds
+3. [ ] Check startup logs for errors
+4. [ ] Verify health endpoint responds 200
+5. [ ] Run smoke tests
 
-**SAVE**: Connection string (starts with `postgresql://`)
+### Frontend (Vercel)
+1. [ ] Environment variables set in Vercel dashboard
+2. [ ] Build command: `npm run build`
+3. [ ] Output directory: `.next`
+4. [ ] Verify build succeeds
+5. [ ] Check that API calls work
 
----
+## ✅ Post-Deployment
 
-## STEP 2: UPSTASH REDIS
+### Smoke Tests
+- [ ] Landing page loads
+- [ ] Login page accessible
+- [ ] Health check returns 200
+- [ ] Invalid login shows error
+- [ ] Protected routes redirect to login
 
-**URL**: https://console.upstash.com
+### Monitoring
+- [ ] No errors in Sentry
+- [ ] No critical logs
+- [ ] Response times normal (< 500ms)
+- [ ] Database connections stable
 
-- [ ] Click "Create Database"
-- [ ] Name: `muslimeen-redis`
-- [ ] Region matches Neon
-- [ ] Type: **Regional** (not Global)
-- [ ] Database created
-- [ ] Clicked "Details" tab
-- [ ] Copied Redis Protocol URL
+### Rollback Plan
+If issues detected:
+1. [ ] Identify last known good version
+2. [ ] Trigger rollback in Render/Vercel
+3. [ ] Verify rollback success
+4. [ ] Communicate to team
 
-**SAVE**: Redis URL (starts with `rediss://`)
+## 🚨 Emergency Contacts
 
----
-
-## STEP 3: RENDER BACKEND
-
-**URL**: https://dashboard.render.com
-
-### Create Service
-- [ ] Clicked "New +" → "Web Service"
-- [ ] Connected GitHub repository
-- [ ] Selected repository
-- [ ] Name: `muslimeen-api`
-- [ ] Region matches Neon
-- [ ] Branch: `main`
-- [ ] Runtime: `Node`
-- [ ] Build Command: `cd backend && npm install && npm run build`
-- [ ] Start Command: `cd backend && npm start`
-- [ ] Plan selected (Free or Starter)
-
-### Environment Variables (12 total)
-- [ ] NODE_ENV = `production`
-- [ ] PORT = `10000`
-- [ ] DATABASE_URL = (paste Neon string)
-- [ ] REDIS_URL = (paste Upstash URL)
-- [ ] JWT_SECRET = (generated 64-char hex)
-- [ ] CSRF_SECRET = (generated 64-char hex)
-- [ ] COOKIE_SECRET = (generated 64-char hex)
-- [ ] BCRYPT_ROUNDS = `12`
-- [ ] FRONTEND_URL = `https://muslimeen-yourname.vercel.app`
-- [ ] LOG_LEVEL = `info`
-- [ ] RATE_LIMIT_ENABLED = `true`
-- [ ] JWT_EXPIRES_IN = `24h`
-
-### Deploy
-- [ ] Clicked "Create Web Service"
-- [ ] Deployment successful (green checkmark)
-- [ ] Copied service URL
-- [ ] Tested `/api/health` endpoint
-
-**SAVE**: Backend URL (like `https://muslimeen-api.onrender.com`)
+- Primary: [Your Name] - [Your Email]
+- Secondary: [Backup Contact]
+- Infrastructure: Render/Vercel Support
 
 ---
 
-## STEP 4: VERCEL FRONTEND
-
-**URL**: https://vercel.com/dashboard
-
-- [ ] Clicked "Add New Project"
-- [ ] Imported Git Repository
-- [ ] Selected repository
-- [ ] Framework Preset: `Next.js`
-- [ ] Root Directory: `frontend`
-- [ ] Build settings correct
-- [ ] Added Environment Variable:
-  - [ ] Key: `NEXT_PUBLIC_API_URL`
-  - [ ] Value: (paste Render backend URL + `/api`)
-- [ ] Clicked "Deploy"
-- [ ] Build successful
-- [ ] Copied deployment URL
-- [ ] Opened URL in browser
-- [ ] Homepage loads correctly
-
-**SAVE**: Frontend URL (like `https://muslimeen-yourname.vercel.app`)
-
----
-
-## STEP 5: FINAL UPDATES
-
-- [ ] Went back to Render dashboard
-- [ ] Updated FRONTEND_URL with actual Vercel URL
-- [ ] Service restarted successfully
-
----
-
-## POST-DEPLOYMENT TESTING
-
-- [ ] Frontend URL loads in browser
-- [ ] `/api/health` returns OK
-- [ ] Can register new account
-- [ ] Can login
-- [ ] Can view dashboard
-- [ ] Trust score displays
-- [ ] No CORS errors in browser console
-
----
-
-## IMPORTANT URLS TO SAVE
-
-| Service | URL | Your Value |
-|---------|-----|------------|
-| **Frontend** | Vercel URL | _________________________ |
-| **Backend** | Render URL | _________________________ |
-| **Health Check** | Render + /api/health | _________________________ |
-| **Database** | Neon Console | https://console.neon.tech |
-| **Redis** | Upstash Console | https://console.upstash.com |
-
----
-
-## EMERGENCY CONTACTS
-
-| Platform | Support URL |
-|----------|-------------|
-| Neon | https://neon.tech/docs |
-| Upstash | https://docs.upstash.com |
-| Render | https://render.com/docs |
-| Vercel | https://vercel.com/docs |
-
----
-
-## 🎉 COMPLETE!
-
-All items checked? Your MuslimEEN app is live!
-
-**Share these URLs with your team:**
-- Production App: _________________________
-- API Endpoint: _________________________
+**Last Updated:** 2026-03-18  
+**Version:** 1.0.0

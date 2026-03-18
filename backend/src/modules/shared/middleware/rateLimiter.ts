@@ -4,6 +4,7 @@
  */
 
 import rateLimit from 'express-rate-limit';
+import { env } from '../../../config/env';
 import { Request, Response } from 'express';
 import { logger } from '../utils/logger';
 
@@ -101,7 +102,7 @@ const FIFTEEN_MINUTES = 15 * 60 * 1000;
  */
 export const authLimiter = createLimiter(
   FIFTEEN_MINUTES,
-  process.env.NODE_ENV === 'production' ? 5 : 20,
+  env.NODE_ENV === 'production' ? 5 : 20,
   'Too many authentication attempts, please try again later'
 );
 

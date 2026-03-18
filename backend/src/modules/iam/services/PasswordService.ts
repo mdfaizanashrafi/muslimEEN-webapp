@@ -4,8 +4,9 @@
  */
 
 import bcrypt from 'bcrypt';
+import { env } from '../../../config/env';
 
-const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS || '12', 10);
+const BCRYPT_ROUNDS = env.BCRYPT_ROUNDS;
 
 /**
  * Hash password

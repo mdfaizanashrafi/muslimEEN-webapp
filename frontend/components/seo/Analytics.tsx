@@ -169,7 +169,7 @@ export const AnalyticsEvents = {
  * Add this to your layout's <head> for Search Console verification.
  */
 interface SearchConsoleVerificationProps {
-  verificationCode: string;
+  verificationCode: string | undefined;
 }
 
 export function SearchConsoleVerification({ verificationCode }: SearchConsoleVerificationProps) {

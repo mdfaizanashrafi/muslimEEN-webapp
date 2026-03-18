@@ -4,6 +4,7 @@
  */
 
 import jwt from 'jsonwebtoken';
+import { env } from '../../../config/env';
 import { JWTPayload } from '../../shared/types';
 
 // ============================================================================
@@ -11,23 +12,15 @@ import { JWTPayload } from '../../shared/types';
 // ============================================================================
 
 /**
- * JWT Secret - MUST be set via environment variable
- * Minimum 256 bits (32 bytes) of entropy required
+ * JWT Secret - validated in env.ts
  */
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = env.JWT_SECRET;
 
 /**
- * Validate JWT configuration at startup
- * Fail fast if configuration is insecure
+ * Additional runtime validation for extra security
+ * (env.ts already validates minimum length and weak patterns)
  */
 const validateJwtConfig = (): void => {
-  if (!JWT_SECRET) {
-    throw new Error(
-      'FATAL: JWT_SECRET environment variable is not set. ' +
-      'Generate a secure secret with: node -e "console.log(require(\'crypto\').randomBytes(64).toString(\'hex\'))"'
-    );
-  }
-  
   // Enforce minimum secret length (256 bits = 32 bytes = 64 hex chars)
   if (JWT_SECRET.length < 64) {
     throw new Error(
@@ -36,36 +29,17 @@ const validateJwtConfig = (): void => {
       'Generate with: node -e "console.log(require(\'crypto\').randomBytes(64).toString(\'hex\'))"'
     );
   }
-  
-  // Warn if secret appears to be a default/weak value
-  const weakPatterns = [
-    'secret',
-    'password',
-    '123',
-    'default',
-    'your-secret',
-    'test',
-    'dev',
-    'local'
-  ];
-  
-  const lowerSecret = JWT_SECRET.toLowerCase();
-  if (weakPatterns.some(pattern => lowerSecret.includes(pattern))) {
-    throw new Error(
-      'FATAL: JWT_SECRET appears to be a weak/default value. ' +
-      'Generate a cryptographically secure secret with: ' +
-      'node -e "console.log(require(\'crypto\').randomBytes(64).toString(\'hex\'))"'
-    );
-  }
 };
 
-// Validate on module load
-validateJwtConfig();
+// Validate on module load in production
+if (env.NODE_ENV === 'production') {
+  validateJwtConfig();
+}
 
 /**
  * JWT Expiration time
  */
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
+const JWT_EXPIRES_IN = env.JWT_EXPIRES_IN;
 
 // Maximum allowed expiration: 7 days
 const MAX_EXPIRES_IN = '7d';

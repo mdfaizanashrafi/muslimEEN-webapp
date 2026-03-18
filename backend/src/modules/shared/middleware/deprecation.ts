@@ -5,6 +5,7 @@
  * Follows RFC 8594 (Deprecation HTTP Header Field)
  */
 
+import { env } from '../../../config/env';
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger';
 
@@ -56,7 +57,7 @@ export const deprecate = (options: DeprecationOptions) => {
     res.locals.deprecationWarning = {
       message: `This endpoint is deprecated and will be removed on ${sunsetDate}`,
       alternative,
-      documentation: `${process.env.API_DOCS_URL || 'https://docs.muslimeen.org'}/api/migration`,
+      documentation: `${env.API_DOCS_URL}/api/migration`,
     };
     
     next();

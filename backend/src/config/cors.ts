@@ -4,9 +4,8 @@
  */
 
 import { CorsOptions } from 'cors';
+import { env } from './env';
 import { logger } from '../modules/shared/utils/logger';
-
-const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // Production origins - strictly controlled
 const allowedOrigins = [
@@ -17,13 +16,10 @@ const allowedOrigins = [
 ];
 
 // Add environment-specific origins
-if (process.env.FRONTEND_URL) {
-  allowedOrigins.push(process.env.FRONTEND_URL);
-}
+allowedOrigins.push(env.FRONTEND_URL);
 
-if (process.env.FRONTEND_URLS) {
-  const additionalUrls = process.env.FRONTEND_URLS.split(',').map(url => url.trim());
-  allowedOrigins.push(...additionalUrls);
+if (env.FRONTEND_URLS && env.FRONTEND_URLS.length > 0) {
+  allowedOrigins.push(...env.FRONTEND_URLS);
 }
 
 // Development origins (only in development)
@@ -45,7 +41,7 @@ export const corsConfig: CorsOptions = {
     }
     
     // In development, allow specific localhost origins
-    if (NODE_ENV === 'development') {
+    if (env.NODE_ENV === 'development') {
       if (devOrigins.includes(origin)) {
         return callback(null, true);
       }

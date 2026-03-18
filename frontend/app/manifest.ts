@@ -57,13 +57,13 @@ export default function manifest(): MetadataRoute.Manifest {
         src: '/favicon.png',
         sizes: '192x192',
         type: 'image/png',
-        purpose: 'any maskable',
+        purpose: 'maskable',
       },
       {
         src: '/favicon.png',
         sizes: '512x512',
         type: 'image/png',
-        purpose: 'any maskable',
+        purpose: 'maskable',
       },
       {
         src: '/favicon.png',
@@ -125,15 +125,11 @@ export default function manifest(): MetadataRoute.Manifest {
         src: '/screenshots/homepage-wide.png',
         sizes: '1280x720',
         type: 'image/png',
-        form_factor: 'wide',
-        label: 'MuslimEEN Homepage',
       },
       {
         src: '/screenshots/dashboard-narrow.png',
         sizes: '750x1334',
         type: 'image/png',
-        form_factor: 'narrow',
-        label: 'MuslimEEN Dashboard on Mobile',
       },
     ],
     

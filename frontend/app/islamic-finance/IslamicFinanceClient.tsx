@@ -186,7 +186,7 @@ export default function IslamicFinanceClient() {
           setCampaigns(response.campaigns.filter(c => c.isActive));
         } else if (activeTab === 'waqf') {
           const response = await islamicFinance.getWaqfListings();
-          setWaqfListings(response.waqf);
+          setWaqfListings(response.listings);
         } else if (activeTab === 'qardhasan') {
           const response = await islamicFinance.getQardHasanLoans();
           setQardHasanLoans(response.loans);
@@ -470,7 +470,15 @@ function ZakatCalculator() {
     setIsCalculating(true);
     try {
       const response = await islamicFinance.calculateZakat(assets);
-      setResult(response.calculation);
+      // Map API response to component state structure
+      setResult({
+        totalAssets: response.totalAssets,
+        totalDebts: assets.debts || 0, // Use input debts since API doesn't return it
+        netWealth: response.totalAssets - (assets.debts || 0),
+        nisabThreshold: response.nisabThreshold,
+        meetsNisab: response.isZakatDue,
+        zakatDue: response.zakatAmount,
+      });
     } catch (err) {
       console.error('Failed to calculate zakat:', err);
       alert('Failed to calculate zakat. Please try again.');

@@ -8,46 +8,48 @@
  * - Enable individually for gradual rollout
  */
 
+import { env } from '../../../config/env';
+
 export const featureFlags = {
   /**
    * Use modular IAM (Authentication & Identity)
    */
-  useModularIAM: process.env.USE_MODULAR_IAM === 'true',
+  useModularIAM: env.USE_MODULAR_IAM,
 
   /**
    * Use modular Profile module
    */
-  useModularProfile: process.env.USE_MODULAR_PROFILE === 'true',
+  useModularProfile: env.USE_MODULAR_PROFILE,
 
   /**
    * Use modular Trust & Verification
    */
-  useModularTrust: process.env.USE_MODULAR_TRUST === 'true',
+  useModularTrust: env.USE_MODULAR_TRUST,
 
   /**
    * Use modular Network (Connections)
    */
-  useModularNetwork: process.env.USE_MODULAR_NETWORK === 'true',
+  useModularNetwork: env.USE_MODULAR_NETWORK,
 
   /**
    * Use modular Notifications
    */
-  useModularNotifications: process.env.USE_MODULAR_NOTIFICATIONS === 'true',
+  useModularNotifications: env.USE_MODULAR_NOTIFICATIONS,
 
   /**
    * Use modular Invitations
    */
-  useModularInvitations: process.env.USE_MODULAR_INVITATIONS === 'true',
+  useModularInvitations: env.USE_MODULAR_INVITATIONS,
 
   /**
    * Use modular Marketplace
    */
-  useModularMarketplace: process.env.USE_MODULAR_MARKETPLACE === 'true',
+  useModularMarketplace: env.USE_MODULAR_MARKETPLACE,
 
   /**
    * Use modular Islamic Finance
    */
-  useModularIslamicFinance: process.env.USE_MODULAR_ISLAMIC_FINANCE === 'true',
+  useModularIslamicFinance: env.USE_MODULAR_ISLAMIC_FINANCE,
 };
 
 /**

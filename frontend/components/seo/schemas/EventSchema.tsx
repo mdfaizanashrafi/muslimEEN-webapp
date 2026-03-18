@@ -88,7 +88,7 @@ export default function EventSchema({
     endDate?: string;
     eventStatus: string;
     eventAttendanceMode: string;
-    location: {
+    location?: {
       '@type': 'Place' | 'VirtualLocation';
       name?: string;
       address?: {
@@ -128,21 +128,23 @@ export default function EventSchema({
     ...(endDate && { endDate }),
     eventStatus: `https://schema.org/${eventStatus}`,
     eventAttendanceMode: `https://schema.org/${eventAttendanceMode}`,
-    location: 'url' in (location || {})
+    location: location && 'url' in location
       ? {
-          '@type': 'VirtualLocation',
-          url: (location as { url: string }).url,
+          '@type': 'VirtualLocation' as const,
+          url: location.url,
         }
-      : {
-          '@type': 'Place',
-          ...(location?.name && { name: location.name }),
-          address: {
-            '@type': 'PostalAddress',
-            addressLocality: location?.city || '',
-            addressCountry: location?.country || '',
-            ...(location?.address && { streetAddress: location.address }),
-          },
-        },
+      : location && 'city' in location
+        ? {
+            '@type': 'Place' as const,
+            ...(location.name && { name: location.name }),
+            address: {
+              '@type': 'PostalAddress' as const,
+              addressLocality: location.city || '',
+              addressCountry: location.country || '',
+              ...(location.address && { streetAddress: location.address }),
+            },
+          }
+        : undefined,
     ...(images && { image: images }),
     organizer: {
       '@type': 'Organization',

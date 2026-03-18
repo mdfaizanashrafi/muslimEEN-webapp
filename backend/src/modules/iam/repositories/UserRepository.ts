@@ -3,9 +3,12 @@
  * 
  * Data access for user identity records
  * Owns: users table (core identity fields only)
+ * 
+ * TRANSACTION SUPPORT: All functions support client-based queries for transactions
  */
 
-import pool from '../../database/pool';
+import pool, { transaction } from '../../database/pool';
+import { PoolClient } from 'pg';
 import { UserRole, VerificationTier } from '../../shared/types';
 
 export interface UserIdentity {
@@ -32,6 +35,10 @@ export interface CreateUserInput {
   role: UserRole;
   verificationTier: VerificationTier;
 }
+
+// ============================================================================
+// READ OPERATIONS (don't need transaction client)
+// ============================================================================
 
 /**
  * Find user by ID
@@ -68,10 +75,53 @@ export const findByEmail = async (email: string): Promise<UserIdentity | null> =
 };
 
 /**
+ * Find user by email (with transaction client)
+ */
+export const findByEmailWithClient = async (
+  client: PoolClient, 
+  email: string
+): Promise<UserIdentity | null> => {
+  const result = await client.query(
+    `SELECT id, email, first_name, last_name, role, verification_tier,
+            trust_score, is_active, password_hash, invites_remaining,
+            last_login, created_at
+     FROM users 
+     WHERE email = $1`,
+    [email.toLowerCase()]
+  );
+  
+  if (result.rows.length === 0) return null;
+  return mapToUserIdentity(result.rows[0]);
+};
+
+// ============================================================================
+// WRITE OPERATIONS (support both pool and transaction client)
+// ============================================================================
+
+/**
  * Create new user
  */
 export const create = async (input: CreateUserInput): Promise<UserIdentity> => {
   const result = await pool.query(
+    `INSERT INTO users (email, password_hash, first_name, last_name, role, verification_tier, invites_remaining)
+     VALUES ($1, $2, $3, $4, $5, $6, 0)
+     RETURNING id, email, first_name, last_name, role, verification_tier,
+               trust_score, is_active, invites_remaining, last_login, created_at`,
+    [input.email.toLowerCase(), input.passwordHash, input.firstName, input.lastName, input.role, input.verificationTier]
+  );
+  
+  return mapToUserIdentity(result.rows[0]);
+};
+
+/**
+ * Create new user (with transaction client)
+ * Used within database transactions for atomic operations
+ */
+export const createWithClient = async (
+  client: PoolClient, 
+  input: CreateUserInput
+): Promise<UserIdentity> => {
+  const result = await client.query(
     `INSERT INTO users (email, password_hash, first_name, last_name, role, verification_tier, invites_remaining)
      VALUES ($1, $2, $3, $4, $5, $6, 0)
      RETURNING id, email, first_name, last_name, role, verification_tier,
@@ -117,6 +167,20 @@ export const setInviteCount = async (userId: string, count: number): Promise<voi
 };
 
 /**
+ * Set user's invite count (with transaction client)
+ */
+export const setInviteCountWithClient = async (
+  client: PoolClient, 
+  userId: string, 
+  count: number
+): Promise<void> => {
+  await client.query(
+    'UPDATE users SET invites_remaining = $1 WHERE id = $2',
+    [count, userId]
+  );
+};
+
+/**
  * Decrease user's remaining invite count
  * SECURITY FIX: Atomic check-and-decrement prevents race conditions
  * @returns true if decrement succeeded (user had invites), false otherwise
@@ -153,6 +217,16 @@ export const getInviteCount = async (userId: string): Promise<number> => {
   
   return result.rows.length > 0 ? result.rows[0].invites_remaining : 0;
 };
+
+// ============================================================================
+// TRANSACTION SUPPORT
+// ============================================================================
+
+/**
+ * Execute a function within a database transaction
+ * This is a convenience re-export from the pool module
+ */
+export { transaction };
 
 // ============================================================================
 // MAPPER

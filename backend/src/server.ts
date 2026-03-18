@@ -1,10 +1,13 @@
 /**
  * MuslimEEN Backend Server
- * Refactored main entry point with modular configuration
+ * Production-ready entry point with comprehensive security
  */
 
 import dotenv from 'dotenv';
 dotenv.config();
+
+// Environment is validated on import via side-effect
+import { env } from './config/env';
 
 import express, { Request, Response } from 'express';
 import cors from 'cors';
@@ -24,11 +27,13 @@ import { errorHandler, notFound } from './modules/shared/middleware/errorHandler
 import { performanceMonitor } from './modules/shared/middleware/performance';
 import { sanitizeInput, xssProtection } from './modules/shared/middleware/sanitization';
 import { securityHeaders, autoSanitizeJson, addRequestId } from './modules/shared/middleware/secureResponse';
+import { securityAudit } from './modules/shared/middleware/securityAudit';
 import { initSentry, setupSentryRequestHandlers, setupSentryErrorHandler } from './config/sentry';
+import { csrfTokenSetter } from './modules/shared/middleware/csrf';
 
 // Initialize Express app
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = env.PORT;
 
 // ============================================================================
 // INITIALIZATION
@@ -42,15 +47,22 @@ initSentry(app);
 setupSentryRequestHandlers(app);
 
 // ============================================================================
-// SECURITY MIDDLEWARE
+// SECURITY MIDDLEWARE (ORDER MATTERS)
 // ============================================================================
 
 app.use(helmetConfig);
 app.use(cors(corsConfig));
+
+// Cookie parser must be before CSRF
+initializeCookieParser(app);
+
+// CSRF token setter - available on all routes
+app.use(csrfTokenSetter);
+
 app.use(express.json({ limit: '1mb', strict: true }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
-initializeCookieParser(app);
 app.use(addRequestId);
+app.use(securityAudit);
 app.use(sanitizeInput);
 app.use(xssProtection);
 app.use(autoSanitizeJson);
@@ -77,9 +89,9 @@ app.use('/api', router);
 app.get('/', (_req: Request, res: Response) => {
   res.json({
     name: 'MuslimEEN API',
-    version: process.env.npm_package_version || '1.0.0',
+    version: env.npm_package_version,
     status: 'running',
-    environment: process.env.NODE_ENV || 'development',
+    environment: env.NODE_ENV,
     documentation: '/api',
     health: '/health',
     observability: {
@@ -107,7 +119,7 @@ app.use(errorHandler);
 const server = app.listen(PORT, () => {
   logger.info(`MuslimEEN API server running`, {
     port: PORT,
-    environment: process.env.NODE_ENV || 'development',
+    environment: env.NODE_ENV,
     version: process.env.npm_package_version || '1.0.0',
   });
 });

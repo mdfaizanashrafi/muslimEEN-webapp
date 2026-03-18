@@ -5,27 +5,8 @@
  */
 
 import { Pool, PoolClient, QueryResult } from "pg";
+import { env } from "../../config/env";
 import { logger } from "../shared/utils/logger";
-
-// ============================================================================
-// ENVIRONMENT VALIDATION
-// ============================================================================
-
-/**
- * Validate required environment variables
- */
-const validateDatabaseConfig = (): void => {
-  if (!process.env.DATABASE_URL) {
-    throw new Error(
-      "FATAL: DATABASE_URL environment variable is missing.\n" +
-      "Example:\n" +
-      "DATABASE_URL=postgresql://user:password@host/db?sslmode=require"
-    );
-  }
-};
-
-// Run validation immediately
-validateDatabaseConfig();
 
 // ============================================================================
 // GLOBAL POOL (Prevents multiple connections during reloads)
@@ -41,10 +22,10 @@ declare global {
  */
 const createPool = (): Pool => {
   const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: env.DATABASE_URL,
 
     // Pool configuration
-    max: parseInt(process.env.DB_POOL_MAX || "20", 10),
+    max: env.DB_POOL_MAX,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 5000,
 

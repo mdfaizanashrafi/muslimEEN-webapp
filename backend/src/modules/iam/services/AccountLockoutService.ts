@@ -136,8 +136,10 @@ export class AccountLockoutService {
    * Returns lockout status after recording the attempt
    */
   recordFailedAttempt(identifier: string): LockoutStatus {
+    // CRITICAL FIX: Normalize identifier (email) to lowercase
+    const normalizedIdentifier = identifier.toLowerCase().trim();
     const now = Date.now();
-    let entry = this.store.get(identifier);
+    let entry = this.store.get(normalizedIdentifier);
 
     if (!entry) {
       // First failed attempt
@@ -167,24 +169,25 @@ export class AccountLockoutService {
       entry.lockedUntil = now + this.config.lockoutDurationMs;
       
       logger.warn('Account locked due to failed attempts', {
-        identifier: this.maskIdentifier(identifier),
+        identifier: this.maskIdentifier(normalizedIdentifier),
         failedAttempts: entry.count,
         lockedUntil: new Date(entry.lockedUntil).toISOString(),
       });
     }
 
-    this.store.set(identifier, entry);
-    return this.getLockoutStatus(identifier);
+    this.store.set(normalizedIdentifier, entry);
+    return this.getLockoutStatus(normalizedIdentifier);
   }
 
   /**
    * Record a successful login - clears failed attempts
    */
   recordSuccessfulLogin(identifier: string): void {
-    this.store.delete(identifier);
+    const normalizedIdentifier = identifier.toLowerCase().trim();
+    this.store.delete(normalizedIdentifier);
     
     logger.info('Login successful, cleared failed attempts', {
-      identifier: this.maskIdentifier(identifier),
+      identifier: this.maskIdentifier(normalizedIdentifier),
     });
   }
 
@@ -192,7 +195,8 @@ export class AccountLockoutService {
    * Check if account is currently locked
    */
   isLocked(identifier: string): boolean {
-    const entry = this.store.get(identifier);
+    const normalizedIdentifier = identifier.toLowerCase().trim();
+    const entry = this.store.get(normalizedIdentifier);
     
     if (!entry || !entry.lockedUntil) {
       return false;
@@ -203,7 +207,7 @@ export class AccountLockoutService {
     // Check if lockout has expired
     if (now > entry.lockedUntil) {
       // Lockout expired, clear it
-      this.store.delete(identifier);
+      this.store.delete(normalizedIdentifier);
       return false;
     }
 
@@ -214,7 +218,8 @@ export class AccountLockoutService {
    * Get detailed lockout status for an account
    */
   getLockoutStatus(identifier: string): LockoutStatus {
-    const entry = this.store.get(identifier);
+    const normalizedIdentifier = identifier.toLowerCase().trim();
+    const entry = this.store.get(normalizedIdentifier);
     
     if (!entry) {
       return {
@@ -250,16 +255,17 @@ export class AccountLockoutService {
    * Manually unlock an account (for admin use)
    */
   unlockAccount(identifier: string): boolean {
-    const entry = this.store.get(identifier);
+    const normalizedIdentifier = identifier.toLowerCase().trim();
+    const entry = this.store.get(normalizedIdentifier);
     
     if (!entry) {
       return false;
     }
 
-    this.store.delete(identifier);
+    this.store.delete(normalizedIdentifier);
     
     logger.info('Account manually unlocked', {
-      identifier: this.maskIdentifier(identifier),
+      identifier: this.maskIdentifier(normalizedIdentifier),
     });
     
     return true;
@@ -317,7 +323,9 @@ export const checkAccountLockout = (
   res: Response,
   next: NextFunction
 ): void => {
-  const identifier = req.body.email || req.ip;
+  // CRITICAL FIX: Normalize email to lowercase for consistent lockout behavior
+  const rawIdentifier = req.body.email || req.ip;
+  const identifier = rawIdentifier ? rawIdentifier.toLowerCase().trim() : null;
   
   if (!identifier) {
     next();
@@ -355,12 +363,14 @@ export const checkAccountLockout = (
  * Helper to record failed login from auth controller
  */
 export const recordFailedLogin = (identifier: string): LockoutStatus => {
-  return accountLockoutService.recordFailedAttempt(identifier);
+  const normalizedIdentifier = identifier.toLowerCase().trim();
+  return accountLockoutService.recordFailedAttempt(normalizedIdentifier);
 };
 
 /**
  * Helper to record successful login from auth controller
  */
 export const recordSuccessfulLogin = (identifier: string): void => {
-  accountLockoutService.recordSuccessfulLogin(identifier);
+  const normalizedIdentifier = identifier.toLowerCase().trim();
+  accountLockoutService.recordSuccessfulLogin(normalizedIdentifier);
 };

@@ -6,26 +6,14 @@
 import { Express } from 'express';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
+import { env } from './env';
 import { logger } from '../modules/shared/utils/logger';
-
-const NODE_ENV = process.env.NODE_ENV || 'development';
 
 /**
  * Validate and get cookie secret
  */
-const getCookieSecret = (): string => {
-  const COOKIE_SECRET = process.env.COOKIE_SECRET;
-  const DEFAULT_COOKIE_SECRET = 'default-secret-change-in-production';
-
-  if (!COOKIE_SECRET || COOKIE_SECRET === DEFAULT_COOKIE_SECRET) {
-    if (NODE_ENV === 'production') {
-      throw new Error('CRITICAL: COOKIE_SECRET must be set and not be the default value in production');
-    }
-    logger.warn('WARNING: Using default COOKIE_SECRET. Set COOKIE_SECRET in production!');
-  }
-
-  return COOKIE_SECRET || DEFAULT_COOKIE_SECRET;
-};
+// Cookie secret is validated in env.ts, just use it directly
+const getCookieSecret = (): string => env.COOKIE_SECRET;
 
 /**
  * Helmet configuration for security headers
@@ -82,10 +70,8 @@ export const initializeCookieParser = (app: Express): void => {
  * Trust proxy configuration
  */
 export const configureTrustProxy = (app: Express): void => {
-  if (NODE_ENV === 'production') {
-    const trustedProxies = process.env.TRUSTED_PROXIES 
-      ? process.env.TRUSTED_PROXIES.split(',').map(ip => ip.trim())
-      : ['loopback', 'linklocal', 'uniquelocal'];
+  if (env.NODE_ENV === 'production') {
+    const trustedProxies = env.TRUSTED_PROXIES ?? ['loopback', 'linklocal', 'uniquelocal'];
     
     app.set('trust proxy', trustedProxies);
     logger.info('Trust proxy configured for production', { trustedProxies });

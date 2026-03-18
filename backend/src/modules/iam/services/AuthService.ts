@@ -115,14 +115,15 @@ export const login = async (credentials: LoginCredentials): Promise<AuthResult> 
 /**
  * Register new user with invite token
  * 
- * SECURITY NOTE: This operation should ideally be wrapped in a database transaction.
- * Current implementation uses compensating actions (cleanup) on failure.
- * TODO: Implement full transaction support across repository boundaries
+ * SECURITY: Wrapped in database transaction for atomicity
+ * - User creation and invite usage are atomic
+ * - No orphaned users possible
+ * - Rollback on any failure
  */
 export const register = async (data: RegisterData): Promise<AuthResult> => {
   const { email, password, firstName, lastName, inviteToken } = data;
 
-  // Validate invite token using the new invites module
+  // Validate invite token first (outside transaction - validates input)
   const { validateInviteExternal } = await import('../../invites/services/InviteService');
   const validationResult = await validateInviteExternal(inviteToken);
   
@@ -130,52 +131,45 @@ export const register = async (data: RegisterData): Promise<AuthResult> => {
     throw new AuthError('INVALID_INVITE', validationResult.message || 'Invalid invite token');
   }
 
-  // Check if user already exists
+  // Check if user already exists (outside transaction - quick check)
   const existingUser = await UserRepository.findByEmail(email);
   if (existingUser) {
     throw new AuthError('USER_EXISTS', 'User already exists with this email');
   }
 
-  // Hash password
+  // Hash password (CPU intensive, do outside transaction)
   const passwordHash = await PasswordService.hashPassword(password);
 
-  // Create user with default role
-  const user = await UserRepository.create({
-    email,
-    passwordHash,
-    firstName,
-    lastName,
-    role: 'muslim_unverified' as UserRole,
-    verificationTier: 'basic' as VerificationTier,
+  // Execute user creation and invite usage in a transaction
+  const user = await UserRepository.transaction(async (client) => {
+    // Create user with default role (within transaction)
+    const newUser = await UserRepository.createWithClient(client, {
+      email,
+      passwordHash,
+      firstName,
+      lastName,
+      role: 'muslim_unverified' as UserRole,
+      verificationTier: 'basic' as VerificationTier,
+    });
+
+    // Use invite within the same transaction
+    const { useInviteWithClient } = await import('../../invites/services/InviteService');
+    const useResult = await useInviteWithClient(
+      client,
+      inviteToken,
+      newUser.id,
+      newUser.email
+    );
+
+    if (!useResult.success) {
+      // This will trigger transaction rollback
+      throw new Error(useResult.message || 'Failed to process invite');
+    }
+
+    return newUser;
   });
 
-  // SECURITY FIX: Wrap invite usage in try-catch with cleanup
-  try {
-    // Mark invite as used and award invite credits
-    const { useInviteExternal } = await import('../../invites/services/InviteService');
-    const useResult = await useInviteExternal(inviteToken, user.id, user.email);
-    
-    if (!useResult.success) {
-      // Invite usage failed - clean up the created user
-      logger.error('Invite usage failed after user creation, cleaning up', {
-        userId: user.id,
-        error: useResult.message,
-      });
-      // Note: In production, you might want to mark user as "pending cleanup" rather than delete
-      throw new AuthError('INVITE_USAGE_FAILED', useResult.message || 'Failed to process invite');
-    }
-  } catch (error) {
-    // If invite usage fails, we have an orphaned user
-    // Log for manual cleanup or implement automatic cleanup
-    logger.error('Critical: User created but invite not consumed', {
-      userId: user.id,
-      email: user.email,
-      error: (error as Error).message,
-    });
-    throw new AuthError('REGISTRATION_FAILED', 'Registration failed. Please contact support.');
-  }
-
-  // Generate tokens
+  // Generate tokens (after successful transaction)
   const token = JwtService.generateToken({
     id: user.id,
     email: user.email,
@@ -184,13 +178,18 @@ export const register = async (data: RegisterData): Promise<AuthResult> => {
 
   const csrfToken = generateCsrfToken();
 
-  // Publish event
-  await eventBus.publish(DomainEvents.USER_REGISTERED, {
+  // Publish event (outside transaction - best effort)
+  eventBus.publish(DomainEvents.USER_REGISTERED, {
     userId: user.id,
     email: user.email,
     firstName: user.firstName,
     lastName: user.lastName,
     invitedBy: validationResult.invite!.createdBy,
+  }).catch(() => {}); // Non-blocking
+
+  logger.info('User registered successfully', {
+    userId: user.id,
+    email: user.email,
   });
 
   return {
@@ -236,6 +235,59 @@ export const getCurrentUser = async (userId: string): Promise<any> => {
     throw new AuthError('USER_NOT_FOUND', 'User not found');
   }
   return user;
+};
+
+// ============================================================================
+// TOKEN REFRESH
+// ============================================================================
+
+/**
+ * Refresh user session with new tokens
+ * Used for silent token refresh before expiration
+ */
+export const refreshSession = async (userId: string): Promise<AuthResult> => {
+  const user = await UserRepository.findById(userId);
+  
+  if (!user) {
+    throw new AuthError('USER_NOT_FOUND', 'User not found', 404);
+  }
+  
+  if (!user.isActive) {
+    throw new AuthError('ACCOUNT_DISABLED', 'Account has been disabled', 403);
+  }
+
+  // Generate new tokens
+  const token = JwtService.generateToken({
+    id: user.id,
+    email: user.email,
+    role: user.role,
+  });
+
+  const csrfToken = generateCsrfToken();
+
+  // Publish event
+  eventBus.publish(DomainEvents.USER_AUTHENTICATED, {
+    userId: user.id,
+    email: user.email,
+    timestamp: new Date(),
+    type: 'token_refresh',
+  });
+
+  return {
+    user: {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      fullName: user.fullName,
+      role: user.role,
+      verificationTier: user.verificationTier,
+      trustScore: user.trustScore,
+      invitesRemaining: user.invitesRemaining,
+    },
+    token,
+    csrfToken,
+  };
 };
 
 // ============================================================================

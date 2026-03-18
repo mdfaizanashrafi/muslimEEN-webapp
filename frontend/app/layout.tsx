@@ -15,6 +15,9 @@ import {
   MicrosoftClarity 
 } from "@/components/seo/Analytics";
 import { AuthProviderWrapper } from "@/components/auth-provider-wrapper";
+import { AnalyticsProvider } from "@/components/AnalyticsProvider";
+import { ToastContainer } from "@/components/Toast";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 /**
  * Primary font - Inter
@@ -98,9 +101,14 @@ export default function RootLayout({
         {/* GTM NoScript Fallback */}
         <GoogleTagManagerNoScript containerId={GTM_CONTAINER_ID || ''} />
         
-        <AuthProviderWrapper>
-          {children}
-        </AuthProviderWrapper>
+        <ErrorBoundary>
+          <AuthProviderWrapper>
+            <AnalyticsProvider>
+              {children}
+              <ToastContainer />
+            </AnalyticsProvider>
+          </AuthProviderWrapper>
+        </ErrorBoundary>
       </body>
     </html>
   );

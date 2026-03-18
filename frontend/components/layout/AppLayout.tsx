@@ -32,7 +32,7 @@ export const AppLayout = ({ children, activeNav }: AppLayoutProps) => {
   const lastName = user?.lastName || profile?.lastName || '';
   const fullName = user?.fullName || profile?.fullName || `${firstName} ${lastName}`.trim();
   const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-  const trustScore = user?.trustScore || profile?.trustScore || 0;
+  const trustScore = user?.trustScore || 0;
   const industry = profile?.industry || 'Member';
 
   // Get trust score color

@@ -288,13 +288,13 @@ export const users = {
 
 export const connections = {
   getConnections: (): Promise<Connection[]> =>
-    callMuslimEenApi('/connections/me/connections'),
+    callMuslimEenApi('/connections'),
 
   getPendingRequests: (): Promise<PendingConnection[]> =>
-    callMuslimEenApi('/connections/me/connections/pending'),
+    callMuslimEenApi('/connections/pending'),
 
   sendRequest: (recipientId: string): Promise<{ success: boolean; message: string }> =>
-    callMuslimEenApi('/connections/me/connections', {
+    callMuslimEenApi('/connections', {
       method: 'POST',
       body: JSON.stringify({ recipientId }),
     }),

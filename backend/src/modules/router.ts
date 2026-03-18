@@ -60,8 +60,8 @@ router.get('/', apiLimiter, (_req: Request, res: Response) => {
       { path: 'GET /api/users/:userId', description: 'Get public user profile' },
       
       // Connections (protected)
-      { path: 'GET /api/connections/me/connections', description: 'Get user connections' },
-      { path: 'POST /api/connections/me/connections', description: 'Send connection request' },
+      { path: 'GET /api/connections', description: 'Get user connections' },
+      { path: 'POST /api/connections', description: 'Send connection request' },
       { path: 'PATCH /api/connections/:id/status', description: 'Update connection status' },
       
       // Invites (protected)

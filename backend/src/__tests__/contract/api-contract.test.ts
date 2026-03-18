@@ -180,8 +180,8 @@ describe('API Contract Consistency', () => {
       { method: 'POST', path: '/users/me/trust-score/recalculate', auth: true },
       
       // Connections
-      { method: 'GET', path: '/users/me/connections', auth: true },
-      { method: 'POST', path: '/users/me/connections', auth: true },
+      { method: 'GET', path: '/connections', auth: true },
+      { method: 'POST', path: '/connections', auth: true },
       { method: 'PATCH', path: '/connections/:id/status', auth: true },
       
       // Invites

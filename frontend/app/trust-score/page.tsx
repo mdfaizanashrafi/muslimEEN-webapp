@@ -1,9 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
 import { AppLayout } from '@/components/layout';
 import '@/styles/trust-score.css';
+import Link from 'next/link';
 
 // Types
 interface TrustFactor {
@@ -30,38 +29,38 @@ const mockTrustFactors: TrustFactor[] = [
     name: 'Profile Completeness',
     score: 100,
     maxScore: 100,
-    description: 'Based on how complete your profile is'
+    description: 'Based on how complete your profile is',
   },
   {
     name: 'Connection Quality',
     score: 85,
     maxScore: 100,
-    description: 'Quality and engagement of your network'
+    description: 'Quality and engagement of your network',
   },
   {
     name: 'Community Contributions',
     score: 60,
     maxScore: 100,
-    description: 'Endorsements, recommendations, and helpful interactions'
+    description: 'Endorsements, recommendations, and helpful interactions',
   },
   {
     name: 'Verification Level',
     score: 150,
     maxScore: 150,
-    description: 'Identity verification and witness validations'
+    description: 'Identity verification and witness validations',
   },
   {
     name: 'Account Activity',
     score: 200,
     maxScore: 250,
-    description: 'Regular platform usage and engagement'
+    description: 'Regular platform usage and engagement',
   },
   {
     name: 'Trust endorsements',
     score: 90,
     maxScore: 150,
-    description: 'Endorsements from verified members'
-  }
+    description: 'Endorsements from verified members',
+  },
 ];
 
 const mockScoreHistory: ScoreHistoryPoint[] = [
@@ -70,13 +69,13 @@ const mockScoreHistory: ScoreHistoryPoint[] = [
   { date: 'Oct 2025', score: 710 },
   { date: 'Nov 2025', score: 740 },
   { date: 'Dec 2025', score: 765 },
-  { date: 'Jan 2026', score: 785 }
+  { date: 'Jan 2026', score: 785 },
 ];
 
 const mockComparison: ConnectionComparison = {
   percentile: 85,
   averageScore: 620,
-  yourScore: 785
+  yourScore: 785,
 };
 
 // Components
@@ -101,12 +100,11 @@ const ScoreProgressBar = ({ current, max }: { current: number; max: number }) =>
   return (
     <div className="progress-bar-container">
       <div className="progress-bar">
-        <div 
-          className="progress-fill" 
-          style={{ width: `${percentage}%` }}
-        />
+        <div className="progress-fill" style={{ width: `${percentage}%` }} />
       </div>
-      <span className="progress-text">{current} / {max}</span>
+      <span className="progress-text">
+        {current} / {max}
+      </span>
     </div>
   );
 };
@@ -125,11 +123,9 @@ const TrustFactorItem = ({ factor }: { factor: TrustFactor }) => (
 const TrustFactorsSection = () => (
   <section className="trust-factors-section">
     <h2>Score Breakdown</h2>
-    <p className="section-description">
-      Your trust score is calculated based on these factors
-    </p>
+    <p className="section-description">Your trust score is calculated based on these factors</p>
     <div className="factors-list">
-      {mockTrustFactors.map((factor) => (
+      {mockTrustFactors.map(factor => (
         <TrustFactorItem key={factor.name} factor={factor} />
       ))}
     </div>
@@ -144,10 +140,7 @@ const ScoreHistoryChart = () => (
         const height = (point.score / 1000) * 100;
         return (
           <div key={point.date} className="chart-bar-container">
-            <div 
-              className="chart-bar" 
-              style={{ height: `${height}%` }}
-            >
+            <div className="chart-bar" style={{ height: `${height}%` }}>
               <span className="bar-value">{point.score}</span>
             </div>
             <span className="bar-label">{point.date}</span>
@@ -188,14 +181,14 @@ const ImprovementSuggestions = () => {
     { action: 'Complete your profile', points: '+20 points', icon: '👤' },
     { action: 'Get 3 more endorsements', points: '+30 points', icon: '⭐' },
     { action: 'Verify with two witnesses', points: '+50 points', icon: '✓' },
-    { action: 'Connect with 10 more members', points: '+15 points', icon: '🤝' }
+    { action: 'Connect with 10 more members', points: '+15 points', icon: '🤝' },
   ];
 
   return (
     <section className="suggestions-section">
       <h2>Improve Your Score</h2>
       <div className="suggestions-list">
-        {suggestions.map((suggestion) => (
+        {suggestions.map(suggestion => (
           <div key={suggestion.action} className="suggestion-item">
             <span className="suggestion-icon">{suggestion.icon}</span>
             <div className="suggestion-content">
@@ -218,13 +211,13 @@ export default function TrustScorePage() {
     <AppLayout activeNav="profile">
       <div className="trust-score-page">
         <ScoreHeader />
-        
+
         <div className="trust-score-content">
           <div className="main-column">
             <TrustFactorsSection />
             <ScoreHistoryChart />
           </div>
-          
+
           <aside className="sidebar-column">
             <ConnectionComparisonSection />
             <ImprovementSuggestions />

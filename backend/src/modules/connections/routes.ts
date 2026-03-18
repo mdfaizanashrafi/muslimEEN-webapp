@@ -17,18 +17,22 @@ const router = Router();
 // All routes require authentication
 router.use(authenticate);
 
-// Current user's connections
-router.get('/me/connections', userLimiter, ConnectionController.getCurrentUserConnections);
-router.get('/me/connections/pending', userLimiter, ConnectionController.getCurrentUserPendingConnections);
+// Get current user's connections
+router.get('/', userLimiter, ConnectionController.getCurrentUserConnections);
+
+// Get pending connection requests
+router.get('/pending', userLimiter, ConnectionController.getCurrentUserPendingConnections);
+
+// Send connection request
 router.post(
-  '/me/connections',
+  '/',
   userLimiter,
   csrfValidator,
   createBodyValidator('connectionRequest'),
   ConnectionController.sendConnectionRequestToUser
 );
 
-// Connection management by ID
+// Update connection status (accept/reject)
 router.patch(
   '/:connectionId/status',
   userLimiter,
@@ -39,6 +43,7 @@ router.patch(
   ConnectionController.updateConnectionStatus
 );
 
+// Remove connection
 router.delete(
   '/:connectionId',
   userLimiter,

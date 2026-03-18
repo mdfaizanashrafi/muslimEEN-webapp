@@ -427,3 +427,5 @@ MuslimEEN is more than a platform—it's a movement to empower the global Muslim
   <strong>Made with ❤️ for the Muslim Ummah</strong><br>
   <em>"The believers are but a single brotherhood" — Quran 49:10</em>
 </p>
+
+Mohamed Faizan

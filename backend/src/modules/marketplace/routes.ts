@@ -4,7 +4,7 @@
  */
 
 import { Router } from 'express';
-import { MarketplaceController } from './controllers/MarketplaceController';
+import * as MarketplaceController from './controllers/MarketplaceController';
 import { authenticate } from '../iam/middleware/auth';
 import { marketplaceLimiter } from '../shared/middleware/rateLimiter';
 import { csrfValidator } from '../shared/middleware/csrf';

@@ -4,7 +4,7 @@
  */
 
 import { Router } from 'express';
-import { ConnectionController } from '../network/controllers/ConnectionController';
+import * as ConnectionController from '../network/controllers/ConnectionController';
 import { authenticate } from '../iam/middleware/auth';
 import { userLimiter } from '../shared/middleware/rateLimiter';
 import { csrfValidator } from '../shared/middleware/csrf';

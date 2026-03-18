@@ -4,7 +4,7 @@
  */
 
 import { Router } from 'express';
-import { InviteController } from './controllers/InviteController';
+import * as InviteController from './controllers/InviteController';
 import { authenticate, requireAdmin } from '../iam/middleware/auth';
 import { authLimiter, userLimiter } from '../shared/middleware/rateLimiter';
 import { csrfValidator } from '../shared/middleware/csrf';

@@ -4,7 +4,7 @@
  */
 
 import { Router } from 'express';
-import { IslamicFinanceController } from './controllers/IslamicFinanceController';
+import * as IslamicFinanceController from './controllers/IslamicFinanceController';
 import { authenticate } from '../iam/middleware/auth';
 import { apiLimiter } from '../shared/middleware/rateLimiter';
 import { csrfValidator } from '../shared/middleware/csrf';

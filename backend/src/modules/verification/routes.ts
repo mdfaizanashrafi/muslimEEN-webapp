@@ -4,7 +4,7 @@
  */
 
 import { Router } from 'express';
-import { VerificationController } from '../trust/controllers/VerificationController';
+import * as VerificationController from '../trust/controllers/VerificationController';
 import { authenticate, authorize } from '../iam/middleware/auth';
 import { userLimiter } from '../shared/middleware/rateLimiter';
 import { csrfValidator } from '../shared/middleware/csrf';

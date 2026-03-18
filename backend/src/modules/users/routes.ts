@@ -4,14 +4,14 @@
  */
 
 import { Router } from 'express';
-import { ProfileController } from '../profile/controllers/ProfileController';
-import { TrustScoreController } from '../trust/controllers/TrustScoreController';
-import { VerificationController } from '../trust/controllers/VerificationController';
+import * as ProfileController from '../profile/controllers/ProfileController';
+import * as TrustScoreController from '../trust/controllers/TrustScoreController';
+import * as VerificationController from '../trust/controllers/VerificationController';
 import { authenticate } from '../iam/middleware/auth';
 import { userLimiter } from '../shared/middleware/rateLimiter';
 import { csrfValidator } from '../shared/middleware/csrf';
 import { createBodyValidator } from '../shared/middleware/validation';
-import { preventNoSqlInjection, sanitizeInput } from '../shared/middleware/sanitization';
+import { preventNoSqlInjection } from '../shared/middleware/sanitization';
 import { auditLog, AUDIT_ACTIONS } from '../shared/middleware/auditLogger';
 
 const router = Router();

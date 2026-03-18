@@ -4,8 +4,8 @@
  */
 
 import { Router } from 'express';
-import { AuthController } from './controllers/AuthController';
-import { authenticate } from './middleware/auth';
+import * as AuthController from '../iam/controllers/AuthController';
+import { authenticate } from '../iam/middleware/auth';
 import { authLimiter } from '../shared/middleware/rateLimiter';
 import { preventNoSqlInjection, sanitizeInput } from '../shared/middleware/sanitization';
 import { createBodyValidator } from '../shared/middleware/validation';

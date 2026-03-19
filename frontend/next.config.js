@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    unoptimized: false, // Enable Next.js image optimization
+    unoptimized: false,
     remotePatterns: [
       {
         protocol: 'https',
@@ -15,11 +15,16 @@ const nextConfig = {
   },
   typescript: {
     ignoreBuildErrors: process.env.NODE_ENV === 'development',
-    // Note: 'ignoreDurigErrors' was a typo - using correct 'ignoreBuildErrors' above
   },
-  
-  // Security headers with CSP
+
+  // Security headers with production-grade CSP
   async headers() {
+    const isDev = process.env.NODE_ENV === 'development';
+    
+    // Get backend API URL from env (remove protocol for cleaner CSP)
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+    const apiHost = apiUrl ? new URL(apiUrl).origin : '';
+    
     return [
       {
         source: '/:path*',
@@ -50,35 +55,93 @@ const nextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: [
-              // Default: only allow same origin
-              "default-src 'self'",
-              // Scripts: allow same origin, inline (for Next.js), and eval (for development)
-              process.env.NODE_ENV === 'production'
-                ? "script-src 'self' 'unsafe-inline'"
-                : "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-              // Styles: allow same origin and inline
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              // Fonts: allow same origin and Google Fonts
-              "font-src 'self' https://fonts.gstatic.com",
-              // Images: allow same origin, data URIs, and HTTPS
-              "img-src 'self' data: https:",
-              // Connect: allow same origin and API
-              "connect-src 'self'",
-              // Frame ancestors: prevent clickjacking
-              "frame-ancestors 'none'",
-              // Form action: only same origin
-              "form-action 'self'",
-              // Base URI: restrict to same origin
-              "base-uri 'self'",
-              // Upgrade insecure requests
-              "upgrade-insecure-requests",
-            ].join('; '),
+            value: buildCSP({ isDev, apiHost }),
           },
         ],
       },
     ];
   },
 };
+
+/**
+ * Build CSP directive string
+ * Security-first but functional for real-world use
+ */
+function buildCSP({ isDev, apiHost }) {
+  const directives = {
+    // Default fallback - strict self-only
+    'default-src': ["'self'"],
+    
+    // Scripts: Self + inline (Next.js requires) + Sentry + Vercel Live (dev only)
+    'script-src': [
+      "'self'",
+      "'unsafe-inline'", // Required by Next.js
+      'https://browser.sentry-cdn.com',
+      'https://js.sentry-cdn.com',
+      ...(isDev ? ['https://vercel.live', "'unsafe-eval'"] : []),
+    ],
+    
+    // Styles: Self + inline (Tailwind/common) + Google Fonts
+    'style-src': [
+      "'self'",
+      "'unsafe-inline'",
+      'https://fonts.googleapis.com',
+    ],
+    
+    // Fonts: Self + Google Fonts
+    'font-src': [
+      "'self'",
+      'https://fonts.gstatic.com',
+    ],
+    
+    // Images: Self + data URIs + HTTPS (for user uploads/external images)
+    'img-src': [
+      "'self'",
+      'data:',
+      'blob:',
+      'https:',
+    ],
+    
+    // Connect (API calls): Self + Backend API + Sentry
+    'connect-src': [
+      "'self'",
+      ...(apiHost ? [apiHost] : []),
+      'https://*.sentry.io',
+      'https://sentry.io',
+      ...(isDev ? ['https://vercel.live', 'wss://vercel.live'] : []),
+    ],
+    
+    // Frame: None (prevent clickjacking) unless you need iframes
+    'frame-src': [
+      ...(isDev ? ['https://vercel.live'] : []),
+    ],
+    
+    // Media: Self + HTTPS
+    'media-src': ["'self'", 'https:'],
+    
+    // Object: None (Flash/Java are dead)
+    'object-src': ["'none'"],
+    
+    // Frame ancestors: None (prevent embedding)
+    'frame-ancestors': ["'none'"],
+    
+    // Form action: Self only
+    'form-action': ["'self'"],
+    
+    // Base URI: Self only
+    'base-uri': ["'self'"],
+    
+    // Upgrade HTTP to HTTPS
+    'upgrade-insecure-requests': [],
+  };
+  
+  // Convert to CSP string format
+  return Object.entries(directives)
+    .map(([key, values]) => {
+      if (values.length === 0) return key;
+      return `${key} ${values.join(' ')}`;
+    })
+    .join('; ');
+}
 
 module.exports = nextConfig;

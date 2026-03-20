@@ -14,7 +14,7 @@ import {
   SearchConsoleVerification,
   MicrosoftClarity 
 } from "@/components/seo/Analytics";
-import { AuthProviderWrapper } from "@/components/auth-provider-wrapper";
+import { ClerkProvider } from '@clerk/nextjs';
 import { AnalyticsProvider } from "@/components/AnalyticsProvider";
 import { ToastContainer } from "@/components/Toast";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -102,12 +102,12 @@ export default function RootLayout({
         <GoogleTagManagerNoScript containerId={GTM_CONTAINER_ID || ''} />
         
         <ErrorBoundary>
-          <AuthProviderWrapper>
+          <ClerkProvider>
             <AnalyticsProvider>
               {children}
               <ToastContainer />
             </AnalyticsProvider>
-          </AuthProviderWrapper>
+          </ClerkProvider>
         </ErrorBoundary>
       </body>
     </html>

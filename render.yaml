@@ -7,10 +7,13 @@ services:
     buildCommand: cd backend && npm install && npm run build
     startCommand: cd backend && npm start
     envVars:
+      # Core Configuration
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 10000
+      
+      # Database (PostgreSQL)
       - key: DB_HOST
         fromDatabase:
           name: muslimeen-db
@@ -35,29 +38,96 @@ services:
         fromDatabase:
           name: muslimeen-db
           property: connectionString
+      
+      # Clerk Authentication (REQUIRED)
+      - key: CLERK_SECRET_KEY
+        sync: false  # Set manually in Render dashboard
+      - key: CLERK_PUBLISHABLE_KEY
+        sync: false  # Set manually in Render dashboard
+      - key: CLERK_WEBHOOK_SECRET
+        sync: false  # Set manually in Render dashboard
+      
+      # Legacy Auth (Deprecated but kept for compatibility)
       - key: JWT_SECRET
         generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 24h
       - key: CSRF_SECRET
         generateValue: true
       - key: COOKIE_SECRET
         generateValue: true
+      - key: BCRYPT_ROUNDS
+        value: '12'
+      
+      # Frontend CORS
+      - key: FRONTEND_URL
+        value: https://muslimeen.vercel.app
+      - key: FRONTEND_URLS
+        value: https://muslimeen.vercel.app,https://www.muslimeen.org
+      
+      # Internal API
+      - key: INTERNAL_API_URL
+        value: https://muslimeen-api.onrender.com/api/internal
+      - key: INTERNAL_API_KEY
+        sync: false  # Generate with create-api-key script
+      
+      # Monitoring & Logging
+      - key: SENTRY_DSN
+        sync: false  # Set manually
+      - key: LOG_LEVEL
+        value: info
+      
+      # Redis (Optional - for session caching)
       - key: REDIS_URL
         fromService:
           type: redis
           name: muslimeen-redis
           property: connectionString
-      - key: FRONTEND_URL
-        value: https://muslimeen.vercel.app
+      
+      # Feature Flags (Clerk Migration)
+      - key: USE_CLERK_AUTH
+        value: 'true'
+      - key: DISABLE_LEGACY_AUTH
+        value: 'true'
+      - key: ENABLE_LEGACY_AUTH_DETECTION
+        value: 'true'
+      - key: SYSTEM_READ_ONLY
+        value: 'false'
+      
+      # Security
+      - key: TRUSTED_PROXIES
+        value: '10.0.0.0/8,172.16.0.0/12,192.168.0.0/16'
+    
     healthCheckPath: /api/health
-    autoDeploy: true
+    autoDeploy: false  # Manual deploy for safety
+    
+    # Zero-downtime deployment settings
+    numInstances: 1
+    plan: standard
+    
+    # Health check configuration
+    healthCheckTimeout: 100
+    
+    # Deploy hooks (optional)
+    # preDeployCommand: echo "Starting deployment..."
+    # postDeployCommand: echo "Deployment complete!"
 
 databases:
   - name: muslimeen-db
     databaseName: muslimeen
     user: muslimeen
-    plan: free
+    plan: standard
+    # Enable backups for production
+    # backupRetention: 7
 
 redis:
   - name: muslimeen-redis
-    plan: free
+    plan: standard
     maxmemoryPolicy: allkeys-lru
+
+# Environment Groups (for sharing config across services)
+# envVarGroups:
+#   - name: muslimeen-secrets
+#     envVars:
+#       - key: CLERK_SECRET_KEY
+#         sync: false

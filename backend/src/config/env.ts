@@ -95,12 +95,25 @@ const envSchema = z.object({
     .transform(val => parseInt(val, 10)),
 
   // ==========================================================================
-  // SECURITY SECRETS (Required, strict in production)
+  // CLERK AUTHENTICATION (Required)
+  // ==========================================================================
+  
+  CLERK_SECRET_KEY: z
+    .string()
+    .min(1, 'CLERK_SECRET_KEY is required for authentication'),
+  
+  CLERK_PUBLISHABLE_KEY: z
+    .string()
+    .min(1, 'CLERK_PUBLISHABLE_KEY is required')
+    .optional(),
+  
+  // ==========================================================================
+  // SECURITY SECRETS (Deprecated - kept for backward compatibility)
   // ==========================================================================
   
   JWT_SECRET: z
     .string()
-    .min(1, 'JWT_SECRET is required')
+    .optional()
     .refine(
       secret => {
         // In development, allow shorter secrets for convenience
@@ -147,6 +160,19 @@ const envSchema = z.object({
     .string()
     .default('12')
     .transform(val => parseInt(val, 10)),
+  
+  // ==========================================================================
+  // INTERNAL API (Service-to-Service)
+  // ==========================================================================
+  
+  INTERNAL_API_URL: z
+    .string()
+    .url()
+    .default('http://localhost:3001/api/internal'),
+  
+  INTERNAL_API_KEY: z
+    .string()
+    .optional(),
 
   // ==========================================================================
   // CORS / FRONTEND (Required in production)
@@ -271,6 +297,15 @@ const envSchema = z.object({
     .enum(['true', 'false'])
     .default('false')
     .transform(val => val === 'true'),
+  
+  // ==========================================================================
+  // SYSTEM SAFETY MODE (Read-only during maintenance)
+  // ==========================================================================
+  
+  SYSTEM_READ_ONLY: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform(val => val === 'true'),
 });
 
 // ============================================================================
@@ -342,6 +377,12 @@ export const getEnvironmentSummary = () => ({
  * Check if running in safe mode
  */
 export const isSafeMode = (): boolean => env.SAFE_MODE;
+
+/**
+ * Check if system is in read-only mode
+ * When true, only GET/HEAD requests are allowed
+ */
+export const isReadOnlyMode = (): boolean => env.SYSTEM_READ_ONLY;
 
 // ============================================================================
 // VALIDATION HELPERS FOR PRODUCTION

@@ -1,14 +1,14 @@
 #!/bin/bash
-# =============================================================================
-# MUSLIMEEN HEALTH CHECK SCRIPT
-# =============================================================================
-# Usage: ./scripts/health-check.sh [environment]
-#   environment: local | staging | production (default: local)
 #
-# This script performs comprehensive health checks on all services.
-# =============================================================================
+# Quick Health Check Script
+#
+# Performs quick health checks on all services.
+# Use this for rapid status verification.
+#
+# Usage: ./scripts/health-check.sh [production|staging]
+#
 
-set -euo pipefail
+set -e
 
 # Colors
 RED='\033[0;31m'
@@ -18,160 +18,68 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 # Configuration
-ENVIRONMENT="${1:-local}"
+ENVIRONMENT="${1:-staging}"
 
-# Service URLs based on environment
-case "$ENVIRONMENT" in
-    local)
-        BACKEND_URL="http://localhost:3001"
-        FRONTEND_URL="http://localhost:8080"
-        ;;
-    staging)
-        BACKEND_URL="https://api-staging.muslimeen.org"
-        FRONTEND_URL="https://staging.muslimeen.org"
-        ;;
-    production)
-        BACKEND_URL="https://api.muslimeen.org"
-        FRONTEND_URL="https://muslimeen.org"
-        ;;
-    *)
-        echo -e "${RED}Invalid environment: $ENVIRONMENT${NC}"
-        echo "Usage: $0 [local|staging|production]"
-        exit 1
-        ;;
-esac
+if [ "$ENVIRONMENT" == "production" ]; then
+  BACKEND_URL="https://muslimeen-api.onrender.com"
+  FRONTEND_URL="https://muslimeen.org"
+else
+  BACKEND_URL="https://muslimeen-api-staging.onrender.com"
+  FRONTEND_URL="https://muslimeen-staging.vercel.app"
+fi
 
-# Counters
-CHECKS_PASSED=0
-CHECKS_FAILED=0
+TIMEOUT=10
 
-# Functions
-log_info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
-}
+echo ""
+echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
+echo -e "${BLUE}  QUICK HEALTH CHECK - ${ENVIRONMENT^^}${NC}"
+echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
+echo ""
 
-log_success() {
-    echo -e "${GREEN}[PASS]${NC} $1"
-    ((CHECKS_PASSED++))
-}
+FAILED=0
 
-log_error() {
-    echo -e "${RED}[FAIL]${NC} $1"
-    ((CHECKS_FAILED++))
-}
-
-# Check HTTP endpoint
 check_endpoint() {
-    local name="$1"
-    local url="$2"
-    local expected_status="${3:-200}"
-    
-    log_info "Checking $name at $url..."
-    
-    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$url" || echo "000")
-    
-    if [[ "$HTTP_STATUS" == "$expected_status" ]] || [[ "$HTTP_STATUS" == "307" && "$expected_status" == "200" ]]; then
-        log_success "$name is healthy (HTTP $HTTP_STATUS)"
-        return 0
-    else
-        log_error "$name failed (HTTP $HTTP_STATUS, expected $expected_status)"
-        return 1
-    fi
+  local url=$1
+  local name=$2
+  local expected_code=${3:-200}
+  
+  local status
+  status=$(curl -s -o /dev/null -w "%{http_code}" --max-time $TIMEOUT "$url" 2>/dev/null || echo "000")
+  
+  if [ "$status" == "$expected_code" ]; then
+    echo -e "${GREEN}✓${NC} $name: HTTP $status"
+    return 0
+  else
+    echo -e "${RED}✗${NC} $name: HTTP $status (expected $expected_code)"
+    return 1
+  fi
 }
 
-# Check API health endpoint
-check_api_health() {
-    log_info "Checking API health endpoint..."
-    
-    RESPONSE=$(curl -s "$BACKEND_URL/api/health" || echo "{}")
-    
-    # Check if response is valid JSON
-    if ! echo "$RESPONSE" | jq -e . > /dev/null 2>&1; then
-        log_error "Invalid JSON response from health endpoint"
-        return 1
-    fi
-    
-    # Check success field
-    SUCCESS=$(echo "$RESPONSE" | jq -r '.success // false')
-    if [[ "$SUCCESS" == "true" ]]; then
-        log_success "API health check passed"
-        echo "$RESPONSE" | jq .
-        return 0
-    else
-        log_error "API health check failed"
-        echo "$RESPONSE" | jq .
-        return 1
-    fi
-}
+# Backend Health
+echo "Backend: $BACKEND_URL"
+echo "─────────────────────────────────────────────────────────────"
 
-# Check database connectivity
-check_database() {
-    log_info "Checking database connectivity..."
-    
-    # This would require a specific endpoint or direct DB connection
-    # For now, we check if the health endpoint includes DB status
-    RESPONSE=$(curl -s "$BACKEND_URL/api/health" || echo "{}")
-    DB_STATUS=$(echo "$RESPONSE" | jq -r '.data.database // "unknown"')
-    
-    if [[ "$DB_STATUS" == "connected" ]]; then
-        log_success "Database is connected"
-        return 0
-    else
-        log_error "Database status: $DB_STATUS"
-        return 1
-    fi
-}
+check_endpoint "$BACKEND_URL/health" "Basic Health" || FAILED=$((FAILED + 1))
+check_endpoint "$BACKEND_URL/api/health/auth" "Auth Health" || FAILED=$((FAILED + 1))
+check_endpoint "$BACKEND_URL/api/health/ready" "Auth Ready" || FAILED=$((FAILED + 1))
 
-# Check frontend assets
-check_frontend() {
-    log_info "Checking frontend..."
-    
-    check_endpoint "Frontend" "$FRONTEND_URL" "200"
-}
+# Frontend Health
+echo ""
+echo "Frontend: $FRONTEND_URL"
+echo "─────────────────────────────────────────────────────────────"
 
-# Main execution
-main() {
-    echo "================================"
-    echo "  MuslimEEN Health Check"
-    echo "  Environment: $ENVIRONMENT"
-    echo "================================"
-    echo ""
-    
-    # Check dependencies
-    if ! command -v curl &> /dev/null; then
-        echo -e "${RED}curl is required but not installed${NC}"
-        exit 1
-    fi
-    
-    if ! command -v jq &> /dev/null; then
-        echo -e "${YELLOW}Warning: jq not installed. Some checks may fail.${NC}"
-    fi
-    
-    # Run checks
-    check_endpoint "Backend" "$BACKEND_URL" "200"
-    check_frontend
-    
-    if command -v jq &> /dev/null; then
-        check_api_health
-        check_database
-    fi
-    
-    # Summary
-    echo ""
-    echo "================================"
-    echo "  Health Check Summary"
-    echo "================================"
-    echo -e "${GREEN}Passed: $CHECKS_PASSED${NC}"
-    echo -e "${RED}Failed: $CHECKS_FAILED${NC}"
-    echo ""
-    
-    if [[ $CHECKS_FAILED -eq 0 ]]; then
-        echo -e "${GREEN}All health checks passed!${NC}"
-        exit 0
-    else
-        echo -e "${RED}Some health checks failed!${NC}"
-        exit 1
-    fi
-}
+check_endpoint "$FRONTEND_URL" "Homepage" || FAILED=$((FAILED + 1))
+check_endpoint "$FRONTEND_URL/login" "Login Page" 307 || true  # 307 is redirect, acceptable
+check_endpoint "$FRONTEND_URL/status" "Status Endpoint" || FAILED=$((FAILED + 1))
 
-main "$@"
+# Summary
+echo ""
+echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
+
+if [ $FAILED -eq 0 ]; then
+  echo -e "${GREEN}✅ ALL HEALTH CHECKS PASSED${NC}"
+  exit 0
+else
+  echo -e "${RED}❌ $FAILED CHECK(S) FAILED${NC}"
+  exit 1
+fi

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useAuth } from '@/lib/auth-context';
+import { useAuth } from '@clerk/nextjs';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 
@@ -12,8 +12,11 @@ interface ProtectedRouteProps {
 }
 
 /**
- * ProtectedRoute Component
+ * ProtectedRoute Component - CLERK VERSION
  * Prevents flash of protected content by waiting for auth initialization
+ * 
+ * MIGRATED: From custom AuthContext to Clerk's useAuth hook
+ * DATE: 2026-03-20
  * 
  * @example
  * ```tsx
@@ -26,21 +29,13 @@ interface ProtectedRouteProps {
  *   );
  * }
  * ```
- * 
- * @example
- * ```tsx
- * // Custom loading state
- * <ProtectedRoute fallback={<CustomLoader />}>
- *   <Dashboard />
- * </ProtectedRoute>
- * ```
  */
 export function ProtectedRoute({ 
   children, 
   fallback,
   requireAuth = true 
 }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading, isInitialized } = useAuth();
+  const { isSignedIn, isLoaded } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -53,13 +48,13 @@ export function ProtectedRoute({
 
   // Redirect if not authenticated (after initialization)
   useEffect(() => {
-    if (isInitialized && !isLoading && !isAuthenticated && requireAuth) {
+    if (isLoaded && !isSignedIn && requireAuth) {
       router.push('/login');
     }
-  }, [isInitialized, isLoading, isAuthenticated, requireAuth, router]);
+  }, [isLoaded, isSignedIn, requireAuth, router]);
 
   // Show loading state while initializing
-  if (!isInitialized || isLoading) {
+  if (!isLoaded) {
     return (
       <>
         {fallback || (
@@ -75,7 +70,7 @@ export function ProtectedRoute({
   }
 
   // Return null if not authenticated (will redirect)
-  if (!isAuthenticated && requireAuth) {
+  if (!isSignedIn && requireAuth) {
     return null;
   }
 
@@ -91,20 +86,20 @@ export function PublicOnlyRoute({
   children,
   fallback
 }: Omit<ProtectedRouteProps, 'requireAuth'>) {
-  const { isAuthenticated, isLoading, isInitialized } = useAuth();
+  const { isSignedIn, isLoaded } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (isInitialized && !isLoading && isAuthenticated) {
+    if (isLoaded && isSignedIn) {
       // Redirect to dashboard or stored path
       const redirectTo = sessionStorage.getItem('redirectAfterLogin') || '/dashboard';
       sessionStorage.removeItem('redirectAfterLogin');
       router.push(redirectTo);
     }
-  }, [isInitialized, isLoading, isAuthenticated, router]);
+  }, [isLoaded, isSignedIn, router]);
 
   // Show loading state while initializing
-  if (!isInitialized || isLoading) {
+  if (!isLoaded) {
     return (
       <>
         {fallback || (
@@ -117,7 +112,7 @@ export function PublicOnlyRoute({
   }
 
   // Return null if authenticated (will redirect)
-  if (isAuthenticated) {
+  if (isSignedIn) {
     return null;
   }
 
@@ -127,6 +122,8 @@ export function PublicOnlyRoute({
 
 /**
  * AuthGuard Hook - For programmatic auth checks
+ * 
+ * MIGRATED: Uses Clerk's useAuth hook
  * 
  * @example
  * ```tsx
@@ -140,11 +137,11 @@ export function PublicOnlyRoute({
  * ```
  */
 export function useAuthGuard() {
-  const { isAuthenticated, isLoading, isInitialized } = useAuth();
+  const { isSignedIn, isLoaded } = useAuth();
   const router = useRouter();
 
   // Returns false if still loading or not authenticated
-  const AuthGuard = isInitialized && !isLoading && isAuthenticated;
+  const AuthGuard = isLoaded && isSignedIn;
 
   // Redirect helper
   const redirectToLogin = () => {
@@ -155,9 +152,9 @@ export function useAuthGuard() {
   };
 
   return {
-    isAuthenticated,
-    isLoading,
-    isInitialized,
+    isAuthenticated: isSignedIn,
+    isLoading: !isLoaded,
+    isInitialized: isLoaded,
     AuthGuard,
     redirectToLogin,
   };

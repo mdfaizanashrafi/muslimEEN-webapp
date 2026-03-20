@@ -75,6 +75,35 @@ export const findByEmail = async (email: string): Promise<UserIdentity | null> =
 };
 
 /**
+ * Find user by Clerk ID
+ * MIGRATED: Added for Clerk authentication support
+ */
+export const findByClerkId = async (clerkId: string): Promise<UserIdentity | null> => {
+  const result = await pool.query(
+    `SELECT id, email, first_name, last_name, role, verification_tier,
+            trust_score, is_active, password_hash, invites_remaining,
+            last_login, created_at
+     FROM users 
+     WHERE clerk_id = $1`,
+    [clerkId]
+  );
+  
+  if (result.rows.length === 0) return null;
+  return mapToUserIdentity(result.rows[0]);
+};
+
+/**
+ * Update user's Clerk ID
+ * MIGRATED: Used during Clerk migration to link existing users
+ */
+export const updateClerkId = async (userId: string, clerkId: string): Promise<void> => {
+  await pool.query(
+    'UPDATE users SET clerk_id = $1 WHERE id = $2',
+    [clerkId, userId]
+  );
+};
+
+/**
  * Find user by email (with transaction client)
  */
 export const findByEmailWithClient = async (

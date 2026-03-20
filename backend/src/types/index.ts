@@ -15,7 +15,9 @@ export {};
 export type UserRole = 
   | 'user'
   | 'admin' 
-  | 'super_admin';
+  | 'super_admin'
+  | 'muslim_unverified'
+  | 'muslim_verified';
 
 export type VerificationTier = 'basic' | 'standard' | 'advanced';
 

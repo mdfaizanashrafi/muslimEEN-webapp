@@ -181,24 +181,22 @@ export const validateInvite = async (
     if (!result.valid) {
       res.status(400).json({
         success: false,
-        error: {
-          code: 'INVALID_INVITE',
-          message: result.message || 'Invalid invite token',
-        },
+        valid: false,
+        message: result.message || 'Invalid invite token',
       });
       return;
     }
 
     res.json({
       success: true,
-      data: {
-        valid: true,
-        invite: {
-          id: result.invite!.id,
-          inviterName: result.invite!.inviterName,
-          expiresAt: result.invite!.expiresAt,
-        },
+      valid: true,
+      invite: {
+        id: result.invite!.id,
+        inviterName: result.invite!.inviterName,
+        expiresAt: result.invite!.expiresAt,
       },
+      // Include pre-assigned email if the invite was created for a specific email
+      email: result.invite!.inviteeEmail || undefined,
     });
   } catch (error) {
     next(error);

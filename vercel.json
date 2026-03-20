@@ -1,14 +1,40 @@
 {
-  "version": 2,
-  "name": "muslimeen-frontend",
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "cd frontend && npm install && npm run build",
+  "outputDirectory": "frontend/.next",
   "framework": "nextjs",
-  "buildCommand": "npm run build",
-  "installCommand": "npm install",
+  "installCommand": "cd frontend && npm install",
+  "regions": ["iad1"],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=()"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "${NEXT_PUBLIC_API_URL}/$1"
+    }
+  ],
   "env": {
-    "NEXT_PUBLIC_API_URL": "https://muslimeen-webapp-cutf.onrender.com/api"
-  },
-  "github": {
-    "enabled": true,
-    "autoAlias": true
+    "NEXT_TELEMETRY_DISABLED": "1"
   }
 }

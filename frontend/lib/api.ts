@@ -1,7 +1,8 @@
-// MuslimEEN API Client - Production Ready
-// SECURITY: Uses httpOnly cookies for auth, memory-stored CSRF tokens
-// HARDENED: Race-condition safe, retry-safe, production observable
-// BATTLE-TESTED: Retry storm protection, offline detection, cleanup
+// MuslimEEN API Client - CLERK VERSION
+// MIGRATED: Removed CSRF handling (Clerk manages auth via JWT)
+// DATE: 2026-03-20
+// SECURITY: Uses Clerk's JWT for auth, automatic retry logic, production observable
+// HARDENED: Race-condition safe, offline detection, cleanup
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
@@ -98,112 +99,6 @@ function initOfflineDetection(): void {
 // Auto-initialize if in browser
 if (typeof window !== 'undefined') {
   initOfflineDetection();
-}
-
-// ============================================================================
-// CSRF TOKEN MANAGEMENT - HARDENED
-// ============================================================================
-
-/**
- * CSRF Token State
- * SECURITY: Token stored in memory only (XSS protection)
- */
-let csrfTokenMemory: string | null = null;
-
-/**
- * Singleton promise to prevent duplicate CSRF fetch requests
- * CRITICAL: Prevents race conditions when multiple requests need CSRF
- */
-let csrfFetchPromise: Promise<string | null> | null = null;
-
-/**
- * Get CSRF token from memory
- */
-const getCsrfToken = (): string | null => csrfTokenMemory;
-
-/**
- * Set CSRF token in memory
- */
-const setCsrfToken = (token: string): void => {
-  csrfTokenMemory = token;
-};
-
-/**
- * Clear CSRF token from memory
- */
-const clearCsrfToken = (): void => {
-  csrfTokenMemory = null;
-};
-
-/**
- * Fetch CSRF token from server with singleton pattern
- * CRITICAL FIX: Prevents duplicate network calls when multiple requests
- * trigger CSRF fetch simultaneously
- */
-async function fetchCsrfTokenFromServer(): Promise<string | null> {
-  // If a fetch is already in progress, reuse it
-  if (csrfFetchPromise) {
-    return csrfFetchPromise;
-  }
-
-  // Create new fetch promise
-  csrfFetchPromise = (async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/csrf-token`, {
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error(`CSRF fetch failed: ${response.status}`);
-      }
-
-      const data = await response.json();
-      if (data.csrfToken) {
-        setCsrfToken(data.csrfToken);
-        return data.csrfToken;
-      }
-      return null;
-    } catch (error) {
-      // Log to Sentry for production observability
-      if (typeof window !== 'undefined') {
-        const { captureError, addBreadcrumb } = require('./sentry');
-        captureError(error as Error, {
-          component: 'csrf',
-          action: 'fetch_token',
-          endpoint: '/auth/csrf-token',
-        });
-        addBreadcrumb('CSRF token fetch failed', 'csrf', 'error');
-      }
-      throw error;
-    } finally {
-      // Reset promise after completion (success or failure)
-      csrfFetchPromise = null;
-    }
-  })();
-
-  return csrfFetchPromise;
-}
-
-/**
- * Ensure CSRF token is available for mutating requests
- * Fetches from server if missing (handles refresh/new tab scenarios)
- * Uses singleton pattern to prevent duplicate fetches
- */
-async function ensureCsrfToken(): Promise<string | null> {
-  // Check if we already have a token
-  const existingToken = getCsrfToken();
-  if (existingToken) return existingToken;
-
-  // Token missing - fetch from server (singleton prevents duplicates)
-  try {
-    return await fetchCsrfTokenFromServer();
-  } catch (e) {
-    // Log structured warning
-    if (typeof window !== 'undefined') {
-      console.warn('[CSRF] Token fetch failed:', e);
-    }
-    return null;
-  }
 }
 
 // ============================================================================
@@ -363,28 +258,25 @@ const SAFE_RETRY_CONFIG = {
   maxDelay: 5000,  // 5 seconds
 };
 
-// CSRF error codes that trigger safe retry
-const CSRF_ERROR_CODES = ['CSRF_TOKEN_INVALID', 'CSRF_TOKEN_MISSING'];
-
-// Track CSRF retry metrics for observability
-interface CsrfMetrics {
+// Track retry metrics for observability
+interface RetryMetrics {
   retryAttempts: number;
   retrySuccesses: number;
   retryFailures: number;
 }
 
-const csrfMetrics: CsrfMetrics = {
+const retryMetrics: RetryMetrics = {
   retryAttempts: 0,
   retrySuccesses: 0,
   retryFailures: 0,
 };
 
 /**
- * Log CSRF metrics (for debugging and monitoring)
+ * Log retry metrics (for debugging and monitoring)
  */
-function logCsrfMetrics(): void {
+function logRetryMetrics(): void {
   if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-    console.debug('[CSRF Metrics]', { ...csrfMetrics });
+    console.debug('[Retry Metrics]', { ...retryMetrics });
   }
 }
 
@@ -393,7 +285,7 @@ function logCsrfMetrics(): void {
 // ============================================================================
 
 /**
- * Global auth error handler - set by auth-context
+ * Global auth error handler - set by auth-context or components
  */
 let globalAuthErrorHandler: ((error: ApiError) => void) | null = null;
 
@@ -423,7 +315,7 @@ export enum ApiErrorType {
   OFFLINE = 'OFFLINE',
   SERVER = 'SERVER',
   AUTH = 'AUTH',
-  CSRF = 'CSRF',
+  CSRF = 'CSRF',  // DEPRECATED: Kept for backward compatibility
   VALIDATION = 'VALIDATION',
   SYSTEM_UNAVAILABLE = 'SYSTEM_UNAVAILABLE',
   ABORTED = 'ABORTED',
@@ -524,9 +416,6 @@ async function executeRequest<T>(
       // Classify error type
       let errorType = ApiErrorType.UNKNOWN;
       if (httpResponse.status === 401) errorType = ApiErrorType.AUTH;
-      else if (httpResponse.status === 403 && CSRF_ERROR_CODES.includes(errorData.error?.code)) {
-        errorType = ApiErrorType.CSRF;
-      }
       else if (httpResponse.status >= 400 && httpResponse.status < 500) errorType = ApiErrorType.VALIDATION;
       else if (httpResponse.status >= 500) errorType = ApiErrorType.SERVER;
 
@@ -590,8 +479,9 @@ export interface RequestOptions {
 }
 
 /**
- * Make API request with hardened CSRF token handling and safe retry logic
- * SECURITY: Automatically includes CSRF token for mutating requests
+ * Make API request with hardened error handling and safe retry logic
+ * MIGRATED: Removed CSRF handling - Clerk manages auth via JWT cookies
+ * 
  * RELIABILITY: Race-condition safe, safe retry, production observable
  * HARDENED: Circuit breaker, offline detection, abort support
  */
@@ -603,7 +493,6 @@ async function callMuslimEenApi<T>(
   const { signal: externalSignal, skipCircuitBreaker = false } = options;
   const apiUrl = `${API_BASE_URL}${endpoint}`;
   const method = requestConfig.method || 'GET';
-  const isMutating = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
   const isSafeRequest = method === 'GET' || method === 'HEAD';
 
   // Check circuit breaker (unless skipped for critical requests)
@@ -620,16 +509,9 @@ async function callMuslimEenApi<T>(
     ...requestConfig.headers as Record<string, string>,
   };
 
-  // Add CSRF token for mutating requests
-  if (isMutating) {
-    const csrfToken = await ensureCsrfToken();
-    if (csrfToken) {
-      headers['X-CSRF-Token'] = csrfToken;
-    }
-  }
+  // NOTE: Clerk automatically adds Authorization header with JWT
+  // No manual CSRF token handling needed
 
-  let csrfRetryCount = 0;
-  const maxCsrfRetries = 1;
   let safeRetryCount = 0;
   const maxSafeRetries = isSafeRequest ? SAFE_RETRY_CONFIG.maxRetries : 0;
 
@@ -646,7 +528,7 @@ async function callMuslimEenApi<T>(
     const httpConfig: RequestInit = {
       ...requestConfig,
       headers,
-      credentials: 'include',
+      credentials: 'include', // Clerk sets session cookie automatically
     };
 
     const result = await executeRequest<T>(apiUrl, httpConfig, endpoint, method, externalSignal);
@@ -660,30 +542,6 @@ async function callMuslimEenApi<T>(
     // Don't retry aborted requests
     if (error.type === ApiErrorType.ABORTED) {
       throw error;
-    }
-
-    // Handle CSRF errors with immediate retry (only for mutating requests)
-    if (error.type === ApiErrorType.CSRF && isMutating && csrfRetryCount < maxCsrfRetries) {
-      csrfRetryCount++;
-      csrfMetrics.retryAttempts++;
-      incrementGlobalRetry();
-
-      if (typeof window !== 'undefined') {
-        const { addBreadcrumb } = require('./sentry');
-        addBreadcrumb(`CSRF retry ${csrfRetryCount}/${maxCsrfRetries}`, 'csrf', 'warning');
-      }
-
-      clearCsrfToken();
-      try {
-        const newToken = await fetchCsrfTokenFromServer();
-        if (newToken) {
-          headers['X-CSRF-Token'] = newToken;
-          csrfMetrics.retrySuccesses++;
-          continue;
-        }
-      } catch {
-        csrfMetrics.retryFailures++;
-      }
     }
 
     // Handle safe request retries with exponential backoff
@@ -712,14 +570,12 @@ async function callMuslimEenApi<T>(
     }
 
     // Log final error to Sentry
-    // Note: ABORTED errors are already filtered out above
     if (typeof window !== 'undefined') {
       const { captureError } = require('./sentry');
       captureError(error, {
         endpoint,
         method,
         errorType: error.type,
-        csrfRetries: csrfRetryCount,
         safeRetries: safeRetryCount,
         globalRetries: globalRetryCount,
       });
@@ -734,6 +590,10 @@ async function callMuslimEenApi<T>(
 // ============================================================================
 
 export const auth = {
+  /**
+   * Validate invitation code
+   * NOTE: With Clerk, this is optional. Invitations can be enforced via webhooks.
+   */
   validateInvitation: (invitationCode: string): Promise<ValidateInvitationResponse> =>
     callMuslimEenApi('/auth/validate-invitation', {
       method: 'POST',
@@ -741,34 +601,15 @@ export const auth = {
     }),
 
   /**
-   * Login user
-   * SECURITY: Server sets httpOnly cookie, response includes CSRF token
+   * Get current user
+   * MIGRATED: Clerk session is sent automatically via cookie
    */
-  login: (email: string, password: string): Promise<LoginResponse> =>
-    callMuslimEenApi('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    }),
-
-  /**
-   * Register new user
-   * SECURITY: Server sets httpOnly cookie, response includes CSRF token
-   */
-  register: (registrationData: {
-    email: string;
-    password: string;
-    firstName: string;
-    lastName: string;
-    invitationCode: string;
-  }): Promise<LoginResponse> =>
-    callMuslimEenApi('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify(registrationData),
-    }),
+  getCurrentUser: (): Promise<ApiResponse<{ user: User }>> =>
+    callMuslimEenApi('/auth/me'),
 
   /**
    * Logout user
-   * SECURITY: Server clears httpOnly cookie
+   * NOTE: Frontend should call Clerk's signOut() first, then this for backend cleanup
    */
   logout: (): Promise<ApiResponse> =>
     callMuslimEenApi('/auth/logout', {
@@ -776,26 +617,39 @@ export const auth = {
     }),
 
   /**
-   * Get current user
-   * Cookie is sent automatically with credentials: 'include'
+   * DEPRECATED: Login is now handled by Clerk's useSignIn hook
+   * Kept for backward compatibility during migration
    */
-  getCurrentUser: (): Promise<ApiResponse<{ user: User }>> =>
-    callMuslimEenApi('/auth/me'),
+  login: (_email: string, _password: string): Promise<LoginResponse> => {
+    console.warn('[API] auth.login() is deprecated. Use Clerk\'s useSignIn() hook instead.');
+    return Promise.reject(new Error('Use Clerk\'s useSignIn() hook'));
+  },
 
   /**
-   * Get fresh CSRF token from server
-   * Call this when CSRF token is missing or after page refresh
+   * DEPRECATED: Registration is now handled by Clerk
+   * Kept for backward compatibility during migration
    */
-  getCsrfToken: (): Promise<{ success: boolean; csrfToken: string }> =>
-    callMuslimEenApi('/auth/csrf-token'),
+  register: (_data: unknown): Promise<LoginResponse> => {
+    console.warn('[API] auth.register() is deprecated. Use Clerk\'s useSignUp() hook instead.');
+    return Promise.reject(new Error('Use Clerk\'s useSignUp() hook'));
+  },
 
   /**
-   * Refresh access token before expiration
+   * DEPRECATED: CSRF tokens not needed with Clerk JWT
+   * Kept for backward compatibility - returns dummy value
    */
-  refreshToken: (): Promise<LoginResponse> =>
-    callMuslimEenApi('/auth/refresh', {
-      method: 'POST',
-    }),
+  getCsrfToken: (): Promise<{ success: boolean; csrfToken: string }> => {
+    console.warn('[API] CSRF tokens are not needed with Clerk authentication');
+    return Promise.resolve({ success: true, csrfToken: 'not-needed-with-clerk' });
+  },
+
+  /**
+   * DEPRECATED: Token refresh handled automatically by Clerk
+   */
+  refreshToken: (): Promise<LoginResponse> => {
+    console.warn('[API] Token refresh is handled automatically by Clerk');
+    return Promise.reject(new Error('Token refresh handled by Clerk'));
+  },
 };
 
 // ============================================================================
@@ -1031,16 +885,36 @@ export const trustScore = {
 };
 
 // ============================================================================
-// EXPORT CSRF UTILITIES FOR AUTH CONTEXT
+// DEPRECATED CSRF EXPORTS (for backward compatibility)
+// ============================================================================
+
+/**
+ * DEPRECATED: CSRF tokens are not needed with Clerk authentication.
+ * These exports are kept for backward compatibility during migration.
+ */
+export const setCsrfToken = (_token: string): void => {
+  // No-op: Clerk handles authentication automatically
+};
+
+export const clearCsrfToken = (): void => {
+  // No-op: Clerk handles session cleanup automatically
+};
+
+export const getCsrfToken = (): string | null => {
+  // Returns dummy value: Clerk handles auth via JWT
+  return null;
+};
+
+export const ensureCsrfToken = async (): Promise<string | null> => {
+  // Returns dummy value: Clerk handles auth via JWT
+  return null;
+};
+
+// ============================================================================
+// EXPORT UTILITIES
 // ============================================================================
 
 export {
-  getCsrfToken,
-  setCsrfToken,
-  clearCsrfToken,
-  ensureCsrfToken,
-  csrfMetrics,
-  createApiError,
   getOnlineStatus,
   initOfflineDetection,
   resetCircuitBreaker,

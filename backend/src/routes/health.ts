@@ -5,7 +5,7 @@
 
 import { Router, Request, Response } from 'express';
 import os from 'os';
-import { env } from '../config/env';
+import { env, isReadOnlyMode } from '../config/env';
 import pool from '../modules/database/pool';
 import { logger } from '../modules/shared/utils/logger';
 
@@ -156,6 +156,7 @@ router.get('/health', async (req: Request, res: Response) => {
     timestamp: new Date().toISOString(),
     version: env.npm_package_version,
     environment: env.NODE_ENV,
+    readOnlyMode: isReadOnlyMode(),
     responseTime,
     checks,
     metrics: {
@@ -261,6 +262,7 @@ router.get('/status', (_req: Request, res: Response) => {
   res.status(200).json({
     status: 'ok',
     timestamp: new Date().toISOString(),
+    readOnlyMode: isReadOnlyMode(),
   });
 });
 

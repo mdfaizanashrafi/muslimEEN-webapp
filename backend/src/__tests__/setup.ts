@@ -10,6 +10,39 @@ import { logger } from '../modules/shared/utils/logger';
 // Winston logger configuration - silent in tests
 process.env.LOG_LEVEL = 'silent';
 
+// ============================================================================
+// CUSTOM JEST MATCHERS
+// ============================================================================
+
+/**
+ * toBeOneOf matcher - checks if value is in array of expected values
+ */
+expect.extend({
+  toBeOneOf(received: any, expectedArray: any[]) {
+    const pass = expectedArray.includes(received);
+    if (pass) {
+      return {
+        message: () => `expected ${received} not to be one of ${JSON.stringify(expectedArray)}`,
+        pass: true,
+      };
+    } else {
+      return {
+        message: () => `expected ${received} to be one of ${JSON.stringify(expectedArray)}`,
+        pass: false,
+      };
+    }
+  },
+});
+
+// Type declaration for TypeScript
+declare global {
+  namespace jest {
+    interface Matchers<R> {
+      toBeOneOf(expectedArray: any[]): R;
+    }
+  }
+}
+
 // Global test timeout
 jest.setTimeout(30000);
 

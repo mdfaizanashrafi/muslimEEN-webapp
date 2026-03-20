@@ -30,6 +30,8 @@ import { securityHeaders, autoSanitizeJson, addRequestId } from './modules/share
 import { securityAudit } from './modules/shared/middleware/securityAudit';
 import { initSentry, setupSentryRequestHandlers, setupSentryErrorHandler } from './config/sentry';
 import { csrfTokenSetter } from './modules/shared/middleware/csrf';
+import { readOnlyMode } from './modules/shared/middleware/readOnlyMode';
+import { isReadOnlyMode } from './config/env';
 
 // Initialize Express app
 const app = express();
@@ -68,6 +70,10 @@ app.use(xssProtection);
 app.use(autoSanitizeJson);
 app.use(securityHeaders);
 
+// Read-only mode check - blocks write operations when SYSTEM_READ_ONLY=true
+// Must be after body parsing but before route handling
+app.use(readOnlyMode);
+
 // ============================================================================
 // LOGGING & MONITORING
 // ============================================================================
@@ -82,7 +88,7 @@ app.use(performanceMonitor);
 // Health check routes (before API routes)
 app.use('/', healthRoutes);
 
-// API routes
+// API routes (includes webhooks at /api/webhooks/*)
 app.use('/api', router);
 
 // Root route
@@ -92,6 +98,7 @@ app.get('/', (_req: Request, res: Response) => {
     version: env.npm_package_version,
     status: 'running',
     environment: env.NODE_ENV,
+    readOnlyMode: isReadOnlyMode(),
     documentation: '/api',
     health: '/health',
     observability: {

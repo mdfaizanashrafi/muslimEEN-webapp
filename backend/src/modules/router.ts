@@ -7,6 +7,9 @@
  * Structure:
  * - Public routes (no auth): /auth/*
  * - Protected routes (with auth): all others
+ * 
+ * MIGRATED: From custom JWT to Clerk authentication
+ * DATE: 2026-03-20
  */
 
 import { Router, Request, Response } from 'express';
@@ -21,10 +24,23 @@ import marketplaceRoutes from './marketplace/routes';
 import islamicFinanceRoutes from './islamic-finance/routes';
 import analyticsRoutes from './analytics/routes';
 import feedbackRoutes from './feedback/routes';
+import internalRoutes from './internal/routes';
 
-// Import shared middleware
-import { authenticate } from './iam/middleware/auth';
+// Import authentication middleware
+import { clerkAuthenticate, requireRole } from './iam/middleware/clerkAuth';
+import { unifiedAuthenticate } from './iam/middleware/unifiedAuth';
+import { legacyAuthDetection, legacyAuthStatsEndpoint } from './iam/middleware/legacyAuthDetection';
+import { conditionalLegacyAuthBlocker } from './iam/middleware/legacyAuthBlocker';
 import { apiLimiter } from './shared/middleware/rateLimiter';
+import { raw } from './shared/middleware/bodyParser';
+import { handleClerkWebhook } from './iam/controllers/ClerkWebhookController';
+import { getAuthHealth, getAuthReadyStatus, getAuthSimpleHealth } from './iam/controllers/AuthHealthController';
+import { 
+  getWebhookHealthEndpoint, 
+  getFailedEventsEndpoint, 
+  retryFailedEventEndpoint 
+} from './iam/controllers/ClerkWebhookController';
+import { isClerkWebhooksEnabled, featureFlags } from '../config/featureFlags';
 
 const router = Router();
 
@@ -36,6 +52,7 @@ router.get('/', apiLimiter, (_req: Request, res: Response) => {
     name: 'MuslimEEN API',
     version: 'v1',
     status: 'running',
+    authentication: 'Clerk JWT',
     documentation: {
       health: '/api/health',
       auth: '/api/auth',
@@ -50,7 +67,7 @@ router.get('/', apiLimiter, (_req: Request, res: Response) => {
     },
     endpoints: [
       // Auth (public)
-      { path: 'POST /api/auth/login', description: 'User login' },
+      { path: 'POST /api/auth/validate-invitation', description: 'User login' },
       { path: 'POST /api/auth/register', description: 'User registration' },
       { path: 'POST /api/auth/logout', description: 'User logout' },
       { path: 'GET /api/auth/me', description: 'Get current user' },
@@ -94,19 +111,55 @@ router.get('/', apiLimiter, (_req: Request, res: Response) => {
 // HEALTH CHECK
 // ============================================================================
 router.get('/health', (_req: Request, res: Response) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    auth: 'Clerk JWT',
+  });
 });
+
+// Auth system health check
+router.get('/health/auth', getAuthHealth);
+router.get('/health/auth/ready', getAuthReadyStatus);
+router.get('/health/auth/simple', getAuthSimpleHealth);
 
 // ============================================================================
 // PUBLIC ROUTES - No authentication required
 // ============================================================================
+
+// Legacy auth detection (logs usage for monitoring)
+// Runs on all routes to catch any legacy auth attempts
+if (featureFlags.isEnabled('ENABLE_LEGACY_AUTH_DETECTION')) {
+  router.use(legacyAuthDetection);
+}
+
+// Legacy auth blocker (blocks legacy auth if DISABLE_LEGACY_AUTH is true)
+// Only enable after full migration confirmed
+router.use(conditionalLegacyAuthBlocker(featureFlags.isEnabled('DISABLE_LEGACY_AUTH')));
+
 router.use('/auth', authRoutes);
 
+// Legacy auth stats endpoint (admin only)
+router.get('/admin/legacy-auth-stats', clerkAuthenticate, requireRole('admin', 'super_admin'), legacyAuthStatsEndpoint);
+
+// Webhook admin endpoints (admin only)
+router.get('/admin/webhooks/health', clerkAuthenticate, requireRole('admin', 'super_admin'), getWebhookHealthEndpoint);
+router.get('/admin/webhooks/failed', clerkAuthenticate, requireRole('admin', 'super_admin'), getFailedEventsEndpoint);
+router.post('/admin/webhooks/retry/:eventId', clerkAuthenticate, requireRole('admin', 'super_admin'), retryFailedEventEndpoint);
+
+// Clerk webhook endpoint (must be public - called by Clerk)
+// Raw body parser needed for signature verification
+// Only enabled if USE_CLERK_WEBHOOKS is true
+if (isClerkWebhooksEnabled()) {
+  router.post('/webhooks/clerk', raw({ type: 'application/json' }), handleClerkWebhook);
+}
+
 // ============================================================================
-// PROTECTED ROUTES - Authentication required
+// PROTECTED ROUTES - Authentication required (Clerk or JWT)
 // ============================================================================
 // All routes below this line require authentication
-router.use(authenticate);
+// Uses unified auth: Clerk if enabled, otherwise JWT
+router.use(unifiedAuthenticate);
 
 // User routes
 router.use('/users', usersRoutes);
@@ -131,5 +184,9 @@ router.use('/analytics', analyticsRoutes);
 
 // Feedback routes
 router.use('/feedback', feedbackRoutes);
+
+// Internal routes (service-to-service, API key auth)
+// These are protected by internalApiAuth middleware within the routes file
+router.use('/internal', internalRoutes);
 
 export default router;

@@ -2,13 +2,21 @@
 
 import { useState, useEffect, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/auth-context';
-import { auth } from '@/lib/api';
+import { useSignIn, useAuth } from '@clerk/nextjs';
 import '@/styles/login.css';
+
+/**
+ * Login Page - CLERK VERSION
+ * Uses Clerk's useSignIn hook for authentication
+ * 
+ * MIGRATED: From custom auth-context to Clerk's useSignIn
+ * DATE: 2026-03-20
+ */
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, isAuthenticated } = useAuth();
+  const { isSignedIn } = useAuth();
+  const signInContext = useSignIn() as any;
   
   const [invitationCode, setInvitationCode] = useState('');
   const [isInvitationValid, setIsInvitationValid] = useState(false);
@@ -23,11 +31,12 @@ export default function LoginPage() {
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isSignedIn) {
       router.push('/dashboard');
     }
-  }, [isAuthenticated, router]);
+  }, [isSignedIn, router]);
 
+  // Validate invitation code (optional - can be enforced via Clerk webhooks)
   const validateInvitation = async () => {
     if (!invitationCode || invitationCode.length !== 12) {
       setInvitationError('Invitation code must be 12 characters');
@@ -38,12 +47,24 @@ export default function LoginPage() {
     setInvitationError('');
 
     try {
-      const response = await auth.validateInvitation(invitationCode);
-      if (response.success) {
+      // NOTE: With Clerk, invitation validation can be done via:
+      // 1. Clerk's built-in invitation system (recommended)
+      // 2. Custom webhook after sign-up
+      // 3. API validation before sign-in (current approach for compatibility)
+      
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/validate-invitation`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invitationCode }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
         setIsInvitationValid(true);
         showAlert('Invitation validated! You can now log in.', 'success');
       } else {
-        setInvitationError(response.message || 'Invalid invitation code');
+        setInvitationError(data.message || 'Invalid invitation code');
       }
     } catch (err) {
       setInvitationError(err instanceof Error ? err.message : 'Validation failed');
@@ -61,14 +82,34 @@ export default function LoginPage() {
       return;
     }
 
+    if (!signInContext.isLoaded) {
+      setError('Authentication system is loading. Please try again.');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      await login(email, password);
-      // Redirect to dashboard (handled by useEffect watching isAuthenticated)
-      router.push('/dashboard');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      // Use Clerk's signIn method
+      const result = await signInContext.signIn?.create({
+        identifier: email,
+        password,
+      });
+
+      if (result?.status === 'complete') {
+        // Set the session as active
+        await signInContext.setActive({ session: result.createdSessionId });
+        
+        // Redirect to dashboard
+        router.push('/dashboard');
+      } else {
+        // Handle other statuses (needs_second_factor, etc.)
+        setError('Additional verification required. Please check your email.');
+      }
+    } catch (err: any) {
+      // Handle Clerk errors
+      const errorMessage = err.errors?.[0]?.message || err.message || 'Login failed';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -97,6 +138,18 @@ export default function LoginPage() {
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
   }, []);
+
+  // Show loading state while Clerk is loading
+  if (!signInContext.isLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <p className="text-gray-600 text-sm">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -227,13 +280,13 @@ export default function LoginPage() {
               <span>or</span>
             </div>
             
-            {/* Biometric Login */}
-            <button type="button" id="biometric-login" className="btn btn-outline btn-lg w-full">
+            {/* Biometric Login - Placeholder for future Clerk WebAuthn integration */}
+            <button type="button" id="biometric-login" className="btn btn-outline btn-lg w-full" disabled>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <path d="M12 2a10 10 0 0 0-10 10c0 5.523 4.477 10 10 10s10-4.477 10-10A10 10 0 0 0 12 2z"/>
                 <path d="M12 6v6l4 2"/>
               </svg>
-              Sign in with Biometric
+              Sign in with Biometric (Coming Soon)
             </button>
             
             <p className="biometric-note">
@@ -241,7 +294,7 @@ export default function LoginPage() {
                 <circle cx="12" cy="12" r="10"/>
                 <path d="M12 16v-4M12 8h.01"/>
               </svg>
-              Biometric data is processed on-device only. Zero-knowledge verification.
+              Biometric authentication will be available soon via Clerk&apos;s WebAuthn support.
             </p>
           </div>
           

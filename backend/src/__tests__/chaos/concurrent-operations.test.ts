@@ -132,20 +132,22 @@ describe('CONSISTENCY: Connection Request Handling', () => {
     });
 
     // Try to create same connection twice
-    const { ConnectionRepository } = await import('../../modules/network/repositories/ConnectionRepository');
+    const { create: createConnection } = await import('../../modules/network/repositories/ConnectionRepository');
 
-    const conn1 = await ConnectionRepository.create({
+    const conn1 = await createConnection({
       requesterId: user1.id,
       recipientId: user2.id,
+      status: 'pending',
     });
 
     expect(conn1).toBeDefined();
 
     // Second attempt should fail or return existing
     try {
-      const conn2 = await ConnectionRepository.create({
+      const conn2 = await createConnection({
         requesterId: user1.id,
         recipientId: user2.id,
+        status: 'pending',
       });
       
       // If it succeeds, it should be the same connection

@@ -15,8 +15,6 @@
     "test:integration": "jest --testPathPattern=__tests__/integration --verbose --runInBand",
     "test:coverage": "jest --coverage",
     "migrate": "node database/migrations/migrate.js",
-    "seed": "node database/seeds/seed.js",
-    "create-admin": "node scripts/create-admin.js",
     "migrate:users-to-clerk": "ts-node -r tsconfig-paths/register scripts/migrate-users-to-clerk.ts",
     "verify:cleanup": "ts-node -r tsconfig-paths/register scripts/verify-cleanup.ts",
     "cleanup:production": "bash ../scripts/production-cleanup.sh",

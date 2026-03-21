@@ -11,6 +11,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { generatePageMetadata, SITE_CONFIG } from '@/lib/seo/metadata';
 import { BreadcrumbSchema, CollectionPageSchema } from '@/components/seo';
+import './people.css';
 
 export const metadata: Metadata = generatePageMetadata({
   title: 'People Directory - Muslim Professionals Network',
@@ -28,64 +29,6 @@ export const metadata: Metadata = generatePageMetadata({
   ],
 });
 
-// Sample featured profiles (in production, fetch from API)
-const featuredProfiles = [
-  {
-    slug: 'ahmed-hassan-software-engineer',
-    name: 'Ahmed Hassan',
-    headline: 'Senior Software Engineer',
-    industry: 'Technology',
-    location: 'London, UK',
-    trustScore: 945,
-    badges: ['biometric', 'two_witness'],
-  },
-  {
-    slug: 'yusuf-ibrahim-data-scientist',
-    name: 'Yusuf Ibrahim',
-    headline: 'Data Scientist',
-    industry: 'Finance',
-    location: 'Manchester, UK',
-    trustScore: 892,
-    badges: ['biometric'],
-  },
-  {
-    slug: 'amina-patel-product-manager',
-    name: 'Amina Patel',
-    headline: 'Product Manager',
-    industry: 'Technology',
-    location: 'Birmingham, UK',
-    trustScore: 921,
-    badges: ['biometric', 'business'],
-  },
-  {
-    slug: 'omar-farooq-islamic-scholar',
-    name: 'Dr. Omar Farooq',
-    headline: 'Islamic Finance Scholar',
-    industry: 'Education',
-    location: 'London, UK',
-    trustScore: 978,
-    badges: ['biometric', 'institutional'],
-  },
-  {
-    slug: 'fatima-al-zahra-medical-doctor',
-    name: 'Dr. Fatima Al-Zahra',
-    headline: 'General Practitioner',
-    industry: 'Healthcare',
-    location: 'Leeds, UK',
-    trustScore: 934,
-    badges: ['biometric', 'two_witness'],
-  },
-  {
-    slug: 'muhammad-khan-architect',
-    name: 'Muhammad Khan',
-    headline: 'Architect',
-    industry: 'Construction',
-    location: 'Bradford, UK',
-    trustScore: 867,
-    badges: ['biometric'],
-  },
-];
-
 // Industry filters
 const industries = [
   'All Industries',
@@ -99,7 +42,7 @@ const industries = [
   'Retail',
 ];
 
-interface ProfileCardProps {
+interface Profile {
   slug: string;
   name: string;
   headline: string;
@@ -109,67 +52,29 @@ interface ProfileCardProps {
   badges: string[];
 }
 
-function ProfileCard({ slug, name, headline, industry, location, trustScore, badges }: ProfileCardProps) {
-  const trustLevel = trustScore >= 800 ? 'high' : trustScore >= 500 ? 'medium' : 'low';
-  const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2);
-
-  return (
-    <article className="profile-card">
-      <div className="profile-card-header">
-        <div className="avatar avatar-lg">{initials}</div>
-        <div className="profile-card-meta">
-          <h3>
-            <Link href={`/people/${slug}`} className="profile-name">
-              {name}
-            </Link>
-          </h3>
-          <p className="profile-headline">{headline}</p>
-          <p className="profile-location">{location}</p>
-        </div>
-        <div className={`trust-badge trust-${trustLevel}`}>
-          {trustScore}
-        </div>
-      </div>
-      <div className="profile-card-body">
-        <span className="industry-tag">{industry}</span>
-        <div className="verification-badges">
-          {badges.map(badge => (
-            <span key={badge} className="badge badge-verified">
-              {badge === 'biometric' && '🔐 Biometric'}
-              {badge === 'two_witness' && '👥 Two Witness'}
-              {badge === 'business' && '💼 Business'}
-              {badge === 'institutional' && '🏛️ Institutional'}
-            </span>
-          ))}
-        </div>
-      </div>
-      <div className="profile-card-footer">
-        <Link href={`/people/${slug}`} className="btn btn-primary btn-sm">
-          View Profile
-        </Link>
-        <button className="btn btn-outline btn-sm">Connect</button>
-      </div>
-    </article>
-  );
+// Fetch featured profiles from API
+async function getFeaturedProfiles(): Promise<Profile[]> {
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/people/featured`, {
+      cache: 'no-store',
+    });
+    if (!res.ok) return [];
+    return res.json();
+  } catch {
+    return [];
+  }
 }
 
-export default function PeopleDirectoryPage() {
+export default async function PeoplePage() {
+  const featuredProfiles = await getFeaturedProfiles();
   const baseUrl = SITE_CONFIG.baseUrl;
 
   return (
     <>
-      {/* Breadcrumb structured data */}
-      <BreadcrumbSchema
-        items={[
-          { name: 'Home', url: baseUrl },
-          { name: 'People', url: `${baseUrl}/people` },
-        ]}
-      />
-
-      {/* CollectionPage schema for directory listings */}
+      <BreadcrumbSchema items={[{ name: 'People', url: `${baseUrl}/people` }]} />
       <CollectionPageSchema
         name="Muslim Professionals Directory"
-        description="Discover verified Muslim professionals across industries. Browse profiles, find mentors, and connect with talented individuals in the MuslimEEN community."
+        description="Discover verified Muslim professionals across industries"
         url={`${baseUrl}/people`}
         items={featuredProfiles.map(profile => ({
           name: profile.name,
@@ -178,106 +83,123 @@ export default function PeopleDirectoryPage() {
         }))}
       />
 
-      <main className="people-directory-page">
-        {/* Page Header */}
-        <section className="page-header" aria-labelledby="people-heading">
+      <main className="people-directory">
+        {/* Hero Section */}
+        <section className="directory-hero">
           <div className="container">
-            <h1 id="people-heading">People Directory</h1>
+            <h1>Muslim Professionals Network</h1>
             <p className="lead">
-              Discover verified Muslim professionals across industries
+              Discover talented professionals in our community. Connect with mentors, 
+              collaborators, and industry leaders.
             </p>
-          </div>
-        </section>
-
-        {/* Filters */}
-        <section className="directory-filters" aria-label="Filter profiles">
-          <div className="container">
-            <div className="filters-row">
-              <div className="search-box">
-                <label htmlFor="search-people" className="visually-hidden">
-                  Search professionals
-                </label>
-                <input
-                  id="search-people"
-                  type="text"
-                  className="form-input"
-                  placeholder="Search by name, skill, or company..."
-                />
-              </div>
-              <div className="filter-group">
-                <label htmlFor="filter-industry" className="visually-hidden">
-                  Filter by industry
-                </label>
-                <select id="filter-industry" className="form-select">
-                  {industries.map(industry => (
-                    <option key={industry} value={industry === 'All Industries' ? '' : industry}>
-                      {industry}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="filter-group">
-                <label htmlFor="filter-location" className="visually-hidden">
-                  Filter by location
-                </label>
-                <select id="filter-location" className="form-select">
-                  <option value="">All Locations</option>
-                  <option value="london">London</option>
-                  <option value="manchester">Manchester</option>
-                  <option value="birmingham">Birmingham</option>
-                  <option value="remote">Remote</option>
-                </select>
-              </div>
+            
+            {/* Search */}
+            <div className="search-bar">
+              <input
+                type="search"
+                placeholder="Search by name, skill, or company..."
+                className="search-input"
+              />
+              <button className="btn btn-primary">Search</button>
             </div>
           </div>
         </section>
 
-        {/* Stats */}
-        <section className="directory-stats" aria-label="Directory statistics">
+        {/* Filters */}
+        <section className="directory-filters">
           <div className="container">
-            <div className="stats-row">
-              <div className="stat-item">
-                <span className="stat-number">12,456</span>
-                <span className="stat-label">Verified Professionals</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-number">87</span>
-                <span className="stat-label">Industries</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-number">45</span>
-                <span className="stat-label">Countries</span>
-              </div>
+            <div className="filter-bar">
+              <select className="filter-select">
+                {industries.map(industry => (
+                  <option key={industry} value={industry}>{industry}</option>
+                ))}
+              </select>
+              
+              <select className="filter-select">
+                <option>All Locations</option>
+                <option>London</option>
+                <option>Manchester</option>
+                <option>Birmingham</option>
+              </select>
+              
+              <select className="filter-select">
+                <option>Sort by: Trust Score</option>
+                <option>Sort by: Recently Joined</option>
+                <option>Sort by: Name</option>
+              </select>
             </div>
           </div>
         </section>
 
         {/* Featured Profiles */}
-        <section className="featured-profiles" aria-labelledby="featured-heading">
+        <section className="featured-profiles">
           <div className="container">
-            <h2 id="featured-heading" className="section-title">Featured Professionals</h2>
-            <div className="profiles-grid">
-              {featuredProfiles.map(profile => (
-                <ProfileCard key={profile.slug} {...profile} />
-              ))}
-            </div>
+            <h2>Featured Professionals</h2>
+            
+            {featuredProfiles.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-icon">👥</div>
+                <h3>No profiles yet</h3>
+                <p>Be the first to join MuslimEEN and build your professional profile!</p>
+                <Link href="/register" className="btn btn-primary">
+                  Create Your Profile
+                </Link>
+              </div>
+            ) : (
+              <div className="profiles-grid">
+                {featuredProfiles.map((profile) => (
+                  <ProfileCard key={profile.slug} profile={profile} />
+                ))}
+              </div>
+            )}
           </div>
         </section>
 
-        {/* Join CTA */}
-        <section className="join-cta" aria-labelledby="join-heading">
-          <div className="container">
-            <h2 id="join-heading">Join the Directory</h2>
-            <p>
-              Are you a Muslim professional? Create your profile and get discovered 
-              by employers, partners, and the community.
-            </p>
-            <Link href="/login" className="btn btn-primary btn-lg">
-              Create Your Profile
-            </Link>
-          </div>
-        </section>
+        {/* Pagination */}
+        {featuredProfiles.length > 0 && (
+          <section className="pagination">
+            <div className="container">
+              <div className="pagination-controls">
+                <button className="btn btn-outline" disabled>Previous</button>
+                <span className="page-info">Page 1 of 1</span>
+                <button className="btn btn-outline" disabled>Next</button>
+              </div>
+            </div>
+          </section>
+        )}
       </main>
     </>
+  );
+}
+
+// Profile Card Component
+function ProfileCard({ profile }: { profile: Profile }) {
+  return (
+    <article className="profile-card">
+      <Link href={`/people/${profile.slug}`}>
+        <div className="profile-header">
+          <div className="profile-avatar">
+            {profile.name?.charAt(0) || '?'}
+          </div>
+          <div className="profile-badges">
+            {profile.badges?.map((badge: string) => (
+              <span key={badge} className={`badge badge-${badge}`} />
+            ))}
+          </div>
+        </div>
+        
+        <h3 className="profile-name">{profile.name}</h3>
+        <p className="profile-headline">{profile.headline}</p>
+        
+        <div className="profile-meta">
+          <span className="profile-industry">{profile.industry}</span>
+          <span className="profile-location">{profile.location}</span>
+        </div>
+        
+        <div className="profile-trust">
+          <span className="trust-score">Trust: {profile.trustScore}</span>
+        </div>
+      </Link>
+    </article>
   );
 }

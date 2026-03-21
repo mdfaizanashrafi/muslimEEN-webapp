@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { AppLayout } from '@/components/layout';
 import { useAuth } from '@/lib/auth-context';
 import { trustScore, connections, invites } from '@/lib/api';
+import InvitesWidget from './components/InvitesWidget';
 import '@/styles/dashboard.css';
 
 // Pillar card data (static content)
@@ -14,7 +15,7 @@ const pillarCards = [
     arabic: 'اكسب',
     title: 'EARN',
     description: 'Halal income opportunities, freelance work, and career advancement for Muslims',
-    stats: '1,234 opportunities',
+    stats: 'Browse opportunities',
     variant: 'earn' as const,
   },
   {
@@ -22,7 +23,7 @@ const pillarCards = [
     arabic: 'ابنِ',
     title: 'BUILD',
     description: 'Investment opportunities, business partnerships, and wealth building the halal way',
-    stats: '567 projects',
+    stats: 'Explore projects',
     variant: 'build' as const,
   },
   {
@@ -30,7 +31,7 @@ const pillarCards = [
     arabic: 'عش',
     title: 'LIVE',
     description: 'Halal housing, ethical services, and lifestyle products for Muslim families',
-    stats: '890 listings',
+    stats: 'View listings',
     variant: 'live' as const,
   },
   {
@@ -38,7 +39,7 @@ const pillarCards = [
     arabic: 'احمِ',
     title: 'PROTECT',
     description: 'Shariah-compliant insurance, estate planning, and asset protection',
-    stats: '123 providers',
+    stats: 'Find providers',
     variant: 'protect' as const,
   },
 ];
@@ -151,7 +152,7 @@ export default function DashboardPage() {
   }, [user]);
 
   // Get user's first name
-  const firstName = user?.firstName || profile?.firstName || 'Guest';
+  const firstName = user?.firstName || profile?.firstName || 'there';
   
   // Get trust score (from API or fallback to user data)
   const currentTrustScore = trustData?.score || user?.trustScore || 0;
@@ -269,30 +270,7 @@ export default function DashboardPage() {
           </Widget>
           
           {/* Invites Widget */}
-          <Widget title="Your Invites" action={{ href: '/invites', label: 'Manage' }}>
-            <div className="trust-score-container">
-              <div className="trust-score-header">
-                <span className="trust-score-value high">{inviteQuota.remaining}</span>
-                <span className="text-sm text-secondary">remaining</span>
-              </div>
-              <div className="trust-score-bar">
-                <div 
-                  className="trust-score-fill high" 
-                  style={{ width: `${inviteQuota.total > 0 ? (inviteQuota.remaining / inviteQuota.total) * 100 : 0}%` }}
-                ></div>
-              </div>
-              <p className="text-sm text-secondary mt-2">
-                {inviteQuota.remaining > 0 
-                  ? `You have ${inviteQuota.remaining} invites to share with friends`
-                  : 'No invites remaining. Complete verifications to earn more.'}
-              </p>
-              {inviteQuota.remaining > 0 && (
-                <Link href="/invites" className="btn btn-primary btn-sm mt-3" style={{ width: '100%' }}>
-                  Invite Friends
-                </Link>
-              )}
-            </div>
-          </Widget>
+          <InvitesWidget />
           
           {/* Islamic Finance Quick Links */}
           <Widget title="Islamic Finance">

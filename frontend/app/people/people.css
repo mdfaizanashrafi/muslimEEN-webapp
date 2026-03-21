@@ -1,0 +1,303 @@
+/* ==========================================================================
+   People Directory Styles
+   MuslimEEN - Muslim Economic Empowerment Network
+   ========================================================================== */
+
+/* ==========================================================================
+   1. Directory Hero
+   ========================================================================== */
+.people-directory {
+  min-height: 100vh;
+  background: var(--bg-primary);
+}
+
+.directory-hero {
+  background: linear-gradient(135deg, var(--color-sapphire-600) 0%, var(--color-sapphire-800) 100%);
+  padding: var(--space-16) var(--space-6);
+  text-align: center;
+  color: white;
+}
+
+.directory-hero h1 {
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-4);
+  text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.directory-hero .lead {
+  font-size: var(--font-size-xl);
+  opacity: 0.95;
+  max-width: 600px;
+  margin: 0 auto var(--space-8);
+  line-height: 1.6;
+}
+
+.directory-hero .search-bar {
+  display: flex;
+  gap: var(--space-3);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.search-input {
+  flex: 1;
+  padding: var(--space-3) var(--space-4);
+  border: none;
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-base);
+  background: rgba(255,255,255,0.95);
+}
+
+.search-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255,255,255,0.3);
+}
+
+@media (max-width: 640px) {
+  .directory-hero {
+    padding: var(--space-10) var(--space-4);
+  }
+  
+  .directory-hero h1 {
+    font-size: var(--font-size-2xl);
+  }
+  
+  .directory-hero .lead {
+    font-size: var(--font-size-lg);
+  }
+  
+  .directory-hero .search-bar {
+    flex-direction: column;
+  }
+}
+
+/* ==========================================================================
+   2. Directory Filters
+   ========================================================================== */
+.directory-filters {
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-light);
+  padding: var(--space-4) 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.filter-bar {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filter-select {
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  background: var(--bg-primary);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+  min-width: 150px;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: var(--color-emerald-500);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+@media (max-width: 640px) {
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .filter-select {
+    width: 100%;
+  }
+}
+
+/* ==========================================================================
+   3. Featured Profiles
+   ========================================================================== */
+.featured-profiles {
+  padding: var(--space-12) 0;
+}
+
+.featured-profiles h2 {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-8);
+  text-align: center;
+}
+
+.profiles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-6);
+}
+
+/* ==========================================================================
+   4. Profile Card
+   ========================================================================== */
+.profile-card {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid var(--border-light);
+}
+
+.profile-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+}
+
+.profile-card a {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+
+.profile-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-emerald-500) 0%, var(--color-emerald-600) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: white;
+}
+
+.profile-badges {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.badge {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.badge-biometric {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.badge-two_witness {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.badge-document {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.badge-community {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+}
+
+.profile-name {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-1);
+}
+
+.profile-headline {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-3);
+}
+
+.profile-meta {
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.profile-industry,
+.profile-location {
+  font-size: var(--font-size-xs);
+  padding: var(--space-1) var(--space-2);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+}
+
+.profile-trust {
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-light);
+}
+
+.trust-score {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-emerald-600);
+}
+
+/* ==========================================================================
+   5. Empty State
+   ========================================================================== */
+.empty-state {
+  text-align: center;
+  padding: var(--space-16) var(--space-6);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-xl);
+  border: 2px dashed var(--border-light);
+  grid-column: 1 / -1;
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: var(--space-4);
+  opacity: 0.7;
+}
+
+.empty-state h3 {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.empty-state p {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-6);
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ==========================================================================
+   6. Pagination
+   ========================================================================== */
+.pagination {
+  padding: var(--space-8) 0 var(--space-16);
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+}
+
+.page-info {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}

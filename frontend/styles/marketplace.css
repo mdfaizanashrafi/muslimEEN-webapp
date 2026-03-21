@@ -679,3 +679,91 @@
 .categories-grid .category-card:nth-child(6) { animation-delay: 250ms; }
 .categories-grid .category-card:nth-child(7) { animation-delay: 300ms; }
 .categories-grid .category-card:nth-child(8) { animation-delay: 350ms; }
+
+
+/* ==========================================================================
+   10. Skeleton Loading States
+   ========================================================================== */
+.skeleton {
+  pointer-events: none;
+}
+
+.skeleton-avatar {
+  background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--bg-secondary) 50%, var(--bg-tertiary) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  color: transparent;
+}
+
+.skeleton-line {
+  height: 1em;
+  background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--bg-secondary) 50%, var(--bg-tertiary) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-2);
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ==========================================================================
+   11. Empty State
+   ========================================================================== */
+.empty-state {
+  text-align: center;
+  padding: var(--space-12) var(--space-6);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-xl);
+  border: 2px dashed var(--border-light);
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: var(--space-4);
+  opacity: 0.7;
+}
+
+.empty-state h3 {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.empty-state p {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-6);
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ==========================================================================
+   12. Trust Badge Variants
+   ========================================================================== */
+.badge-trust-high {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+}
+
+.badge-trust-medium {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+}
+
+.badge-trust-low {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+}
+
+.badge-verified {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}

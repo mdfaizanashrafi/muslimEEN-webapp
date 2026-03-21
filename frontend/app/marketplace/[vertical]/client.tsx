@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useUser } from '@clerk/nextjs';
 import '../../../styles/marketplace.css';
 
 type VerticalType = 'earn' | 'build' | 'live' | 'protect';
@@ -41,14 +42,14 @@ const verticalsConfig: Record<VerticalType, VerticalConfig> = {
       light: 'var(--color-emerald-50)',
     },
     categories: [
-      { id: 'jobs', name: 'Full-Time Jobs', icon: '💼', count: 456 },
-      { id: 'freelance', name: 'Freelance Work', icon: '🎯', count: 234 },
-      { id: 'consulting', name: 'Consulting', icon: '📊', count: 128 },
-      { id: 'education', name: 'Education', icon: '📚', count: 89 },
-      { id: 'trades', name: 'Skilled Trades', icon: '🔧', count: 167 },
-      { id: 'remote', name: 'Remote Work', icon: '🌐', count: 312 },
-      { id: 'internships', name: 'Internships', icon: '🌱', count: 45 },
-      { id: 'part-time', name: 'Part-Time', icon: '⏰', count: 198 },
+      { id: 'jobs', name: 'Full-Time Jobs', icon: '💼', count: 0 },
+      { id: 'freelance', name: 'Freelance Work', icon: '🎯', count: 0 },
+      { id: 'consulting', name: 'Consulting', icon: '📊', count: 0 },
+      { id: 'education', name: 'Education', icon: '📚', count: 0 },
+      { id: 'trades', name: 'Skilled Trades', icon: '🔧', count: 0 },
+      { id: 'remote', name: 'Remote Work', icon: '🌐', count: 0 },
+      { id: 'internships', name: 'Internships', icon: '🌱', count: 0 },
+      { id: 'part-time', name: 'Part-Time', icon: '⏰', count: 0 },
     ],
     actionButton: 'Apply Now',
   },
@@ -65,14 +66,14 @@ const verticalsConfig: Record<VerticalType, VerticalConfig> = {
       light: 'var(--color-sapphire-50)',
     },
     categories: [
-      { id: 'startups', name: 'Startups', icon: '🚀', count: 67 },
-      { id: 'realestate', name: 'Real Estate', icon: '🏢', count: 123 },
-      { id: 'partnerships', name: 'Partnerships', icon: '🤝', count: 89 },
-      { id: 'franchises', name: 'Franchises', icon: '🏪', count: 34 },
-      { id: 'agriculture', name: 'Agriculture', icon: '🌾', count: 56 },
-      { id: 'technology', name: 'Technology', icon: '💻', count: 78 },
-      { id: 'manufacturing', name: 'Manufacturing', icon: '🏭', count: 42 },
-      { id: 'retail', name: 'Retail', icon: '🛍️', count: 91 },
+      { id: 'startups', name: 'Startups', icon: '🚀', count: 0 },
+      { id: 'realestate', name: 'Real Estate', icon: '🏢', count: 0 },
+      { id: 'partnerships', name: 'Partnerships', icon: '🤝', count: 0 },
+      { id: 'franchises', name: 'Franchises', icon: '🏪', count: 0 },
+      { id: 'agriculture', name: 'Agriculture', icon: '🌾', count: 0 },
+      { id: 'technology', name: 'Technology', icon: '💻', count: 0 },
+      { id: 'manufacturing', name: 'Manufacturing', icon: '🏭', count: 0 },
+      { id: 'retail', name: 'Retail', icon: '🛍️', count: 0 },
     ],
     actionButton: 'Express Interest',
   },
@@ -89,14 +90,14 @@ const verticalsConfig: Record<VerticalType, VerticalConfig> = {
       light: 'var(--color-gold-50)',
     },
     categories: [
-      { id: 'housing', name: 'Housing', icon: '🏠', count: 234 },
-      { id: 'food', name: 'Halal Food', icon: '🍽️', count: 456 },
-      { id: 'travel', name: 'Travel', icon: '✈️', count: 89 },
-      { id: 'events', name: 'Events', icon: '🎉', count: 67 },
-      { id: 'wellness', name: 'Wellness', icon: '🧘', count: 123 },
-      { id: 'fashion', name: 'Modest Fashion', icon: '👔', count: 178 },
-      { id: 'beauty', name: 'Beauty', icon: '✨', count: 92 },
-      { id: 'automotive', name: 'Automotive', icon: '🚗', count: 56 },
+      { id: 'housing', name: 'Housing', icon: '🏠', count: 0 },
+      { id: 'food', name: 'Halal Food', icon: '🍽️', count: 0 },
+      { id: 'travel', name: 'Travel', icon: '✈️', count: 0 },
+      { id: 'events', name: 'Events', icon: '🎉', count: 0 },
+      { id: 'wellness', name: 'Wellness', icon: '🧘', count: 0 },
+      { id: 'fashion', name: 'Modest Fashion', icon: '👔', count: 0 },
+      { id: 'beauty', name: 'Beauty', icon: '✨', count: 0 },
+      { id: 'automotive', name: 'Automotive', icon: '🚗', count: 0 },
     ],
     actionButton: 'Contact Provider',
   },
@@ -113,14 +114,14 @@ const verticalsConfig: Record<VerticalType, VerticalConfig> = {
       light: 'var(--color-amethyst-50)',
     },
     categories: [
-      { id: 'takaful', name: 'Takaful Insurance', icon: '🛡️', count: 23 },
-      { id: 'health', name: 'Healthcare', icon: '⚕️', count: 145 },
-      { id: 'legal', name: 'Legal Services', icon: '⚖️', count: 67 },
-      { id: 'security', name: 'Security', icon: '🔒', count: 34 },
-      { id: 'accounting', name: 'Accounting', icon: '📊', count: 89 },
-      { id: 'consulting', name: 'Business Consulting', icon: '💼', count: 56 },
-      { id: 'cyber', name: 'Cybersecurity', icon: '🔐', count: 28 },
-      { id: 'emergency', name: 'Emergency Services', icon: '🚨', count: 15 },
+      { id: 'takaful', name: 'Takaful Insurance', icon: '🛡️', count: 0 },
+      { id: 'health', name: 'Healthcare', icon: '⚕️', count: 0 },
+      { id: 'legal', name: 'Legal Services', icon: '⚖️', count: 0 },
+      { id: 'security', name: 'Security', icon: '🔒', count: 0 },
+      { id: 'accounting', name: 'Accounting', icon: '📊', count: 0 },
+      { id: 'consulting', name: 'Business Consulting', icon: '💼', count: 0 },
+      { id: 'cyber', name: 'Cybersecurity', icon: '🔐', count: 0 },
+      { id: 'emergency', name: 'Emergency Services', icon: '🚨', count: 0 },
     ],
     actionButton: 'Get Protected',
   },
@@ -197,12 +198,30 @@ interface MarketplaceClientProps {
   vertical: string;
 }
 
+interface Listing {
+  id: string;
+  provider: {
+    name: string;
+    initials: string;
+    industry: string;
+    trustScore: number;
+  };
+  title: string;
+  description: string;
+  location: string;
+  price: string;
+  tags: string[];
+}
+
 export default function MarketplaceClient({ vertical }: MarketplaceClientProps) {
+  const { user, isLoaded } = useUser();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('');
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Validate vertical parameter
   const validVertical = verticalsConfig[vertical as VerticalType] 
@@ -211,65 +230,31 @@ export default function MarketplaceClient({ vertical }: MarketplaceClientProps) 
   
   const config = verticalsConfig[validVertical];
 
-  // Sample listings data
-  const listings = [
-    {
-      id: 1,
-      provider: {
-        name: 'Islamic Bank of Britain',
-        initials: 'IB',
-        industry: 'Financial Services',
-        trustScore: 950,
-      },
-      title: 'Senior Islamic Finance Analyst',
-      description: 'We are seeking an experienced Islamic Finance Analyst to join our Shariah compliance team...',
-      location: 'London, UK',
-      price: '£60,000 - £80,000',
-      tags: ['Full-time', 'Remote OK'],
-    },
-    {
-      id: 2,
-      provider: {
-        name: 'Dr. Amina Hassan',
-        initials: 'AH',
-        industry: 'Medical Professional',
-        trustScore: 945,
-      },
-      title: 'Halal Cosmetic Surgery Consultation',
-      description: 'Board-certified surgeon specializing in reconstructive procedures with Islamic ethical guidelines...',
-      location: 'Manchester, UK',
-      price: '£200 consultation',
-      tags: ['34 endorsements', 'Female only'],
-    },
-    {
-      id: 3,
-      provider: {
-        name: 'Ibrahim Law Associates',
-        initials: 'IL',
-        industry: 'Legal Services',
-        trustScore: 890,
-      },
-      title: 'Islamic Inheritance Planning',
-      description: 'Expert guidance on Shariah-compliant estate planning and wealth distribution...',
-      location: 'London, UK',
-      price: '£150/hour',
-      tags: ['28 endorsements', 'Home visits'],
-    },
-    {
-      id: 4,
-      provider: {
-        name: 'Al-Ihsan Academy',
-        initials: 'AI',
-        industry: 'Education',
-        trustScore: 875,
-      },
-      title: 'Islamic Studies Teacher',
-      description: 'Seeking qualified teacher for weekend Islamic studies program for children ages 7-12...',
-      location: 'Birmingham, UK',
-      price: '£25-35/hour',
-      tags: ['Part-time', 'Weekends'],
-    },
-  ];
+  // Get user initials
+  const userInitials = user?.firstName && user?.lastName
+    ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()
+    : user?.emailAddresses?.[0]?.emailAddress?.[0].toUpperCase() || '?';
+
+  const userName = user?.firstName && user?.lastName
+    ? `${user.firstName} ${user.lastName}`
+    : user?.emailAddresses?.[0]?.emailAddress?.split('@')[0] || 'User';
+
+  // Fetch listings from API
+  useEffect(() => {
+    async function fetchListings() {
+      try {
+        const res = await fetch(`/api/marketplace/${validVertical}?category=${selectedCategory}&location=${selectedLocation}&q=${searchQuery}`);
+        if (!res.ok) throw new Error('Failed to fetch');
+        const data = await res.json();
+        setListings(data.listings || []);
+      } catch {
+        setListings([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchListings();
+  }, [validVertical, selectedCategory, selectedLocation, searchQuery]);
 
   return (
     <>
@@ -312,8 +297,8 @@ export default function MarketplaceClient({ vertical }: MarketplaceClientProps) 
                 aria-expanded={isUserDropdownOpen}
                 aria-haspopup="true"
               >
-                <div className="avatar avatar-sm">AH</div>
-                <span className="hidden md:inline">Ahmed Hassan</span>
+                <div className="avatar avatar-sm">{userInitials}</div>
+                <span className="hidden md:inline">{userName}</span>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <polyline points="6 9 12 15 18 9"/>
                 </svg>
@@ -340,9 +325,9 @@ export default function MarketplaceClient({ vertical }: MarketplaceClientProps) 
       <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-content">
           <div className="sidebar-user">
-            <div className="avatar avatar-lg mx-auto">AH</div>
-            <h3 className="text-center mt-3 font-semibold">Ahmed Hassan</h3>
-            <p className="text-center text-sm text-secondary">Software Engineer</p>
+            <div className="avatar avatar-lg mx-auto">{userInitials}</div>
+            <h3 className="text-center mt-3 font-semibold">{userName}</h3>
+            <p className="text-center text-sm text-secondary">Member</p>
           </div>
           
           <nav className="sidebar-nav">
@@ -457,54 +442,88 @@ export default function MarketplaceClient({ vertical }: MarketplaceClientProps) 
               </div>
             </div>
             
-            <div className="listings-grid">
-              {listings.map((listing) => (
-                <div key={listing.id} className="card listing-card">
-                  <div className="card-header">
-                    <div className="flex items-center gap-3">
-                      <div className="avatar">{listing.provider.initials}</div>
-                      <div>
-                        <div className="font-semibold">{listing.provider.name}</div>
-                        <div className="text-sm text-secondary">{listing.provider.industry}</div>
+            {isLoading ? (
+              <div className="listings-grid">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="card listing-card skeleton">
+                    <div className="card-header">
+                      <div className="flex items-center gap-3">
+                        <div className="avatar skeleton-avatar">··</div>
+                        <div className="flex-1">
+                          <div className="skeleton-line" style={{ width: '60%' }} />
+                          <div className="skeleton-line" style={{ width: '40%' }} />
+                        </div>
                       </div>
-                      <div className="ml-auto">
-                        <span className="badge badge-trust-high">{listing.provider.trustScore} TRUST</span>
+                    </div>
+                    <div className="card-body">
+                      <div className="skeleton-line" style={{ width: '80%' }} />
+                      <div className="skeleton-line" style={{ width: '100%' }} />
+                      <div className="skeleton-line" style={{ width: '70%' }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : listings.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-icon">🎯</div>
+                <h3>No listings yet</h3>
+                <p>Be the first to post an opportunity in the {config.title} marketplace!</p>
+                <button className="btn btn-primary">
+                  Post {validVertical === 'earn' ? 'Job' : validVertical === 'build' ? 'Opportunity' : 'Listing'}
+                </button>
+              </div>
+            ) : (
+              <div className="listings-grid">
+                {listings.map((listing) => (
+                  <div key={listing.id} className="card listing-card">
+                    <div className="card-header">
+                      <div className="flex items-center gap-3">
+                        <div className="avatar">{listing.provider.initials}</div>
+                        <div>
+                          <div className="font-semibold">{listing.provider.name}</div>
+                          <div className="text-sm text-secondary">{listing.provider.industry}</div>
+                        </div>
+                        <div className="ml-auto">
+                          <span className="badge badge-trust-high">{listing.provider.trustScore} TRUST</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="card-body">
+                      <h4>{listing.title}</h4>
+                      <p className="text-secondary mt-2">{listing.description}</p>
+                      <div className="listing-meta mt-3">
+                        <span className="meta-item">
+                          <LocationIcon />
+                          {listing.location}
+                        </span>
+                        <span className="meta-item">
+                          <MoneyIcon />
+                          {listing.price}
+                        </span>
+                      </div>
+                      <div className="listing-tags mt-3">
+                        {listing.tags.map((tag, idx) => (
+                          <span key={idx} className="badge badge-verified">{tag}</span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="card-footer">
+                      <div className="flex gap-2">
+                        <button className="btn btn-primary btn-sm">{config.actionButton}</button>
+                        <button className="btn btn-outline btn-sm">Save</button>
                       </div>
                     </div>
                   </div>
-                  <div className="card-body">
-                    <h4>{listing.title}</h4>
-                    <p className="text-secondary mt-2">{listing.description}</p>
-                    <div className="listing-meta mt-3">
-                      <span className="meta-item">
-                        <LocationIcon />
-                        {listing.location}
-                      </span>
-                      <span className="meta-item">
-                        <MoneyIcon />
-                        {listing.price}
-                      </span>
-                    </div>
-                    <div className="listing-tags mt-3">
-                      {listing.tags.map((tag, idx) => (
-                        <span key={idx} className="badge badge-verified">{tag}</span>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="card-footer">
-                    <div className="flex gap-2">
-                      <button className="btn btn-primary btn-sm">{config.actionButton}</button>
-                      <button className="btn btn-outline btn-sm">Save</button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
             
             {/* Load More */}
-            <div className="text-center mt-8">
-              <button className="btn btn-outline">Load More Opportunities</button>
-            </div>
+            {listings.length > 0 && (
+              <div className="text-center mt-8">
+                <button className="btn btn-outline">Load More Opportunities</button>
+              </div>
+            )}
           </section>
           
           {/* Post Opportunity CTA */}

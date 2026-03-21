@@ -1,0 +1,369 @@
+/* ==========================================================================
+   Blog Page Styles
+   MuslimEEN - Muslim Economic Empowerment Network
+   ========================================================================== */
+
+/* ==========================================================================
+   1. Blog Hero
+   ========================================================================== */
+.blog-hero {
+  background: linear-gradient(135deg, var(--color-emerald-600) 0%, var(--color-emerald-800) 100%);
+  padding: var(--space-16) var(--space-6);
+  text-align: center;
+  color: white;
+}
+
+.blog-hero-content h1 {
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-4);
+  text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.blog-hero-content .lead {
+  font-size: var(--font-size-xl);
+  opacity: 0.95;
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+@media (max-width: 640px) {
+  .blog-hero {
+    padding: var(--space-10) var(--space-4);
+  }
+  
+  .blog-hero-content h1 {
+    font-size: var(--font-size-2xl);
+  }
+  
+  .blog-hero-content .lead {
+    font-size: var(--font-size-lg);
+  }
+}
+
+/* ==========================================================================
+   2. Category Navigation
+   ========================================================================== */
+.blog-categories {
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-light);
+  padding: var(--space-4) 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.category-nav {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  padding: 0 var(--space-4);
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.category-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.category-link {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.category-link:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.category-link.active {
+  background: var(--color-emerald-600);
+  color: white;
+}
+
+/* ==========================================================================
+   3. Featured Post
+   ========================================================================== */
+.featured-post {
+  padding: var(--space-12) 0;
+  background: var(--bg-primary);
+}
+
+.featured-post-card {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-8);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+
+.featured-post-image {
+  aspect-ratio: 16/10;
+  overflow: hidden;
+}
+
+.featured-image {
+  width: 100%;
+  height: 100%;
+}
+
+.placeholder-image {
+  background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-sm);
+  min-height: 200px;
+}
+
+.featured-post-content {
+  padding: var(--space-8);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.post-category {
+  display: inline-block;
+  padding: var(--space-1) var(--space-3);
+  background: var(--color-emerald-100);
+  color: var(--color-emerald-700);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: var(--radius-full);
+  margin-bottom: var(--space-4);
+  width: fit-content;
+}
+
+.featured-post-content h2 {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-4);
+  line-height: 1.3;
+}
+
+.featured-post-content h2 a {
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.featured-post-content h2 a:hover {
+  color: var(--color-emerald-600);
+}
+
+.post-excerpt {
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin-bottom: var(--space-6);
+}
+
+.post-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+}
+
+.post-author {
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+  .featured-post-card {
+    grid-template-columns: 1fr;
+  }
+  
+  .featured-post-content {
+    padding: var(--space-6);
+  }
+  
+  .featured-post-content h2 {
+    font-size: var(--font-size-xl);
+  }
+}
+
+/* ==========================================================================
+   4. Blog Posts Grid
+   ========================================================================== */
+.blog-posts {
+  padding: var(--space-12) 0;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-8);
+}
+
+.section-header h2 {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+}
+
+.posts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-6);
+}
+
+.post-card {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.post-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+}
+
+.post-image {
+  aspect-ratio: 16/9;
+  overflow: hidden;
+}
+
+.post-card-content {
+  padding: var(--space-6);
+}
+
+.post-card-content .post-category {
+  margin-bottom: var(--space-3);
+}
+
+.post-card-content h3 {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-3);
+  line-height: 1.4;
+}
+
+.post-card-content h3 a {
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.post-card-content h3 a:hover {
+  color: var(--color-emerald-600);
+}
+
+.post-card-content .post-excerpt {
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--space-4);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.post-card-content .post-meta {
+  gap: var(--space-3);
+}
+
+/* ==========================================================================
+   5. Empty State
+   ========================================================================== */
+.empty-state {
+  text-align: center;
+  padding: var(--space-16) var(--space-6);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-xl);
+  border: 2px dashed var(--border-light);
+  grid-column: 1 / -1;
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: var(--space-4);
+  opacity: 0.7;
+}
+
+.empty-state h3 {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.empty-state p {
+  color: var(--text-secondary);
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+/* ==========================================================================
+   6. Newsletter CTA
+   ========================================================================== */
+.blog-newsletter {
+  padding: var(--space-12) 0 var(--space-16);
+}
+
+.newsletter-card {
+  background: linear-gradient(135deg, var(--color-emerald-600) 0%, var(--color-emerald-800) 100%);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8) var(--space-10);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+  color: white;
+}
+
+.newsletter-content h2 {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-2);
+}
+
+.newsletter-content p {
+  opacity: 0.9;
+}
+
+.newsletter-form {
+  display: flex;
+  gap: var(--space-3);
+  min-width: 350px;
+}
+
+.newsletter-input {
+  flex: 1;
+  padding: var(--space-3) var(--space-4);
+  border: none;
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-base);
+  background: rgba(255,255,255,0.9);
+}
+
+.newsletter-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255,255,255,0.3);
+}
+
+@media (max-width: 768px) {
+  .newsletter-card {
+    flex-direction: column;
+    text-align: center;
+    padding: var(--space-6);
+  }
+  
+  .newsletter-form {
+    min-width: auto;
+    width: 100%;
+    flex-direction: column;
+  }
+}

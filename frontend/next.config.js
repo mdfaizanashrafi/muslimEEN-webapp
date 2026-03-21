@@ -68,9 +68,11 @@ const nextConfig = {
  * Minimal, secure CSP for Clerk default CDN
  */
 function buildCSP({ isDev, apiHost }) {
-  // Standard Clerk CDN domains (default CDN)
+  // Clerk domains - includes custom domain + default CDN fallback
   const clerkDomains = [
-    'https://*.clerk.accounts.dev',
+    'https://clerk.muslimeen.space',     // Your custom domain (REQUIRED)
+    'https://accounts.muslimeen.space',  // Your account portal
+    'https://*.clerk.accounts.dev',      // Default Clerk CDN (fallback)
     'https://*.clerk.com',
     'https://clerk.com',
   ];

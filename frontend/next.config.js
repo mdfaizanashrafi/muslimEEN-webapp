@@ -2,23 +2,38 @@
 
 const ContentSecurityPolicy = `
   default-src 'self';
+
   script-src 'self' 'unsafe-inline' 'unsafe-eval'
     https://*.clerk.accounts.dev
     https://*.clerk.com
     https://clerk.com
     https://cdn.jsdelivr.net
     https://unpkg.com;
+
+  script-src-elem 'self' 'unsafe-inline' 'unsafe-eval'
+    https://*.clerk.accounts.dev
+    https://*.clerk.com
+    https://clerk.com
+    https://cdn.jsdelivr.net
+    https://unpkg.com;
+
+  script-src-attr 'self' 'unsafe-inline';
+
   connect-src 'self'
     https://*.clerk.accounts.dev
     https://*.clerk.com
     https://clerk.com;
+
   frame-src 'self'
     https://*.clerk.accounts.dev
     https://*.clerk.com;
+
   img-src 'self' data:
     https://*.clerk.accounts.dev
     https://*.clerk.com;
+
   style-src 'self' 'unsafe-inline';
+
   font-src 'self' data:;
 `;
 

@@ -47,84 +47,77 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider
-      // CRITICAL: Use custom Clerk domain for CSP compatibility
-      domain="clerk.muslimeen.space"
-      // Use custom sign-in URL on subdomain
-      signInUrl="https://accounts.muslimeen.space/sign-in"
-      signUpUrl="https://accounts.muslimeen.space/sign-up"
-      appearance={{
-        layout: {
-          socialButtonsVariant: 'iconButton',
-          helpPageUrl: '/help',
-          termsPageUrl: '/terms',
-          privacyPageUrl: '/privacy',
-          logoImageUrl: '/logo.png',
-          logoPlacement: 'inside',
-          showOptionalFields: true,
-        },
-        variables: {
-          colorPrimary: '#059669',
-          colorText: '#1f2937',
-          colorBackground: '#ffffff',
-          colorInputBackground: '#f9fafb',
-          colorInputText: '#1f2937',
-          borderRadius: '0.5rem',
-          fontFamily: 'var(--font-inter), system-ui, sans-serif',
-        },
-        elements: {
-          formButtonPrimary: 
-            'bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors',
-          formFieldInput: 
-            'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500',
-          footerActionLink: 
-            'text-emerald-600 hover:text-emerald-700 font-medium',
-          identityPreviewEditButton: 
-            'text-emerald-600 hover:text-emerald-700',
-        },
-      }}
-    >
-      <html lang="en" dir="ltr" className={`${inter.variable} ${notoNaskhArabic.variable}`}>
-        <head>
-          {/* Preconnect to Clerk custom domain for performance */}
-          <link rel="preconnect" href="https://clerk.muslimeen.space" />
-          <link rel="preconnect" href="https://accounts.muslimeen.space" />
-          
-          {/* Preconnect to other critical domains */}
-          <link rel="preconnect" href="https://fonts.googleapis.com" />
-          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-          
-          {/* DNS Prefetch */}
-          <link rel="dns-prefetch" href="https://www.google-analytics.com" />
-          <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
-          
-          {/* Favicon */}
-          <link rel="icon" type="image/png" href="/favicon.png?v=2" />
-          <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-          
-          {/* Verification */}
-          <SearchConsoleVerification verificationCode={SEARCH_CONSOLE_VERIFICATION} />
-          
-          {/* Schema */}
-          <OrganizationSchema includeWebSite={true} />
-          
-          {/* Analytics */}
-          {GA_MEASUREMENT_ID && <GoogleAnalytics measurementId={GA_MEASUREMENT_ID} />}
-          {GTM_CONTAINER_ID && <GoogleTagManager containerId={GTM_CONTAINER_ID} />}
-          {CLARITY_PROJECT_ID && <MicrosoftClarity projectId={CLARITY_PROJECT_ID} />}
-        </head>
+    <html lang="en" dir="ltr" className={`${inter.variable} ${notoNaskhArabic.variable}`}>
+      <head>
+        {/* Preconnect to critical domains for performance */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         
-        <body className={`${inter.className} ${notoNaskhArabic.className}`}>
-          <GoogleTagManagerNoScript containerId={GTM_CONTAINER_ID || ''} />
-          
-          <ErrorBoundary>
+        {/* DNS Prefetch for analytics */}
+        <link rel="dns-prefetch" href="https://www.google-analytics.com" />
+        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+        
+        {/* Favicon and App Icons */}
+        <link rel="icon" type="image/png" href="/favicon.png?v=2" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        
+        {/* Search Console Verification */}
+        <SearchConsoleVerification verificationCode={SEARCH_CONSOLE_VERIFICATION} />
+        
+        {/* Organization Schema - included on all pages */}
+        <OrganizationSchema includeWebSite={true} />
+        
+        {/* Analytics - Only loaded in production */}
+        {GA_MEASUREMENT_ID && <GoogleAnalytics measurementId={GA_MEASUREMENT_ID} />}
+        {GTM_CONTAINER_ID && <GoogleTagManager containerId={GTM_CONTAINER_ID} />}
+        {CLARITY_PROJECT_ID && <MicrosoftClarity projectId={CLARITY_PROJECT_ID} />}
+      </head>
+      
+      <body className={`${inter.className} ${notoNaskhArabic.className}`}>
+        {/* GTM NoScript Fallback */}
+        <GoogleTagManagerNoScript containerId={GTM_CONTAINER_ID || ''} />
+        
+        <ErrorBoundary>
+          {/* ClerkProvider must be inside body for App Router */}
+          <ClerkProvider
+            appearance={{
+              layout: {
+                socialButtonsVariant: 'iconButton',
+                helpPageUrl: '/help',
+                termsPageUrl: '/terms',
+                privacyPageUrl: '/privacy',
+                logoImageUrl: '/logo.png',
+                logoPlacement: 'inside',
+                showOptionalFields: true,
+              },
+              variables: {
+                colorPrimary: '#059669',
+                colorText: '#1f2937',
+                colorBackground: '#ffffff',
+                colorInputBackground: '#f9fafb',
+                colorInputText: '#1f2937',
+                borderRadius: '0.5rem',
+                fontFamily: 'var(--font-inter), system-ui, sans-serif',
+              },
+              elements: {
+                formButtonPrimary: 
+                  'bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors',
+                formFieldInput: 
+                  'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500',
+                footerActionLink: 
+                  'text-emerald-600 hover:text-emerald-700 font-medium',
+                identityPreviewEditButton: 
+                  'text-emerald-600 hover:text-emerald-700',
+              },
+            }}
+          >
             <AnalyticsProvider>
               {children}
               <ToastContainer />
             </AnalyticsProvider>
-          </ErrorBoundary>
-        </body>
-      </html>
-    </ClerkProvider>
+          </ClerkProvider>
+        </ErrorBoundary>
+      </body>
+    </html>
   );
 }

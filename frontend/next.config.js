@@ -65,25 +65,15 @@ const nextConfig = {
 
 /**
  * Build CSP directive string
- * Security-first with custom Clerk domain support
+ * Minimal, secure CSP for Clerk default CDN
  */
 function buildCSP({ isDev, apiHost }) {
-  // PRIMARY: Custom Clerk domain (explicit for security)
-  const customClerkDomains = [
-    'https://clerk.muslimeen.space',
-    'https://accounts.muslimeen.space',
-  ];
-
-  // FALLBACK: Standard Clerk CDN domains (if custom fails)
-  const clerkCdnDomains = [
+  // Standard Clerk CDN domains (default CDN)
+  const clerkDomains = [
     'https://*.clerk.accounts.dev',
     'https://*.clerk.com',
     'https://clerk.com',
-    'https://*.clerkstage.dev',
   ];
-
-  // All Clerk domains combined
-  const clerkDomains = [...customClerkDomains, ...clerkCdnDomains];
 
   const directives = {
     // Default fallback
@@ -100,7 +90,7 @@ function buildCSP({ isDev, apiHost }) {
       ...(isDev ? ['https://vercel.live'] : []),
     ],
     
-    // IMPORTANT: script-src-elem for modern browsers
+    // script-src-elem for modern browsers
     'script-src-elem': [
       "'self'",
       ...clerkDomains,
@@ -108,7 +98,7 @@ function buildCSP({ isDev, apiHost }) {
       ...(isDev ? ['https://vercel.live'] : []),
     ],
     
-    // Styles: Self + inline + Google Fonts + Clerk
+    // Styles: Self + inline + Google Fonts
     'style-src': [
       "'self'",
       "'unsafe-inline'",
@@ -142,14 +132,17 @@ function buildCSP({ isDev, apiHost }) {
       ...(isDev ? ['https://vercel.live', 'wss://vercel.live'] : []),
     ],
     
-    // Frame: Clerk iframes + Account portal
+    // Frame: Clerk iframes for OAuth
     'frame-src': [
       ...clerkDomains,
       ...(isDev ? ['https://vercel.live'] : []),
     ],
     
-    // Media: Self + HTTPS + Clerk
+    // Media: Self + HTTPS
     'media-src': ["'self'", 'https:', ...clerkDomains],
+    
+    // Workers: Self + blob (Clerk may use Web Workers)
+    'worker-src': ["'self'", 'blob:'],
     
     // Object: None
     'object-src': ["'none'"],

@@ -1,21 +1,6 @@
 # =============================================================================
 # MUSLIMEEN PRODUCTION CI/CD PIPELINE
 # =============================================================================
-# This workflow handles:
-#   - Continuous Integration (build, test, lint)
-#   - Security scanning (CodeQL, dependency audit)
-#   - Continuous Deployment (Render backend, Vercel frontend)
-#   - Post-deployment health checks
-#
-# Triggers:
-#   - Push to main branch
-#   - Push to staging branch
-#   - Manual dispatch
-#
-# Author: Senior DevOps Engineer
-# Version: 1.0.0
-# =============================================================================
-
 name: CI/CD Pipeline
 
 on:
@@ -34,36 +19,24 @@ on:
           - staging
           - production
 
-# =============================================================================
-# PERMISSIONS - Principle of Least Privilege
-# =============================================================================
 permissions:
   contents: read
   actions: read
   security-events: write
   pull-requests: write
 
-# =============================================================================
-# ENVIRONMENT VARIABLES
-# =============================================================================
 env:
   NODE_VERSION: '18'
   BACKEND_DIR: 'backend'
   FRONTEND_DIR: 'frontend'
 
 jobs:
-  # ==========================================================================
-  # JOB 1: BACKEND CONTINUOUS INTEGRATION
-  # ==========================================================================
   backend-ci:
     name: Backend CI
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ${{ env.BACKEND_DIR }}
-    
-    strategy:
-      fail-fast: true
     
     services:
       postgres:
@@ -81,56 +54,27 @@ jobs:
           - 5432:5432
 
     steps:
-      # -----------------------------------------------------------------------
-      # Step 1: Checkout Repository
-      # -----------------------------------------------------------------------
       - name: Checkout code
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # -----------------------------------------------------------------------
-      # Step 2: Setup Node.js
-      # -----------------------------------------------------------------------
       - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
           cache-dependency-path: ${{ env.BACKEND_DIR }}/package-lock.json
 
-      # -----------------------------------------------------------------------
-      # Step 3: Cache Dependencies
-      # -----------------------------------------------------------------------
-      - name: Cache node_modules
-        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
-        with:
-          path: ${{ env.BACKEND_DIR }}/node_modules
-          key: ${{ runner.os }}-backend-${{ hashFiles('**/backend/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-backend-
-
-      # -----------------------------------------------------------------------
-      # Step 4: Install Dependencies
-      # -----------------------------------------------------------------------
       - name: Install dependencies
         run: npm ci --prefer-offline --no-audit
 
-      # -----------------------------------------------------------------------
-      # Step 5: Run ESLint
-      # -----------------------------------------------------------------------
       - name: Run ESLint
         run: npm run lint
 
-      # -----------------------------------------------------------------------
-      # Step 6: TypeScript Type Check
-      # -----------------------------------------------------------------------
       - name: TypeScript type check
         run: npm run type-check
 
-      # -----------------------------------------------------------------------
-      # Step 7: Run Unit Tests
-      # -----------------------------------------------------------------------
       - name: Run unit tests
         env:
           NODE_ENV: test
@@ -142,15 +86,9 @@ jobs:
           JWT_SECRET: test-secret-key-for-ci-only
         run: npm run test:unit -- --coverage
 
-      # -----------------------------------------------------------------------
-      # Step 8: Build Production Bundle
-      # -----------------------------------------------------------------------
       - name: Build production bundle
         run: npm run build
 
-      # -----------------------------------------------------------------------
-      # Step 9: Verify Build Output
-      # -----------------------------------------------------------------------
       - name: Verify build output
         run: |
           if [ ! -f "dist/server.js" ]; then
@@ -159,21 +97,15 @@ jobs:
           fi
           echo "Build verification passed ✓"
 
-      # -----------------------------------------------------------------------
-      # Step 10: Upload Build Artifacts
-      # -----------------------------------------------------------------------
       - name: Upload build artifacts
-        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
+        uses: actions/upload-artifact@v4
         with:
           name: backend-build
           path: ${{ env.BACKEND_DIR }}/dist/
           retention-days: 7
 
-      # -----------------------------------------------------------------------
-      # Step 11: Upload Coverage Report
-      # -----------------------------------------------------------------------
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@ab904c41d6ece82784817410c45d8b8c02684457 # v3.1.4
+        uses: codecov/codecov-action@v4
         if: github.ref == 'refs/heads/main'
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -181,9 +113,6 @@ jobs:
           flags: backend
           name: backend-coverage
 
-  # ==========================================================================
-  # JOB 2: FRONTEND CONTINUOUS INTEGRATION
-  # ==========================================================================
   frontend-ci:
     name: Frontend CI
     runs-on: ubuntu-latest
@@ -192,60 +121,30 @@ jobs:
         working-directory: ${{ env.FRONTEND_DIR }}
 
     steps:
-      # -----------------------------------------------------------------------
-      # Step 1: Checkout Repository
-      # -----------------------------------------------------------------------
       - name: Checkout code
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@v4
 
-      # -----------------------------------------------------------------------
-      # Step 2: Setup Node.js
-      # -----------------------------------------------------------------------
       - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
           cache-dependency-path: ${{ env.FRONTEND_DIR }}/package-lock.json
 
-      # -----------------------------------------------------------------------
-      # Step 3: Cache Dependencies
-      # -----------------------------------------------------------------------
-      - name: Cache node_modules
-        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
-        with:
-          path: ${{ env.FRONTEND_DIR }}/node_modules
-          key: ${{ runner.os }}-frontend-${{ hashFiles('**/frontend/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-frontend-
-
-      # -----------------------------------------------------------------------
-      # Step 4: Cache Next.js Build
-      # -----------------------------------------------------------------------
       - name: Cache Next.js build
-        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
+        uses: actions/cache@v4
         with:
-          path: |
-            ${{ env.FRONTEND_DIR }}/.next/cache
+          path: ${{ env.FRONTEND_DIR }}/.next/cache
           key: ${{ runner.os }}-nextjs-${{ hashFiles('**/frontend/package-lock.json') }}-${{ hashFiles('**/frontend/**/*.js', '**/frontend/**/*.jsx', '**/frontend/**/*.ts', '**/frontend/**/*.tsx') }}
           restore-keys: |
             ${{ runner.os }}-nextjs-${{ hashFiles('**/frontend/package-lock.json') }}-
 
-      # -----------------------------------------------------------------------
-      # Step 5: Install Dependencies
-      # -----------------------------------------------------------------------
       - name: Install dependencies
         run: npm ci --prefer-offline --no-audit
 
-      # -----------------------------------------------------------------------
-      # Step 6: Run ESLint
-      # -----------------------------------------------------------------------
       - name: Run ESLint
         run: npm run lint
 
-      # -----------------------------------------------------------------------
-      # Step 7: Build Production Bundle
-      # -----------------------------------------------------------------------
       - name: Build production bundle
         env:
           NEXT_PUBLIC_API_URL: ${{ github.ref == 'refs/heads/main' && secrets.PROD_API_URL || secrets.STAGING_API_URL }}
@@ -253,9 +152,6 @@ jobs:
           NEXT_TELEMETRY_DISABLED: 1
         run: npm run build
 
-      # -----------------------------------------------------------------------
-      # Step 8: Verify Build Output
-      # -----------------------------------------------------------------------
       - name: Verify build output
         run: |
           if [ ! -d ".next" ]; then
@@ -264,19 +160,13 @@ jobs:
           fi
           echo "Build verification passed ✓"
 
-      # -----------------------------------------------------------------------
-      # Step 9: Upload Build Artifacts
-      # -----------------------------------------------------------------------
       - name: Upload build artifacts
-        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
+        uses: actions/upload-artifact@v4
         with:
           name: frontend-build
           path: ${{ env.FRONTEND_DIR }}/.next/
           retention-days: 7
 
-  # ==========================================================================
-  # JOB 3: SECURITY SCANNING
-  # ==========================================================================
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
@@ -284,44 +174,29 @@ jobs:
     if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
 
     steps:
-      # -----------------------------------------------------------------------
-      # Step 1: Checkout Repository
-      # -----------------------------------------------------------------------
       - name: Checkout code
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@v4
 
-      # -----------------------------------------------------------------------
-      # Step 2: Run npm Audit (Backend)
-      # -----------------------------------------------------------------------
       - name: Audit backend dependencies
         working-directory: ${{ env.BACKEND_DIR }}
         run: |
           npm audit --audit-level=moderate || true
           npm audit --audit-level=high --json > audit-backend.json || true
 
-      # -----------------------------------------------------------------------
-      # Step 3: Run npm Audit (Frontend)
-      # -----------------------------------------------------------------------
       - name: Audit frontend dependencies
         working-directory: ${{ env.FRONTEND_DIR }}
         run: |
           npm audit --audit-level=moderate || true
           npm audit --audit-level=high --json > audit-frontend.json || true
 
-      # -----------------------------------------------------------------------
-      # Step 4: Upload Audit Reports
-      # -----------------------------------------------------------------------
       - name: Upload audit reports
-        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
+        uses: actions/upload-artifact@v4
         with:
           name: security-audit-reports
           path: |
             ${{ env.BACKEND_DIR }}/audit-backend.json
             ${{ env.FRONTEND_DIR }}/audit-frontend.json
 
-  # ==========================================================================
-  # JOB 4: CODEQL ANALYSIS
-  # ==========================================================================
   codeql:
     name: CodeQL Analysis
     runs-on: ubuntu-latest
@@ -340,25 +215,22 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@v4
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@8a470fafaabb0af865ab420d0e9f0de374cc773c # v3
+        uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
           queries: security-extended,security-and-quality
 
       - name: Autobuild
-        uses: github/codeql-action/autobuild@8a470fafaabb0af865ab420d0e9f0de374cc773c # v3
+        uses: github/codeql-action/autobuild@v3
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@8a470fafaabb0af865ab420d0e9f0de374cc773c # v3
+        uses: github/codeql-action/analyze@v3
         with:
           category: "/language:${{matrix.language}}"
 
-  # ==========================================================================
-  # JOB 5: DEPLOY BACKEND TO RENDER
-  # ==========================================================================
   deploy-backend:
     name: Deploy Backend to Render
     runs-on: ubuntu-latest
@@ -369,9 +241,6 @@ jobs:
       url: ${{ steps.deploy.outputs.url }}
 
     steps:
-      # -----------------------------------------------------------------------
-      # Step 1: Deploy to Render via Deploy Hook
-      # -----------------------------------------------------------------------
       - name: Deploy to Render
         id: deploy
         run: |
@@ -380,17 +249,11 @@ jobs:
           echo "Deploy hook response: $RESPONSE"
           echo "url=https://api.muslimeen.org" >> $GITHUB_OUTPUT
 
-      # -----------------------------------------------------------------------
-      # Step 2: Wait for Deployment
-      # -----------------------------------------------------------------------
       - name: Wait for deployment
         run: |
           echo "Waiting for deployment to complete..."
           sleep 60
 
-      # -----------------------------------------------------------------------
-      # Step 3: Health Check
-      # -----------------------------------------------------------------------
       - name: Health check
         run: |
           MAX_RETRIES=5
@@ -413,9 +276,6 @@ jobs:
           echo "Health check failed after $MAX_RETRIES attempts!"
           exit 1
 
-  # ==========================================================================
-  # JOB 6: DEPLOY FRONTEND TO VERCEL
-  # ==========================================================================
   deploy-frontend:
     name: Deploy Frontend to Vercel
     runs-on: ubuntu-latest
@@ -426,21 +286,12 @@ jobs:
       url: ${{ steps.deploy.outputs.url }}
 
     steps:
-      # -----------------------------------------------------------------------
-      # Step 1: Checkout Repository
-      # -----------------------------------------------------------------------
       - name: Checkout code
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@v4
 
-      # -----------------------------------------------------------------------
-      # Step 2: Install Vercel CLI
-      # -----------------------------------------------------------------------
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
 
-      # -----------------------------------------------------------------------
-      # Step 3: Deploy to Vercel
-      # -----------------------------------------------------------------------
       - name: Deploy to Vercel
         id: deploy
         working-directory: ${{ env.FRONTEND_DIR }}
@@ -452,9 +303,6 @@ jobs:
           vercel --token $VERCEL_TOKEN --prod --yes
           echo "url=https://muslimeen.org" >> $GITHUB_OUTPUT
 
-      # -----------------------------------------------------------------------
-      # Step 4: Smoke Test
-      # -----------------------------------------------------------------------
       - name: Smoke test
         run: |
           MAX_RETRIES=5
@@ -477,9 +325,6 @@ jobs:
           echo "Smoke test failed after $MAX_RETRIES attempts!"
           exit 1
 
-  # ==========================================================================
-  # JOB 7: POST-DEPLOYMENT NOTIFICATION
-  # ==========================================================================
   notify-deployment:
     name: Notify Deployment Status
     runs-on: ubuntu-latest

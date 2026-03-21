@@ -1,18 +1,6 @@
 # =============================================================================
 # MUSLIMEEN NIGHTLY WORKFLOW
 # =============================================================================
-# Scheduled nightly jobs for:
-#   - Full test suite (unit + integration)
-#   - Dependency vulnerability scan
-#   - Code coverage reporting
-#   - Database migration dry-run
-#
-# Schedule: Daily at 2:00 AM UTC
-#
-# Author: Senior DevOps Engineer
-# Version: 1.0.0
-# =============================================================================
-
 name: Nightly Tests
 
 on:
@@ -20,25 +8,16 @@ on:
     - cron: '0 2 * * *'  # Daily at 2:00 AM UTC
   workflow_dispatch:  # Manual trigger
 
-# =============================================================================
-# PERMISSIONS
-# =============================================================================
 permissions:
   contents: read
   security-events: write
 
-# =============================================================================
-# ENVIRONMENT VARIABLES
-# =============================================================================
 env:
   NODE_VERSION: '18'
   BACKEND_DIR: 'backend'
   FRONTEND_DIR: 'frontend'
 
 jobs:
-  # ==========================================================================
-  # JOB 1: FULL BACKEND TEST SUITE
-  # ==========================================================================
   backend-full-test:
     name: Backend Full Test Suite
     runs-on: ubuntu-latest
@@ -73,10 +52,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@v4
 
       - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -110,25 +89,22 @@ jobs:
         run: npm run test:integration
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: ${{ env.BACKEND_DIR }}/coverage/
           retention-days: 30
 
-  # ==========================================================================
-  # JOB 2: DEPENDENCY VULNERABILITY SCAN
-  # ==========================================================================
   dependency-scan:
     name: Dependency Vulnerability Scan
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@v4
 
       - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -153,7 +129,7 @@ jobs:
           cat audit-frontend.json
 
       - name: Upload audit reports
-        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
+        uses: actions/upload-artifact@v4
         with:
           name: audit-reports
           path: |
@@ -174,9 +150,6 @@ jobs:
             exit 1
           fi
 
-  # ==========================================================================
-  # JOB 3: DATABASE MIGRATION DRY-RUN
-  # ==========================================================================
   migration-dry-run:
     name: Database Migration Dry-Run
     runs-on: ubuntu-latest
@@ -198,10 +171,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@v4
 
       - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -238,9 +211,6 @@ jobs:
         run: |
           psql postgresql://test:test@localhost:5432/muslimeen_test -c "\dt" || true
 
-  # ==========================================================================
-  # JOB 4: PERFORMANCE BENCHMARK
-  # ==========================================================================
   performance-benchmark:
     name: Performance Benchmark
     runs-on: ubuntu-latest
@@ -250,10 +220,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@v4
 
       - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -270,7 +240,7 @@ jobs:
           END_TIME=$(date +%s)
           DURATION=$((END_TIME - START_TIME))
           echo "Build completed in ${DURATION}s"
-          echo "::set-output name=build_time::${DURATION}"
+          echo "build_time=${DURATION}" >> $GITHUB_OUTPUT
 
       - name: Measure test time
         run: |
@@ -280,11 +250,8 @@ jobs:
           END_TIME=$(date +%s)
           DURATION=$((END_TIME - START_TIME))
           echo "Tests completed in ${DURATION}s"
-          echo "::set-output name=test_time::${DURATION}"
+          echo "test_time=${DURATION}" >> $GITHUB_OUTPUT
 
-  # ==========================================================================
-  # JOB 5: NOTIFY RESULTS
-  # ==========================================================================
   notify-results:
     name: Notify Results
     runs-on: ubuntu-latest

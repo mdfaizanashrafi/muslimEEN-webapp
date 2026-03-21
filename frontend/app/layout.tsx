@@ -49,10 +49,7 @@ export default function RootLayout({
   return (
     <html lang="en" dir="ltr" className={`${inter.variable} ${notoNaskhArabic.variable}`}>
       <head>
-        {/* Preconnect to Clerk custom domain */}
-        <link rel="preconnect" href="https://clerk.muslimeen.space" />
-        
-        {/* Preconnect to other critical domains */}
+        {/* Preconnect to critical domains for performance */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         

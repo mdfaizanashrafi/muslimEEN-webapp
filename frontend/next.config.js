@@ -65,27 +65,26 @@ const nextConfig = {
 
 /**
  * Build CSP directive string
- * Minimal, secure CSP for Clerk default CDN
+ * Uses ONLY default Clerk CDN (no custom domain)
  */
 function buildCSP({ isDev, apiHost }) {
-  // Clerk domains - includes custom domain + default CDN fallback
+  // Default Clerk CDN domains only (NO custom domain)
   const clerkDomains = [
-    'https://clerk.muslimeen.space',     // Your custom domain (REQUIRED)
-    'https://accounts.muslimeen.space',  // Your account portal
-    'https://*.clerk.accounts.dev',      // Default Clerk CDN (fallback)
+    'https://*.clerk.accounts.dev',
     'https://*.clerk.com',
     'https://clerk.com',
+    'https://cdn.jsdelivr.net',  // Common CDN for Clerk JS
   ];
 
   const directives = {
     // Default fallback
     'default-src': ["'self'"],
     
-    // Scripts: Self + inline + Clerk + Sentry
+    // Scripts: Self + inline + eval + Clerk + Sentry
     'script-src': [
       "'self'",
-      "'unsafe-inline'",
-      "'unsafe-eval'",
+      "'unsafe-inline'",  // Required for Clerk inline scripts
+      "'unsafe-eval'",    // Required for Clerk functionality
       ...clerkDomains,
       'https://browser.sentry-cdn.com',
       'https://js.sentry-cdn.com',
@@ -103,7 +102,7 @@ function buildCSP({ isDev, apiHost }) {
     // Styles: Self + inline + Google Fonts
     'style-src': [
       "'self'",
-      "'unsafe-inline'",
+      "'unsafe-inline'",  // Required for Clerk styles
       'https://fonts.googleapis.com',
       ...clerkDomains,
     ],

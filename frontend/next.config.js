@@ -21,7 +21,7 @@ const nextConfig = {
   async headers() {
     const isDev = process.env.NODE_ENV === 'development';
     
-    // Get backend API URL from env (remove protocol for cleaner CSP)
+    // Get backend API URL from env
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
     const apiHost = apiUrl ? new URL(apiUrl).origin : '';
     
@@ -65,43 +65,53 @@ const nextConfig = {
 
 /**
  * Build CSP directive string
- * Security-first but functional for real-world use
- * Includes all required Clerk domains
+ * Security-first with custom Clerk domain support
  */
 function buildCSP({ isDev, apiHost }) {
-  // Clerk domains required for authentication
-  const clerkDomains = [
+  // PRIMARY: Custom Clerk domain (explicit for security)
+  const customClerkDomains = [
+    'https://clerk.muslimeen.space',
+    'https://accounts.muslimeen.space',
+  ];
+
+  // FALLBACK: Standard Clerk CDN domains (if custom fails)
+  const clerkCdnDomains = [
     'https://*.clerk.accounts.dev',
     'https://*.clerk.com',
     'https://clerk.com',
     'https://*.clerkstage.dev',
-    'https://*.clerk.dev',
-    'https://npm.elemecdn.com',  // Alternative CDN for clerk.browser.js
-    'https://esm.sh',              // ESM CDN
-    'https://cdn.jsdelivr.net',    // jsDelivr CDN
-    'https://unpkg.com',           // unpkg CDN
-    'https://esm.run',             // esm.run CDN
   ];
 
+  // All Clerk domains combined
+  const clerkDomains = [...customClerkDomains, ...clerkCdnDomains];
+
   const directives = {
-    // Default fallback - strict self-only
+    // Default fallback
     'default-src': ["'self'"],
     
-    // Scripts: Self + inline (Next.js requires) + Clerk + Sentry + Vercel Live (dev only)
+    // Scripts: Self + inline + Clerk + Sentry
     'script-src': [
       "'self'",
-      "'unsafe-inline'", // Required by Next.js and Clerk
-      "'unsafe-eval'",   // Required by Clerk for some functionality
+      "'unsafe-inline'",
+      "'unsafe-eval'",
       ...clerkDomains,
       'https://browser.sentry-cdn.com',
       'https://js.sentry-cdn.com',
       ...(isDev ? ['https://vercel.live'] : []),
     ],
     
-    // Styles: Self + inline (Tailwind/common) + Google Fonts + Clerk
+    // IMPORTANT: script-src-elem for modern browsers
+    'script-src-elem': [
+      "'self'",
+      ...clerkDomains,
+      'https://browser.sentry-cdn.com',
+      ...(isDev ? ['https://vercel.live'] : []),
+    ],
+    
+    // Styles: Self + inline + Google Fonts + Clerk
     'style-src': [
       "'self'",
-      "'unsafe-inline'", // Required for Clerk's inline styles
+      "'unsafe-inline'",
       'https://fonts.googleapis.com',
       ...clerkDomains,
     ],
@@ -113,7 +123,7 @@ function buildCSP({ isDev, apiHost }) {
       ...clerkDomains,
     ],
     
-    // Images: Self + data URIs + HTTPS (for user uploads/external images) + Clerk
+    // Images: Self + data + HTTPS + Clerk
     'img-src': [
       "'self'",
       'data:',
@@ -122,7 +132,7 @@ function buildCSP({ isDev, apiHost }) {
       ...clerkDomains,
     ],
     
-    // Connect (API calls): Self + Backend API + Sentry + Clerk
+    // Connect: Self + Backend + Sentry + Clerk
     'connect-src': [
       "'self'",
       ...(apiHost ? [apiHost] : []),
@@ -132,7 +142,7 @@ function buildCSP({ isDev, apiHost }) {
       ...(isDev ? ['https://vercel.live', 'wss://vercel.live'] : []),
     ],
     
-    // Frame: Clerk may use iframes for certain flows
+    // Frame: Clerk iframes + Account portal
     'frame-src': [
       ...clerkDomains,
       ...(isDev ? ['https://vercel.live'] : []),
@@ -141,23 +151,23 @@ function buildCSP({ isDev, apiHost }) {
     // Media: Self + HTTPS + Clerk
     'media-src': ["'self'", 'https:', ...clerkDomains],
     
-    // Object: None (Flash/Java are dead)
+    // Object: None
     'object-src': ["'none'"],
     
-    // Frame ancestors: None (prevent embedding)
+    // Frame ancestors: None
     'frame-ancestors': ["'none'"],
     
-    // Form action: Self + Clerk (for redirects)
+    // Form action: Self + Clerk
     'form-action': ["'self'", ...clerkDomains],
     
-    // Base URI: Self only
+    // Base URI: Self
     'base-uri': ["'self'"],
     
-    // Upgrade HTTP to HTTPS
+    // Upgrade insecure requests
     'upgrade-insecure-requests': [],
   };
   
-  // Convert to CSP string format
+  // Convert to CSP string
   return Object.entries(directives)
     .map(([key, values]) => {
       if (values.length === 0) return key;

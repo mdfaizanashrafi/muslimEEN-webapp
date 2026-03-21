@@ -1,6 +1,9 @@
 /**
  * JWT Service
  * Token generation and verification with security hardening
+ * 
+ * DEPRECATED: Migrated to Clerk authentication
+ * This module is kept for backward compatibility during transition
  */
 
 import jwt from 'jsonwebtoken';
@@ -13,33 +16,47 @@ import { JWTPayload } from '../../shared/types';
 
 /**
  * JWT Secret - validated in env.ts
+ * DEPRECATED: Clerk migration complete
  */
 const JWT_SECRET = env.JWT_SECRET;
 
 /**
+ * Check if JWT is configured
+ * Returns false if migrated to Clerk (JWT_SECRET not set)
+ */
+const isJwtConfigured = (): boolean => {
+  return !!JWT_SECRET && JWT_SECRET.length > 0;
+};
+
+/**
  * Additional runtime validation for extra security
  * (env.ts already validates minimum length and weak patterns)
+ * DEPRECATED: Only runs if JWT_SECRET is still configured
  */
 const validateJwtConfig = (): void => {
+  // Skip validation if not configured (Clerk migration)
+  if (!isJwtConfigured()) return;
+  
   // Enforce minimum secret length (256 bits = 32 bytes = 64 hex chars)
-  if (JWT_SECRET.length < 64) {
+  if (JWT_SECRET!.length < 64) {
     throw new Error(
-      `FATAL: JWT_SECRET is too short (${JWT_SECRET.length} chars). ` +
+      `FATAL: JWT_SECRET is too short (${JWT_SECRET!.length} chars). ` +
       'Minimum 64 characters (256 bits) required for security. ' +
       'Generate with: node -e "console.log(require(\'crypto\').randomBytes(64).toString(\'hex\'))"'
     );
   }
 };
 
-// Validate on module load in production
-if (env.NODE_ENV === 'production') {
+// Validate on module load in production (only if JWT still configured)
+if (env.NODE_ENV === 'production' && isJwtConfigured()) {
   validateJwtConfig();
 }
 
 /**
  * JWT Expiration time
+ * DEPRECATED: Clerk manages session expiration
  */
-const JWT_EXPIRES_IN = env.JWT_EXPIRES_IN;
+const JWT_EXPIRES_IN = env.JWT_EXPIRES_IN || '24h';
 
 // Maximum allowed expiration: 7 days
 const MAX_EXPIRES_IN = '7d';
@@ -75,7 +92,8 @@ const validateExpiration = (expiresIn: string): boolean => {
   return hours <= 168;
 };
 
-if (!validateExpiration(JWT_EXPIRES_IN)) {
+// Only validate if JWT is still configured
+if (isJwtConfigured() && !validateExpiration(JWT_EXPIRES_IN)) {
   throw new Error(
     `FATAL: JWT_EXPIRES_IN (${JWT_EXPIRES_IN}) exceeds maximum allowed (${MAX_EXPIRES_IN})`
   );
@@ -87,14 +105,20 @@ if (!validateExpiration(JWT_EXPIRES_IN)) {
 
 /**
  * Generate JWT token
+ * DEPRECATED: Use Clerk authentication instead
  * @param payload User payload to encode
  * @returns Signed JWT token
- */
-/**
- * Generate JWT token
- * SECURITY FIX: Explicitly specify algorithm to prevent algorithm confusion attacks
+ * @throws Error if JWT not configured (Clerk migration complete)
  */
 export const generateToken = (payload: JWTPayload): string => {
+  if (!isJwtConfigured()) {
+    throw new Error(
+      'JWT authentication is deprecated. ' +
+      'Migration to Clerk is complete. ' +
+      'Use Clerk authentication instead.'
+    );
+  }
+  
   return jwt.sign(payload, JWT_SECRET!, {
     algorithm: 'HS256',  // SECURITY FIX: Explicitly use HMAC SHA-256
     expiresIn: JWT_EXPIRES_IN as jwt.SignOptions['expiresIn'],
@@ -105,14 +129,20 @@ export const generateToken = (payload: JWTPayload): string => {
 
 /**
  * Verify JWT token
+ * DEPRECATED: Use Clerk authentication instead
  * @param token JWT token to verify
  * @returns Decoded payload or null if invalid
- */
-/**
- * Verify JWT token
- * SECURITY FIX: Explicitly allow only HS256 algorithm
+ * @throws Error if JWT not configured (Clerk migration complete)
  */
 export const verifyToken = (token: string): JWTPayload | null => {
+  if (!isJwtConfigured()) {
+    throw new Error(
+      'JWT authentication is deprecated. ' +
+      'Migration to Clerk is complete. ' +
+      'Use Clerk authentication instead.'
+    );
+  }
+  
   try {
     return jwt.verify(token, JWT_SECRET!, {
       algorithms: ['HS256'],  // SECURITY FIX: Only allow HS256
@@ -168,7 +198,8 @@ export const isTokenExpired = (token: string): boolean => {
 
 // Export configuration for testing
 export const jwtConfig = {
-  secretLength: JWT_SECRET!.length,
+  secretLength: isJwtConfigured() ? JWT_SECRET!.length : 0,
   expiresIn: JWT_EXPIRES_IN,
-  isConfigured: true,
+  isConfigured: isJwtConfigured(),
+  isDeprecated: true,  // Flag indicating Clerk migration is complete
 };

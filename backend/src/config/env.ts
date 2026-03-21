@@ -113,14 +113,18 @@ const envSchema = z.object({
     .optional(),
   
   // ==========================================================================
-  // SECURITY SECRETS (Deprecated - kept for backward compatibility)
+  // SECURITY SECRETS (Deprecated - Clerk migration complete)
   // ==========================================================================
   
+  // JWT_SECRET: Deprecated - migrated to Clerk authentication
+  // Keeping as optional for backward compatibility during transition
   JWT_SECRET: z
     .string()
     .optional()
     .refine(
       secret => {
+        // Skip validation if not provided (Clerk migration complete)
+        if (!secret) return true;
         // In development, allow shorter secrets for convenience
         if (process.env.NODE_ENV === 'development') return true;
         return secret.length >= 32;
@@ -131,6 +135,8 @@ const envSchema = z.object({
     )
     .refine(
       secret => {
+        // Skip validation if not provided (Clerk migration complete)
+        if (!secret) return true;
         if (process.env.NODE_ENV === 'development') return true;
         return !isWeakSecret(secret);
       },
@@ -139,8 +145,10 @@ const envSchema = z.object({
       }
     ),
   
+  // JWT_EXPIRES_IN: Deprecated - migrated to Clerk authentication
   JWT_EXPIRES_IN: z
     .string()
+    .optional()
     .default('24h'),
   
   COOKIE_SECRET: z
@@ -402,9 +410,10 @@ export const validateProductionConfig = (): void => {
   
   const warnings: string[] = [];
   
-  // Check for development defaults
-  if (env.JWT_SECRET.length < 64) {
-    warnings.push('JWT_SECRET should be at least 64 characters in production');
+  // JWT_SECRET is deprecated - Clerk migration complete
+  // Only validate if still present for backward compatibility
+  if (env.JWT_SECRET && env.JWT_SECRET.length < 64) {
+    warnings.push('JWT_SECRET should be at least 64 characters in production (deprecated, using Clerk)');
   }
   
   if (env.COOKIE_SECRET.length < 64) {

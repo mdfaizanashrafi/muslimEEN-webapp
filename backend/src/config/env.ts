@@ -113,6 +113,25 @@ const envSchema = z.object({
     .optional(),
   
   // ==========================================================================
+  // INVITE SYSTEM SECURITY
+  // ==========================================================================
+  
+  INVITE_TOKEN_SECRET: z
+    .string()
+    .min(32, 'INVITE_TOKEN_SECRET must be at least 32 characters')
+    .optional()
+    .refine(
+      secret => {
+        // Allow empty in development (will fallback to CLERK_SECRET_KEY)
+        if (!secret && process.env.NODE_ENV === 'development') return true;
+        return !!secret;
+      },
+      {
+        message: 'INVITE_TOKEN_SECRET is required in production',
+      }
+    ),
+  
+  // ==========================================================================
   // SECURITY SECRETS (Deprecated - Clerk migration complete)
   // ==========================================================================
   

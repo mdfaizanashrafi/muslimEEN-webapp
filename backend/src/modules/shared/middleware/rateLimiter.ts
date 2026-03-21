@@ -7,7 +7,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import Redis from 'ioredis';
-import { env } from '../../config/env';
+import { env } from '../../../config/env';
 import { logger } from '../utils/logger';
 
 // ============================================================================
@@ -200,6 +200,16 @@ export const apiLimiter = createRateLimiter({
   windowMs: 60 * 1000,      // 1 minute
   maxRequests: 1000,
   keyPrefix: 'api',
+});
+
+/**
+ * Marketplace lister for marketplace endpoints
+ * 100 requests per minute per IP
+ */
+export const marketplaceLimiter = createRateLimiter({
+  windowMs: 60 * 1000,      // 1 minute
+  maxRequests: 100,
+  keyPrefix: 'marketplace',
 });
 
 export default createRateLimiter;

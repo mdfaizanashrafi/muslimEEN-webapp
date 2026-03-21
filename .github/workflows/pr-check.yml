@@ -17,6 +17,7 @@ env:
   NODE_VERSION: '18'
   BACKEND_DIR: 'backend'
   FRONTEND_DIR: 'frontend'
+  CACHE_BUST: '2026-03-21-v1'
 
 jobs:
   backend-pr-check:

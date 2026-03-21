@@ -1,41 +1,7 @@
 /** @type {import('next').NextConfig} */
 
-const ContentSecurityPolicy = `
-  default-src 'self';
-
-  script-src 'self' 'unsafe-inline' 'unsafe-eval'
-    https://*.clerk.accounts.dev
-    https://*.clerk.com
-    https://clerk.com
-    https://cdn.jsdelivr.net
-    https://unpkg.com;
-
-  script-src-elem 'self' 'unsafe-inline' 'unsafe-eval'
-    https://*.clerk.accounts.dev
-    https://*.clerk.com
-    https://clerk.com
-    https://cdn.jsdelivr.net
-    https://unpkg.com;
-
-  script-src-attr 'self' 'unsafe-inline';
-
-  connect-src 'self'
-    https://*.clerk.accounts.dev
-    https://*.clerk.com
-    https://clerk.com;
-
-  frame-src 'self'
-    https://*.clerk.accounts.dev
-    https://*.clerk.com;
-
-  img-src 'self' data:
-    https://*.clerk.accounts.dev
-    https://*.clerk.com;
-
-  style-src 'self' 'unsafe-inline';
-
-  font-src 'self' data:;
-`;
+// CACHE BUST: 2026-03-21-v1
+// CSP is defined in root vercel.json at edge level
 
 const nextConfig = {
   images: {
@@ -54,19 +20,7 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: process.env.NODE_ENV === 'development',
   },
-  async headers() {
-    return [
-      {
-        source: "/(.*)",
-        headers: [
-          {
-            key: "Content-Security-Policy",
-            value: ContentSecurityPolicy.replace(/\n/g, ""),
-          },
-        ],
-      },
-    ];
-  },
+  // Headers removed - CSP handled at Vercel edge level
 };
 
 module.exports = nextConfig;

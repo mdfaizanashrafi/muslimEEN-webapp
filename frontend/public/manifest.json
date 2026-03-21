@@ -1,39 +1,25 @@
 {
   "name": "MuslimEEN - Muslim Economic Empowerment Network",
   "short_name": "MuslimEEN",
-  "description": "A professional network for Muslims to connect, collaborate, and empower each other economically",
+  "description": "LinkedIn for the Muslim Community - An invitation-only professional networking platform with Shariah-compliant financial tools.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#0f766e",
+  "background_color":="#ffffff",
+  "theme_color": "#059669",
   "orientation": "portrait-primary",
-  "scope": "/",
-  "lang": "en",
   "icons": [
     {
       "src": "/favicon.png",
-      "sizes": "64x64",
+      "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/favicon.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "/favicon.png",
+      "src": "/apple-touch-icon.png",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
+      "type": "image/png"
     }
   ],
-  "categories": ["business", "social", "productivity"],
-  "screenshots": [
-    {
-      "src": "/screenshots/home.png",
-      "sizes": "1280x720",
-      "type": "image/png"
-    }
-  ]
+  "categories": ["business", "finance", "social"],
+  "lang": "en",
+  "dir": "ltr"
 }

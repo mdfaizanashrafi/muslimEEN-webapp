@@ -8,7 +8,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { ClerkExpressRequireAuth } from '@clerk/clerk-sdk-node';
+import { requireAuth } from '@clerk/express';
 import * as UserRepository from '../repositories/UserRepository';
 import { User, UserRole } from '../../shared/types';
 import { logger } from '../../shared/utils/logger';
@@ -55,7 +55,7 @@ export const clerkAuthenticate = async (
 ): Promise<void> => {
   try {
     // Use Clerk's Express middleware to verify the token
-    await ClerkExpressRequireAuth()(req, res, async (err?: any) => {
+    requireAuth()(req, res, async (err?: any) => {
       if (err) {
         // Token verification failed
         logger.debug('Clerk authentication failed', { 
@@ -180,7 +180,7 @@ export const clerkOptionalAuth = async (
     }
 
     // Use Clerk's middleware
-    await ClerkExpressRequireAuth()(req, res, async (err?: any) => {
+    requireAuth()(req, res, async (err?: any) => {
       if (err || !(req as any).auth?.userId) {
         // Invalid token, continue without user
         return next();

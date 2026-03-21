@@ -9,11 +9,13 @@
  */
 
 import { Request, Response } from 'express';
+import { createClerkClient } from '@clerk/backend';
 import { featureFlags } from '../../../config/featureFlags';
 import { getDetectionStats, isReadyForCleanup } from '../middleware/legacyAuthDetection';
 import { logger } from '../../shared/utils/logger';
 import pool from '../../database/pool';
 import { metricsTracker, failedEventQueue } from '../services/WebhookRetryService';
+import { env } from '../../../config/env';
 
 // ============================================================================
 // ERROR TRACKING (for error rate calculation)
@@ -98,11 +100,11 @@ const checkDatabase = async (): Promise<{ healthy: boolean; responseTimeMs: numb
 /**
  * Check Clerk API reachability
  */
+const clerkClient = createClerkClient({ secretKey: env.CLERK_SECRET_KEY });
+
 const checkClerkAPI = async (): Promise<{ healthy: boolean; responseTimeMs: number; error?: string }> => {
   const start = Date.now();
   try {
-    const { clerkClient } = await import('@clerk/clerk-sdk-node');
-    
     // Make a lightweight API call (get user list with limit 1)
     await clerkClient.users.getUserList({ limit: 1 });
     

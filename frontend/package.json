@@ -13,9 +13,9 @@
     "analyze": "cross-env ANALYZE=true next build"
   },
   "dependencies": {
-    "@clerk/nextjs": "^7.0.5",
-    "@sentry/nextjs": "^8.55.0",
-    "next": "14.2.5",
+    "@clerk/nextjs": "^6.12.0",
+    "@sentry/nextjs": "^10.45.0",
+    "next": "^14.2.35",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

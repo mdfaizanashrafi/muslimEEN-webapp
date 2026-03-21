@@ -18,6 +18,7 @@
 
 import { Request, Response } from 'express';
 import { Webhook } from 'svix';
+import { createClerkClient } from '@clerk/backend';
 import { env } from '../../../config/env';
 import * as UserRepository from '../repositories/UserRepository';
 import * as InviteService from '../../invites/services/InviteService';
@@ -316,7 +317,7 @@ const handleSessionCreated = async (event: WebhookEvent): Promise<void> => {
  */
 const deleteClerkUser = async (clerkId: string): Promise<void> => {
   try {
-    const { clerkClient } = await import('@clerk/clerk-sdk-node');
+    const clerkClient = createClerkClient({ secretKey: env.CLERK_SECRET_KEY });
     await clerkClient.users.deleteUser(clerkId);
     logger.info('Deleted Clerk user', { 
       tags: { module: 'auth', type: 'webhook', subtype: 'clerk_cleanup' },

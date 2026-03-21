@@ -107,6 +107,11 @@ const envSchema = z.object({
     .min(1, 'CLERK_PUBLISHABLE_KEY is required')
     .optional(),
   
+  CLERK_WEBHOOK_SECRET: z
+    .string()
+    .min(1, 'CLERK_WEBHOOK_SECRET is required for webhook verification')
+    .optional(),
+  
   // ==========================================================================
   // SECURITY SECRETS (Deprecated - kept for backward compatibility)
   // ==========================================================================

@@ -1,5 +1,11 @@
 /**
- * Rate Limiting Middleware
+ * Rate Limiting Middleware - PRODUCTION-HARDENED VERSION
+ * 
+ * CRITICAL FIXES:
+ * 1. Redis retry strategy (prevents infinite retry loops)
+ * 2. Safe error handling (doesn't crash app)
+ * 3. Safe error logging (no circular refs)
+ * 4. Connection event handling
  * 
  * SECURITY: Prevents brute force attacks and abuse.
  * Uses Redis (Upstash) in production, in-memory fallback for development.
@@ -8,25 +14,83 @@
 import { Request, Response, NextFunction } from 'express';
 import Redis from 'ioredis';
 import { env } from '../../../config/env';
-import { logger } from '../utils/logger';
+import { logger, safeError } from '../utils/logger';
 
 // ============================================================================
-// REDIS CLIENT (Production)
+// REDIS CLIENT (Production) - HARDENED
 // ============================================================================
 
 let redis: Redis | null = null;
 
 if (env.REDIS_URL) {
   try {
-    redis = new Redis(env.REDIS_URL);
-    logger.info('Redis connected for rate limiting');
+    redis = new Redis(env.REDIS_URL, {
+      // CRITICAL: Limit retries to prevent infinite loops
+      maxRetriesPerRequest: 3,
+      
+      // Retry strategy with backoff
+      retryStrategy(times) {
+        if (times > 3) {
+          logger.error('Redis max retries exceeded, stopping retry', { times });
+          return null; // STOP retrying
+        }
+        return Math.min(times * 100, 2000);
+      },
+      
+      // Only reconnect on specific errors
+      reconnectOnError(err) {
+        const shouldReconnect = err.message.includes('READONLY');
+        if (!shouldReconnect) {
+          logger.warn('Redis error, not reconnecting', { 
+            message: err.message,
+            code: (err as any).code,
+          });
+        }
+        return shouldReconnect;
+      },
+      
+      // Connection timeout
+      connectTimeout: 10000,
+      
+      // Lazy connect - don't block startup
+      lazyConnect: true,
+    });
+    
+    // SAFE error event handler - NEVER throws
+    redis.on('error', (err) => {
+      // Use safeError to prevent circular reference issues
+      logger.error('Redis error', safeError(err));
+      // Don't crash - just log and continue with in-memory fallback
+    });
+    
+    // Connection events (for monitoring)
+    redis.on('connect', () => {
+      logger.info('Redis connected for rate limiting');
+    });
+    
+    redis.on('reconnecting', () => {
+      logger.warn('Redis reconnecting');
+    });
+    
+    redis.on('close', () => {
+      logger.warn('Redis connection closed');
+    });
+    
+    // Lazy connect - don't await, let it connect in background
+    redis.connect().catch((err) => {
+      logger.error('Redis initial connection failed', safeError(err));
+      // Continue with in-memory fallback
+    });
+    
   } catch (error) {
-    logger.error('Failed to connect to Redis', { error });
+    // SAFE logging - use safeError
+    logger.error('Failed to initialize Redis', safeError(error));
+    redis = null;
   }
 }
 
 // ============================================================================
-// IN-MEMORY FALLBACK (Development)
+// IN-MEMORY FALLBACK (Development / Redis failure)
 // ============================================================================
 
 interface RateLimitEntry {
@@ -67,19 +131,25 @@ const checkRateLimit = async (
   
   // Try Redis first
   if (redis) {
-    const key = `ratelimit:${options.keyPrefix || 'default'}:${identifier}`;
-    
-    const multi = redis.multi();
-    multi.incr(key);
-    multi.pexpire(key, windowMs);
-    
-    const results = await multi.exec();
-    const count = results?.[0]?.[1] as number || 1;
-    
-    const allowed = count <= maxRequests;
-    const remaining = Math.max(0, maxRequests - count);
-    
-    return { allowed, remaining, resetAt };
+    try {
+      const key = `ratelimit:${options.keyPrefix || 'default'}:${identifier}`;
+      
+      const multi = redis.multi();
+      multi.incr(key);
+      multi.pexpire(key, windowMs);
+      
+      const results = await multi.exec();
+      const count = results?.[0]?.[1] as number || 1;
+      
+      const allowed = count <= maxRequests;
+      const remaining = Math.max(0, maxRequests - count);
+      
+      return { allowed, remaining, resetAt };
+    } catch (error) {
+      // Redis failed - log safely and fall back to in-memory
+      logger.error('Redis rate limit check failed, using fallback', safeError(error));
+      // Continue to in-memory fallback
+    }
   }
   
   // Fallback to in-memory
@@ -139,7 +209,8 @@ export const createRateLimiter = (options: RateLimitOptions) => {
       
       next();
     } catch (error) {
-      logger.error('Rate limit check failed', { error });
+      // SAFE error logging
+      logger.error('Rate limit check failed', safeError(error));
       // Fail open (allow request) if rate limiting is broken
       next();
     }

@@ -5,7 +5,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { logger } from '../utils/logger';
+import { logger, safeError } from '../utils/logger';
 import pool from '../../database/pool';
 
 // Actions that should be audited
@@ -76,7 +76,12 @@ const writeAuditLog = async (entry: AuditLogEntry): Promise<void> => {
     );
   } catch (error) {
     // Log error but don't fail the request
-    logger.error('Failed to write audit log', { error, entry });
+    logger.error('Failed to write audit log', { 
+      error: safeError(error),
+      // Only log entry type, not full entry to avoid circular refs
+      entryType: entry.action,
+      userId: entry.userId,
+    });
   }
 };
 
@@ -113,7 +118,7 @@ export const auditLog = (action: AuditAction, resourceType: string) => {
       };
       
       writeAuditLog(logEntry).catch(err => {
-        logger.error('Audit log write failed', { error: err });
+        logger.error('Audit log write failed', safeError(err));
       });
       
       // Call original json method

@@ -25,6 +25,9 @@ import {
   checkRateLimit,
 } from './InviteTokenService';
 
+// Re-export hashInviteCode for backward compatibility
+export { hashInviteCode };
+
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
@@ -138,12 +141,12 @@ export const createInvite = async (
     const code = generateInviteCode();
     const codeHash = hashInviteCode(code);
     
-    // Create invite record
+    // Create invite record with BOTH code_hash (for lookup) AND token (for display)
     const inviteRes = await client.query(
-      `INSERT INTO invites (code_hash, created_by, status, expires_at, created_at)
-       VALUES ($1, $2, 'pending', NOW() + INTERVAL '${INVITE_EXPIRY_DAYS} days', NOW())
+      `INSERT INTO invites (code_hash, token, created_by, status, expires_at, created_at)
+       VALUES ($1, $2, $3, 'pending', NOW() + INTERVAL '${INVITE_EXPIRY_DAYS} days', NOW())
        RETURNING id, created_at, expires_at`,
-      [codeHash, createdBy]
+      [codeHash, code, createdBy]
     );
     
     await client.query('COMMIT');
@@ -184,17 +187,30 @@ export const createInvite = async (
 };
 
 // ============================================================================
-// VALIDATE INVITE (HARDENED)
+// VALIDATE INVITE (HARDENED - WITH BACKWARD COMPATIBILITY)
 // ============================================================================
 
 /**
- * Validate an invite code (HARDENED VERSION)
+ * BACKWARD COMPATIBILITY NOTE:
+ * 
+ * Old invites stored raw codes in the 'token' column without 'code_hash'.
+ * New invites store hash in 'code_hash' and display code in 'token'.
+ * 
+ * This function:
+ * 1. First tries to find by code_hash (new invites)
+ * 2. Falls back to token column (old invites - auto-migrates)
+ * 3. Auto-migrates old invites by computing and storing code_hash
+ */
+
+/**
+ * Validate an invite code (HARDENED VERSION - BACKWARD COMPATIBLE)
  * 
  * SECURITY:
  * - Generic error messages (prevents enumeration)
  * - Rate limiting per IP
  * - Returns signed token (not raw code)
  * - Internal logging only
+ * - Supports both old (token-only) and new (code_hash) invites
  */
 export const validateInvite = async (
   rawCode: string,
@@ -211,19 +227,25 @@ export const validateInvite = async (
   const normalizedCode = rawCode.toUpperCase().trim();
   const codeHash = hashInviteCode(normalizedCode);
   
+  const client = await pool.connect();
+  
   try {
-    // Look up by hash
-    const result = await pool.query(
-      `SELECT id, code_hash, created_by, status, expires_at, used_by
+    await client.query('BEGIN');
+    
+    // BACKWARD COMPATIBILITY: Try code_hash first, then fall back to token
+    const result = await client.query(
+      `SELECT id, code_hash, token, created_by, status, expires_at, used_by
        FROM invites
-       WHERE code_hash = $1`,
-      [codeHash]
+       WHERE code_hash = $1 OR (code_hash IS NULL AND token = $2)
+       LIMIT 1`,
+      [codeHash, normalizedCode]
     );
     
     // SECURITY: Generic error message for all failure cases
     const genericError = 'Invalid or expired invite code';
     
     if (result.rows.length === 0) {
+      await client.query('ROLLBACK');
       logger.warn('Invite validation failed: not found', {
         tags: { module: 'invites', type: 'security' },
       });
@@ -232,8 +254,24 @@ export const validateInvite = async (
     
     const invite = result.rows[0];
     
+    // BACKWARD COMPATIBILITY: Auto-migrate old invites (no code_hash)
+    if (!invite.code_hash) {
+      await client.query(
+        `UPDATE invites 
+         SET code_hash = $1, 
+             token = $2
+         WHERE id = $3`,
+        [codeHash, normalizedCode, invite.id]
+      );
+      logger.info('Auto-migrated old invite to code_hash', {
+        inviteId: invite.id,
+        tags: { module: 'invites', type: 'migration' },
+      });
+    }
+    
     // Check status (generic error)
     if (invite.status !== 'pending') {
+      await client.query('ROLLBACK');
       logger.warn('Invite validation failed: status', {
         status: invite.status,
         tags: { module: 'invites', type: 'security' },
@@ -243,6 +281,7 @@ export const validateInvite = async (
     
     // Check expiry (generic error)
     if (new Date() > new Date(invite.expires_at)) {
+      await client.query('ROLLBACK');
       logger.warn('Invite validation failed: expired', {
         inviteId: invite.id,
         tags: { module: 'invites', type: 'security' },
@@ -252,12 +291,15 @@ export const validateInvite = async (
     
     // Check if already used (generic error)
     if (invite.used_by) {
+      await client.query('ROLLBACK');
       logger.warn('Invite validation failed: already used', {
         inviteId: invite.id,
         tags: { module: 'invites', type: 'security' },
       });
       return { valid: false, error: genericError };
     }
+    
+    await client.query('COMMIT');
     
     // Success - generate signed token
     const signedToken = generateSignedToken(normalizedCode);
@@ -272,11 +314,14 @@ export const validateInvite = async (
       },
     };
   } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
     logger.error('Invite validation error', {
       error: (error as Error).message,
       tags: { module: 'invites', type: 'error' },
     });
     return { valid: false, error: 'Invalid or expired invite code' };
+  } finally {
+    client.release();
   }
 };
 
@@ -424,7 +469,7 @@ export const getUserInviteQuota = async (userId: string): Promise<InviteQuota> =
 
 export const getUserInvites = async (userId: string): Promise<any[]> => {
   const result = await pool.query(
-    `SELECT id, code_hash, status, expires_at, created_at, used_at, used_by
+    `SELECT id, code_hash, token, status, expires_at, created_at, used_at, used_by
      FROM invites
      WHERE created_by = $1
      ORDER BY created_at DESC`,
@@ -433,12 +478,13 @@ export const getUserInvites = async (userId: string): Promise<any[]> => {
   
   return result.rows.map(row => ({
     id: row.id,
+    code: row.token, // Return display code (token column)
     status: row.status,
     expiresAt: row.expires_at,
     createdAt: row.created_at,
     usedAt: row.used_at,
     usedBy: row.used_by,
-    // Note: code is not returned (only hash stored)
+    // Note: code_hash is never returned (sensitive)
   }));
 };
 

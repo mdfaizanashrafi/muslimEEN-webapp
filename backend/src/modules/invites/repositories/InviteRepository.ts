@@ -8,12 +8,12 @@
 import pool from '../../database/pool';
 import { PoolClient } from 'pg';
 import { Invite, InviteWithInviter, InviteStatus } from '../types';
+import { hashInviteCode } from '../services/InviteTokenService';
 
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
 
-const INVITE_TOKEN_BYTES = 32;
 const DEFAULT_INVITE_EXPIRY_DAYS = 7;
 
 // ============================================================================
@@ -21,12 +21,19 @@ const DEFAULT_INVITE_EXPIRY_DAYS = 7;
 // ============================================================================
 
 /**
- * Generate a cryptographically secure invite token
- * Format: base64url encoded 32-byte random string
+ * Generate a display-friendly invite code
+ * Format: MUSLIM-XXXXXX (alphanumeric, uppercase)
  */
-const generateSecureToken = (): string => {
+const generateInviteCode = (): string => {
   const crypto = require('crypto');
-  return crypto.randomBytes(INVITE_TOKEN_BYTES).toString('base64url');
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // No 0, O, 1, I
+  const length = 8;
+  const bytes = crypto.randomBytes(length);
+  let code = '';
+  for (let i = 0; i < length; i++) {
+    code += chars[bytes[i] % chars.length];
+  }
+  return `MUSLIM-${code}`;
 };
 
 // ============================================================================
@@ -40,14 +47,15 @@ export const create = async (
   createdBy: string,
   expiresInDays: number = DEFAULT_INVITE_EXPIRY_DAYS
 ): Promise<Invite> => {
-  const token = generateSecureToken();
+  const code = generateInviteCode();
+  const codeHash = hashInviteCode(code);
   
-  // SECURITY: Using make_interval() with parameterized days prevents SQL injection
+  // SECURITY: code_hash for secure lookup, token for display
   const result = await pool.query(
-    `INSERT INTO invites (token, created_by, status, expires_at, created_at)
-     VALUES ($1, $2, 'pending', NOW() + make_interval(days => $3), NOW())
+    `INSERT INTO invites (code_hash, token, created_by, status, expires_at, created_at)
+     VALUES ($1, $2, $3, 'pending', NOW() + make_interval(days => $4), NOW())
      RETURNING *`,
-    [token, createdBy, expiresInDays]
+    [codeHash, code, createdBy, expiresInDays]
   );
   
   return mapToInvite(result.rows[0]);
@@ -61,14 +69,15 @@ export const createAdminInvite = async (
   inviteeEmail: string | null,
   expiresInDays: number = DEFAULT_INVITE_EXPIRY_DAYS
 ): Promise<Invite> => {
-  const token = generateSecureToken();
+  const code = generateInviteCode();
+  const codeHash = hashInviteCode(code);
   
-  // SECURITY: Using make_interval() with parameterized days prevents SQL injection
+  // SECURITY: code_hash for secure lookup, token for display
   const result = await pool.query(
-    `INSERT INTO invites (token, created_by, invitee_email, status, expires_at, created_at)
-     VALUES ($1, $2, $3, 'pending', NOW() + make_interval(days => $4), NOW())
+    `INSERT INTO invites (code_hash, token, created_by, invitee_email, status, expires_at, created_at)
+     VALUES ($1, $2, $3, $4, 'pending', NOW() + make_interval(days => $5), NOW())
      RETURNING *`,
-    [token, createdBy, inviteeEmail, expiresInDays]
+    [codeHash, code, createdBy, inviteeEmail, expiresInDays]
   );
   
   return mapToInvite(result.rows[0]);
@@ -91,37 +100,110 @@ export const findById = async (id: string): Promise<Invite | null> => {
 };
 
 /**
- * Find invite by token
+ * Find invite by token (code) - BACKWARD COMPATIBLE
+ * 
+ * NOTE: This function looks up by code_hash (new) OR token (old invites).
+ * It auto-migrates old invites found by token.
  */
 export const findByToken = async (token: string): Promise<Invite | null> => {
-  const result = await pool.query(
-    'SELECT * FROM invites WHERE token = $1',
-    [token]
-  );
+  const normalizedCode = token.toUpperCase().trim();
+  const codeHash = hashInviteCode(normalizedCode);
   
-  return result.rows.length > 0 ? mapToInvite(result.rows[0]) : null;
+  const client = await pool.connect();
+  
+  try {
+    await client.query('BEGIN');
+    
+    // Try code_hash first, then fall back to token (for old invites)
+    const result = await client.query(
+      `SELECT * FROM invites 
+       WHERE code_hash = $1 OR (code_hash IS NULL AND token = $2)
+       LIMIT 1`,
+      [codeHash, normalizedCode]
+    );
+    
+    if (result.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return null;
+    }
+    
+    const invite = result.rows[0];
+    
+    // Auto-migrate old invite (no code_hash)
+    if (!invite.code_hash) {
+      await client.query(
+        `UPDATE invites 
+         SET code_hash = $1, token = $2
+         WHERE id = $3`,
+        [codeHash, normalizedCode, invite.id]
+      );
+    }
+    
+    await client.query('COMMIT');
+    return mapToInvite(invite);
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw error;
+  } finally {
+    client.release();
+  }
 };
 
 /**
- * Find invite by token with inviter details
+ * Find invite by token (code) with inviter details - BACKWARD COMPATIBLE
+ * 
+ * NOTE: This function looks up by code_hash (new) OR token (old invites).
+ * It auto-migrates old invites found by token.
  */
 export const findByTokenWithInviter = async (token: string): Promise<InviteWithInviter | null> => {
-  const result = await pool.query(
-    `SELECT i.*, u.email as inviter_email, u.first_name || ' ' || u.last_name as inviter_name
-     FROM invites i
-     JOIN users u ON i.created_by = u.id
-     WHERE i.token = $1`,
-    [token]
-  );
+  const normalizedCode = token.toUpperCase().trim();
+  const codeHash = hashInviteCode(normalizedCode);
   
-  if (result.rows.length === 0) return null;
+  const client = await pool.connect();
   
-  const row = result.rows[0];
-  return {
-    ...mapToInvite(row),
-    inviterEmail: row.inviter_email || row.invitee_email,
-    inviterName: row.inviter_name || row.invitee_email,
-  };
+  try {
+    await client.query('BEGIN');
+    
+    // Try code_hash first, then fall back to token (for old invites)
+    const result = await client.query(
+      `SELECT i.*, u.email as inviter_email, u.first_name || ' ' || u.last_name as inviter_name
+       FROM invites i
+       JOIN users u ON i.created_by = u.id
+       WHERE i.code_hash = $1 OR (i.code_hash IS NULL AND i.token = $2)
+       LIMIT 1`,
+      [codeHash, normalizedCode]
+    );
+    
+    if (result.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return null;
+    }
+    
+    const row = result.rows[0];
+    
+    // Auto-migrate old invite (no code_hash)
+    if (!row.code_hash) {
+      await client.query(
+        `UPDATE invites 
+         SET code_hash = $1, token = $2
+         WHERE id = $3`,
+        [codeHash, normalizedCode, row.id]
+      );
+    }
+    
+    await client.query('COMMIT');
+    
+    return {
+      ...mapToInvite(row),
+      inviterEmail: row.inviter_email || row.invitee_email,
+      inviterName: row.inviter_name || row.invitee_email,
+    };
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw error;
+  } finally {
+    client.release();
+  }
 };
 
 /**
@@ -169,43 +251,54 @@ export const countUsedByCreator = async (createdBy: string): Promise<number> => 
 // ============================================================================
 
 /**
- * Mark invite as used
+ * Mark invite as used by code hash (BACKWARD COMPATIBLE)
+ * 
+ * NOTE: Accepts raw token/code, computes hash, updates by hash.
+ * This works with both old (migrated) and new invites.
  */
 export const markAsUsed = async (token: string, userId: string): Promise<Invite | null> => {
+  const normalizedCode = token.toUpperCase().trim();
+  const codeHash = hashInviteCode(normalizedCode);
+  
   const result = await pool.query(
     `UPDATE invites 
      SET status = 'used', 
          used_by = $2, 
          used_at = NOW()
-     WHERE token = $1 
+     WHERE code_hash = $1 
      AND status = 'pending' 
      AND expires_at > NOW()
      RETURNING *`,
-    [token, userId]
+    [codeHash, userId]
   );
   
   return result.rows.length > 0 ? mapToInvite(result.rows[0]) : null;
 };
 
 /**
- * Mark invite as used (with transaction client)
- * Used within database transactions for atomic operations
+ * Mark invite as used by code hash (with transaction client) - BACKWARD COMPATIBLE
+ * 
+ * NOTE: Accepts raw token/code, computes hash, updates by hash.
+ * Used within database transactions for atomic operations.
  */
 export const markAsUsedWithClient = async (
   client: PoolClient,
   token: string, 
   userId: string
 ): Promise<Invite | null> => {
+  const normalizedCode = token.toUpperCase().trim();
+  const codeHash = hashInviteCode(normalizedCode);
+  
   const result = await client.query(
     `UPDATE invites 
      SET status = 'used', 
          used_by = $2, 
          used_at = NOW()
-     WHERE token = $1 
+     WHERE code_hash = $1 
      AND status = 'pending' 
      AND expires_at > NOW()
      RETURNING *`,
-    [token, userId]
+    [codeHash, userId]
   );
   
   return result.rows.length > 0 ? mapToInvite(result.rows[0]) : null;

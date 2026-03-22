@@ -13,6 +13,8 @@ const isPublicRoute = createRouteMatcher([
   "/",
   "/login",
   "/register",
+  "/invite",        // Required for invite-only onboarding flow
+  "/signup",        // Required for invite-only onboarding flow
   "/about",
   "/blog",
   "/blog/(.*)",

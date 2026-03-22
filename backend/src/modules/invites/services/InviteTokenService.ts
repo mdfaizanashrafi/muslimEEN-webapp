@@ -16,9 +16,32 @@ import { logger } from '../../shared/utils/logger';
 // CONFIGURATION
 // ============================================================================
 
-const TOKEN_SECRET = env.INVITE_TOKEN_SECRET || env.CLERK_SECRET_KEY || 'fallback-secret-change-in-production';
 const TOKEN_VERSION = 'v1';
 const TOKEN_EXPIRY_MINUTES = 10; // Signed token valid for 10 minutes
+
+/**
+ * Get the token secret from environment - RUNTIME CHECK
+ * CRITICAL: This ensures the same secret is used for signing AND verification
+ * NO FALLBACK - App will crash if secret is missing (security feature)
+ */
+const getTokenSecret = (): string => {
+  if (!env.INVITE_TOKEN_SECRET) {
+    throw new Error(
+      'SECURITY ERROR: INVITE_TOKEN_SECRET is required but not set. ' +
+      'Please set INVITE_TOKEN_SECRET in your environment. ' +
+      'This secret must be identical across all services (API, webhook, workers).'
+    );
+  }
+  
+  // Debug log (temporary) - helps verify secret is available
+  logger.debug('Invite token secret check', {
+    hasSecret: true,
+    length: env.INVITE_TOKEN_SECRET.length,
+    prefix: env.INVITE_TOKEN_SECRET.substring(0, 4) + '...',
+  });
+  
+  return env.INVITE_TOKEN_SECRET;
+};
 
 // ============================================================================
 // TYPES
@@ -55,6 +78,9 @@ interface TokenVerificationResult {
  * - Token forgery (requires secret key)
  */
 export const generateSignedToken = (inviteCode: string): SignedInviteToken => {
+  // CRITICAL: Get secret at runtime - ensures consistency with verification
+  const secret = getTokenSecret();
+  
   const now = Math.floor(Date.now() / 1000);
   const exp = now + (TOKEN_EXPIRY_MINUTES * 60);
   
@@ -66,7 +92,7 @@ export const generateSignedToken = (inviteCode: string): SignedInviteToken => {
   
   const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString('base64url');
   const signature = crypto
-    .createHmac('sha256', TOKEN_SECRET)
+    .createHmac('sha256', secret)
     .update(payloadBase64)
     .digest('base64url');
   
@@ -90,6 +116,9 @@ export const generateSignedToken = (inviteCode: string): SignedInviteToken => {
  */
 export const verifySignedToken = (token: string): TokenVerificationResult => {
   try {
+    // CRITICAL: Get secret at runtime - ensures consistency with generation
+    const secret = getTokenSecret();
+    
     // Basic format check
     const parts = token.split('.');
     if (parts.length !== 2) {
@@ -98,9 +127,9 @@ export const verifySignedToken = (token: string): TokenVerificationResult => {
     
     const [payloadBase64, providedSignature] = parts;
     
-    // Verify signature
+    // Verify signature using SAME secret as generation
     const expectedSignature = crypto
-      .createHmac('sha256', TOKEN_SECRET)
+      .createHmac('sha256', secret)
       .update(payloadBase64)
       .digest('base64url');
     
@@ -171,10 +200,13 @@ export const generateInviteCode = (): string => {
 /**
  * Hash an invite code for database storage
  * Used to prevent database leaks from revealing raw codes
+ * 
+ * CRITICAL: Uses same secret as token signing for consistency
  */
 export const hashInviteCode = (code: string): string => {
+  const secret = getTokenSecret();
   return crypto
-    .createHmac('sha256', TOKEN_SECRET)
+    .createHmac('sha256', secret)
     .update(code.toUpperCase())
     .digest('hex');
 };

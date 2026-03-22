@@ -5,7 +5,7 @@
 
 import { Router } from 'express';
 import * as ConnectionController from '../network/controllers/ConnectionController';
-import { authenticate } from '../iam/middleware/auth';
+import { clerkAuthenticate } from '../iam/middleware/clerkAuth';
 import { userLimiter } from '../shared/middleware/rateLimiter';
 import { csrfValidator } from '../shared/middleware/csrf';
 import { createBodyValidator } from '../shared/middleware/validation';
@@ -15,7 +15,7 @@ import { auditLog, AUDIT_ACTIONS } from '../shared/middleware/auditLogger';
 const router = Router();
 
 // All routes require authentication
-router.use(authenticate);
+router.use(clerkAuthenticate);
 
 // Get current user's connections
 router.get('/', userLimiter, ConnectionController.getCurrentUserConnections);

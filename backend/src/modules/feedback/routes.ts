@@ -4,14 +4,14 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { authenticate } from '../iam/middleware/auth';
+import { clerkAuthenticate } from '../iam/middleware/clerkAuth';
 import { logger } from '../shared/utils/logger';
 import pool from '../database/pool';
 
 const router = Router();
 
 // POST /api/feedback - Submit user feedback
-router.post('/', authenticate, async (req: Request, res: Response) => {
+router.post('/', clerkAuthenticate, async (req: Request, res: Response) => {
   try {
     const { rating, feedback, context, url } = req.body;
     const userId = req.user?.id;
@@ -44,7 +44,7 @@ router.post('/', authenticate, async (req: Request, res: Response) => {
 });
 
 // GET /api/feedback - Get all feedback (admin only)
-router.get('/', authenticate, async (req: Request, res: Response) => {
+router.get('/', clerkAuthenticate, async (req: Request, res: Response) => {
   try {
     const result = await pool.query(
       `SELECT f.*, u.email as user_email
@@ -62,7 +62,7 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
 });
 
 // GET /api/feedback/stats - Get feedback statistics
-router.get('/stats', authenticate, async (req: Request, res: Response) => {
+router.get('/stats', clerkAuthenticate, async (req: Request, res: Response) => {
   try {
     const stats = await pool.query(
       `SELECT 

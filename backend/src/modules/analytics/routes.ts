@@ -4,7 +4,7 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { authenticate } from '../iam/middleware/auth';
+import { clerkAuthenticate } from '../iam/middleware/clerkAuth';
 import { logger } from '../shared/utils/logger';
 
 const router = Router();
@@ -48,7 +48,7 @@ router.post('/events', async (req: Request, res: Response) => {
 });
 
 // GET /api/analytics/metrics (Admin only)
-router.get('/metrics', authenticate, async (req: Request, res: Response) => {
+router.get('/metrics', clerkAuthenticate, async (req: Request, res: Response) => {
   try {
     const now = Date.now();
     const oneDayAgo = now - 24 * 60 * 60 * 1000;
@@ -79,7 +79,7 @@ router.get('/metrics', authenticate, async (req: Request, res: Response) => {
 });
 
 // GET /api/analytics/funnel
-router.get('/funnel', authenticate, async (req: Request, res: Response) => {
+router.get('/funnel', clerkAuthenticate, async (req: Request, res: Response) => {
   try {
     interface FunnelStep {
       name: string;
@@ -109,7 +109,7 @@ router.get('/funnel', authenticate, async (req: Request, res: Response) => {
 });
 
 // GET /api/analytics/errors
-router.get('/errors', authenticate, async (req: Request, res: Response) => {
+router.get('/errors', clerkAuthenticate, async (req: Request, res: Response) => {
   try {
     const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
     const errors = eventsStore

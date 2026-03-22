@@ -2,10 +2,11 @@
  * IAM Module - Identity and Access Management
  * 
  * Responsibilities:
- * - User authentication (login/logout)
- * - JWT token generation and validation
+ * - User authentication (Clerk)
  * - Password management
  * - Core user identity records
+ * 
+ * NOTE: JWT authentication removed - using Clerk exclusively
  */
 
 // Controllers
@@ -13,7 +14,6 @@ export * as AuthController from './controllers/AuthController';
 
 // Services
 export * as AuthService from './services/AuthService';
-export * as JwtService from './services/JwtService';
 export * as PasswordService from './services/PasswordService';
 
 // Repositories

@@ -1,445 +1,297 @@
 /**
- * Clerk Webhook Controller - HARDENED VERSION (FIXED)
+ * Clerk Webhook Controller - PRODUCTION GRADE
  * 
- * CRITICAL FIXES APPLIED:
- * 1. NO password_hash (Clerk-only auth)
- * 2. NO early consumeInvite - validate first, consume later
- * 3. NO fake 'PENDING' user IDs
- * 4. CORRECT transaction order: verify → validate → create → consume → commit
- * 5. HANDLE NULL inviter (genesis invite)
- * 6. ATOMIC operations with proper ROLLBACK
+ * SECURITY CRITICAL: This is the ENFORCEMENT POINT for invite-only signup.
  * 
- * SECURITY: This is the FINAL GATE for invite-only signup.
+ * FLOW:
+ * 1. Clerk sends webhook on user.created
+ * 2. Verify webhook signature (prevent spoofing)
+ * 3. Extract invite JWT from user metadata
+ * 4. Verify JWT (signature, expiry)
+ * 5. Atomically consume invite
+ * 6. Create internal user record
+ * 7. If ANY step fails → delete Clerk user
+ * 
+ * DATE: 2026-03-20
  */
 
 import { Request, Response } from 'express';
 import { Webhook } from 'svix';
 import { env } from '../../../config/env';
-import pool from '../../database/pool';
-import { verifySignedToken } from '../../invites/services/InviteTokenService';
-import * as InviteRepository from '../../invites/repositories/InviteRepository';
 import { logger } from '../../shared/utils/logger';
-import { criticalLog } from '../../shared/utils/logSampler';
-import * as Sentry from '@sentry/node';
+import * as InviteService from '../../invites/services/InviteServiceHardened';
+import * as UserRepository from '../repositories/UserRepository';
+import pool from '../../database/pool';
+import { eventBus, DomainEvents } from '../../shared/events/EventBus';
+import { UserRole, VerificationTier } from '../../shared/types';
 
 // ============================================================================
 // WEBHOOK VERIFICATION
 // ============================================================================
 
-const verifyWebhook = (payload: string, headers: any): any => {
-  const webhookSecret = env.CLERK_WEBHOOK_SECRET;
-  
-  if (!webhookSecret) {
-    throw new Error('CLERK_WEBHOOK_SECRET not configured');
+/**
+ * Verify Clerk webhook signature
+ * CRITICAL: Prevents webhook spoofing attacks
+ */
+const verifyWebhook = (req: Request): { valid: boolean; payload?: any; error?: string } => {
+  try {
+    const WEBHOOK_SECRET = env.CLERK_WEBHOOK_SECRET;
+    
+    if (!WEBHOOK_SECRET) {
+      logger.error('CLERK_WEBHOOK_SECRET not configured');
+      return { valid: false, error: 'Webhook secret not configured' };
+    }
+    
+    const headers = req.headers;
+    const payload = req.body;
+    
+    // Svix headers
+    const svix_id = headers['svix-id'] as string;
+    const svix_timestamp = headers['svix-timestamp'] as string;
+    const svix_signature = headers['svix-signature'] as string;
+    
+    if (!svix_id || !svix_timestamp || !svix_signature) {
+      logger.warn('Missing Svix headers', {
+        headers: Object.keys(headers),
+        tags: { module: 'webhooks', type: 'security' },
+      });
+      return { valid: false, error: 'Missing webhook headers' };
+    }
+    
+    // Verify with Svix
+    const wh = new Webhook(WEBHOOK_SECRET);
+    const verified = wh.verify(payload, {
+      'svix-id': svix_id,
+      'svix-timestamp': svix_timestamp,
+      'svix-signature': svix_signature,
+    });
+    
+    return { valid: true, payload: verified };
+  } catch (error) {
+    logger.error('Webhook verification failed', {
+      error: (error as Error).message,
+      tags: { module: 'webhooks', type: 'security' },
+    });
+    return { valid: false, error: 'Invalid webhook signature' };
   }
-  
-  const wh = new Webhook(webhookSecret);
-  return wh.verify(payload, headers);
 };
 
 // ============================================================================
-// USER CREATED HANDLER - CORRECTED FLOW
+// CLERK USER MANAGEMENT
 // ============================================================================
 
 /**
- * Handle user.created event - FIXED VERSION
- * 
- * CORRECT ORDER:
- * 1. Extract & verify signed token
- * 2. Validate invite (read-only, NO mutation)
- * 3. BEGIN TRANSACTION
- * 4. Create user (NO password_hash)
- * 5. Set invited_by (can be NULL for genesis)
- * 6. Consume invite (UPDATE by token, used_by IS NULL)
- * 7. COMMIT
+ * Delete a Clerk user (cleanup on failure)
+ * Used when invite validation fails to enforce invite-only policy
  */
-const handleUserCreated = async (event: any): Promise<void> => {
-  const { data } = event;
-  const { id: clerkId, email_addresses, first_name, last_name } = data;
-  
-  const primaryEmail = email_addresses?.[0]?.email_address;
-  const firstName = first_name || '';
-  const lastName = last_name || '';
-  
-  // STRUCTURED WEBHOOK OBSERVABILITY
-  logger.info('Webhook user.created received', {
-    clerkId,
-    email: primaryEmail,
-    eventId: event.id,
-    hasMetadata: !!data.unsafe_metadata,
-    tags: { module: 'auth', type: 'webhook', event: 'user.created' },
-  });
-  
-  // SENTRY BREADCRUMB
-  Sentry.addBreadcrumb({
-    category: 'invite',
-    message: 'Webhook user.created received',
-    level: 'info',
-    data: { clerkId, email: primaryEmail },
-  });
-  
-  // ==========================================================================
-  // STEP 1: Extract signed invite token
-  // ==========================================================================
-  
-  const signedToken = data.unsafe_metadata?.inviteToken;
-  
-  // LOG: Token presence check
-  logger.info('Webhook token extraction', {
-    clerkId,
-    hasToken: !!signedToken,
-    tokenLength: signedToken?.length,
-    tags: { module: 'auth', type: 'webhook' },
-  });
-  
-  if (!signedToken) {
-    logger.error('Webhook verification failed: missing token', {
-      clerkId,
-      email: primaryEmail,
-      reason: 'no_invite_token',
-      tags: { module: 'auth', type: 'webhook', result: 'failed' },
+const deleteClerkUser = async (clerkUserId: string): Promise<boolean> => {
+  try {
+    const { createClerkClient } = await import('@clerk/backend');
+    const clerk = createClerkClient({ secretKey: env.CLERK_SECRET_KEY });
+    
+    await clerk.users.deleteUser(clerkUserId);
+    
+    logger.warn('Deleted Clerk user due to invite validation failure', {
+      clerkUserId,
+      tags: { module: 'webhooks', type: 'security' },
     });
     
-    criticalLog('error', 'Signup attempted without invite token', 'security_violation', {
-      clerkId,
-      email: primaryEmail,
-      tags: { module: 'auth', type: 'security' },
+    return true;
+  } catch (error) {
+    logger.error('Failed to delete Clerk user', {
+      clerkUserId,
+      error: (error as Error).message,
+      tags: { module: 'webhooks', type: 'error' },
+    });
+    return false;
+  }
+};
+
+/**
+ * Update Clerk user metadata (mark as validated)
+ */
+const markUserAsValidated = async (clerkUserId: string, inviteId: string): Promise<void> => {
+  try {
+    const { createClerkClient } = await import('@clerk/backend');
+    const clerk = createClerkClient({ secretKey: env.CLERK_SECRET_KEY });
+    
+    await clerk.users.updateUser(clerkUserId, {
+      publicMetadata: {
+        inviteValidated: true,
+        inviteId,
+        validatedAt: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    logger.error('Failed to update Clerk user metadata', {
+      clerkUserId,
+      error: (error as Error).message,
+    });
+  }
+};
+
+// ============================================================================
+// WEBHOOK HANDLERS
+// ============================================================================
+
+/**
+ * Handle user.created event
+ * CRITICAL: This is the enforcement point for invite-only signup
+ */
+const handleUserCreated = async (payload: any): Promise<{ success: boolean; error?: string }> => {
+  const clerkUserId = payload.data?.id;
+  const email = payload.data?.email_addresses?.[0]?.email_address;
+  const firstName = payload.data?.first_name;
+  const lastName = payload.data?.last_name;
+  const inviteJWT = payload.data?.unsafe_metadata?.inviteToken;
+  
+  logger.info('Processing user.created webhook', {
+    clerkUserId,
+    email,
+    hasInviteToken: !!inviteJWT,
+  });
+  
+  // Step 1: Verify invite token exists
+  if (!inviteJWT) {
+    logger.error('No invite token in user metadata', {
+      clerkUserId,
+      email,
+      tags: { module: 'webhooks', type: 'security' },
     });
     
-    Sentry.captureMessage('Webhook: Missing invite token', {
-      level: 'error',
-      tags: { module: 'invite', flow: 'signup', reason: 'missing_token' },
-      extra: { clerkId, email: primaryEmail },
-    });
-    
-    throw new WebhookError('INVITE_REQUIRED', 'Invite token required', 400);
+    // Delete the Clerk user - enforce invite-only policy
+    await deleteClerkUser(clerkUserId);
+    return { success: false, error: 'No invite token provided' };
   }
   
-  // ==========================================================================
-  // STEP 2: Verify token signature and extract code
-  // ==========================================================================
+  // Step 2: Consume invite atomically
+  const consumeResult = await InviteService.consumeInvite(inviteJWT, clerkUserId);
   
-  const tokenVerification = verifySignedToken(signedToken);
-  
-  // LOG: Verification result
-  logger.info('Webhook token verification', {
-    clerkId,
-    valid: tokenVerification.valid,
-    reason: tokenVerification.error || null,
-    tags: { module: 'auth', type: 'webhook', result: tokenVerification.valid ? 'success' : 'failed' },
-  });
-  
-  if (!tokenVerification.valid) {
-    logger.error('Webhook verification failed: invalid token', {
-      clerkId,
-      email: primaryEmail,
-      reason: tokenVerification.error,
-      tags: { module: 'auth', type: 'webhook', result: 'failed' },
+  if (!consumeResult.success) {
+    logger.error('Invite consumption failed', {
+      clerkUserId,
+      email,
+      error: consumeResult.error,
+      tags: { module: 'webhooks', type: 'security' },
     });
     
-    criticalLog('error', 'Invalid invite token signature', 'security_violation', {
-      clerkId,
-      email: primaryEmail,
-      reason: tokenVerification.error,
-      tags: { module: 'auth', type: 'security' },
-    });
-    
-    Sentry.captureMessage('Webhook: Invalid invite token', {
-      level: 'error',
-      tags: { module: 'invite', flow: 'signup', reason: tokenVerification.error },
-      extra: { clerkId, email: primaryEmail },
-    });
-    
-    throw new WebhookError('INVALID_INVITE', 'Invalid invite token', 400);
+    // Delete the Clerk user - enforce invite-only policy
+    await deleteClerkUser(clerkUserId);
+    return { success: false, error: consumeResult.error };
   }
   
-  const inviteCode = tokenVerification.code!;
-  
-  // SENTRY BREADCRUMB
-  Sentry.addBreadcrumb({
-    category: 'invite',
-    message: 'Invite token verified',
-    level: 'info',
-    data: { clerkId, inviteCode: inviteCode.substring(0, 8) + '...' },
-  });
-  
-  // ==========================================================================
-  // STEP 3: Validate invite (READ-ONLY, no mutation)
-  // ==========================================================================
-  
-  const invite = await InviteRepository.findByToken(inviteCode);
-  
-  // LOG: Invite lookup result
-  logger.info('Webhook invite lookup', {
-    clerkId,
-    found: !!invite,
-    inviteId: invite?.id || null,
-    status: invite?.status || null,
-    tags: { module: 'auth', type: 'webhook' },
-  });
-  
-  if (!invite) {
-    logger.error('Webhook verification failed: invite not found', {
-      clerkId,
-      email: primaryEmail,
-      reason: 'invite_not_found',
-      tags: { module: 'auth', type: 'webhook', result: 'failed' },
-    });
-    
-    criticalLog('error', 'Invite not found', 'security_violation', {
-      clerkId,
-      email: primaryEmail,
-      inviteCode,
-      tags: { module: 'auth', type: 'security' },
-    });
-    
-    Sentry.captureMessage('Webhook: Invite not found', {
-      level: 'error',
-      tags: { module: 'invite', flow: 'signup', reason: 'invite_not_found' },
-      extra: { clerkId, email: primaryEmail },
-    });
-    
-    throw new WebhookError('INVALID_INVITE', 'Invalid or expired invite', 400);
-  }
-  
-  // Check status
-  if (invite.status !== 'pending') {
-    logger.error('Webhook verification failed: invite not pending', {
-      clerkId,
-      email: primaryEmail,
-      inviteId: invite.id,
-      status: invite.status,
-      reason: 'invite_not_pending',
-      tags: { module: 'auth', type: 'webhook', result: 'failed' },
-    });
-    
-    criticalLog('error', 'Invite already used or revoked', 'security_violation', {
-      clerkId,
-      email: primaryEmail,
-      inviteId: invite.id,
-      status: invite.status,
-      tags: { module: 'auth', type: 'security' },
-    });
-    
-    Sentry.captureMessage('Webhook: Invite not pending', {
-      level: 'error',
-      tags: { module: 'invite', flow: 'signup', reason: 'invite_used_or_revoked' },
-      extra: { clerkId, email: primaryEmail, inviteId: invite.id, status: invite.status },
-    });
-    
-    throw new WebhookError('INVALID_INVITE', 'Invalid or expired invite', 400);
-  }
-  
-  // Check expiry
-  const isExpired = new Date() > new Date(invite.expiresAt);
-  
-  // LOG: Expiry check
-  logger.info('Webhook invite expiry check', {
-    clerkId,
-    inviteId: invite.id,
-    expired: isExpired,
-    expiresAt: invite.expiresAt,
-    tags: { module: 'auth', type: 'webhook' },
-  });
-  
-  if (isExpired) {
-    criticalLog('error', 'Invite expired', 'security_violation', {
-      clerkId,
-      email: primaryEmail,
-      inviteId: invite.id,
-      tags: { module: 'auth', type: 'security' },
-    });
-    throw new WebhookError('INVALID_INVITE', 'Invalid or expired invite', 400);
-  }
-  
-  // Check if already used
-  if (invite.usedBy) {
-    criticalLog('error', 'Invite already consumed', 'security_violation', {
-      clerkId,
-      email: primaryEmail,
-      inviteId: invite.id,
-      usedBy: invite.usedBy,
-      tags: { module: 'auth', type: 'security' },
-    });
-    throw new WebhookError('INVALID_INVITE', 'Invalid or expired invite', 400);
-  }
-  
-  // Get inviter (can be NULL for genesis invite)
-  const invitedBy = invite.createdBy || null;
-  
-  logger.info('Invite validated successfully', {
-    eventId: event.id,
-    clerkId,
-    inviteId: invite.id,
-    invitedBy,
-    tags: { module: 'auth', type: 'webhook' },
-  });
-  
-  // ==========================================================================
-  // STEP 4: Begin transaction - ALL DB operations must be atomic
-  // ==========================================================================
-  
+  // Step 3: Create internal user record
   const client = await pool.connect();
   
   try {
     await client.query('BEGIN');
     
-    // ========================================================================
-    // STEP 5: Create user (NO password_hash - Clerk manages auth)
-    // ========================================================================
-    
-    const createUserResult = await client.query(
-      `INSERT INTO users (
-        email,
-        first_name,
-        last_name,
-        role,
-        verification_tier,
-        invited_by,
-        invites_remaining,
-        clerk_id,
-        created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
-      RETURNING id`,
-      [
-        primaryEmail.toLowerCase(),
-        firstName,
-        lastName,
-        'muslim_unverified',
-        'basic',
-        invitedBy,              // Can be NULL for genesis invite
-        3,                      // Initial invites
-        clerkId,
-      ]
-    );
-    
-    const userId = createUserResult.rows[0].id;
-    
-    logger.info('User record created', {
-      userId,
-      clerkId,
-      invitedBy,
-      tags: { module: 'auth', type: 'webhook' },
-    });
-    
-    // ========================================================================
-    // STEP 6: Consume invite (CORRECTED QUERY)
-    // Use invite.id or token for precise targeting
-    // ========================================================================
-    
-    const consumeResult = await client.query(
-      `UPDATE invites
-       SET 
-         status = 'used',
-         used_by = $1,
-         used_at = NOW()
-       WHERE id = $2
-         AND status = 'pending'
-         AND used_by IS NULL
-       RETURNING id`,
-      [userId, invite.id]
-    );
-    
-    // CRITICAL: Check if exactly one row was updated
-    if (consumeResult.rowCount === 0) {
-      // Invite was consumed by another request (race condition)
-      await client.query('ROLLBACK');
-      
-      criticalLog('error', 'Race condition: Invite already consumed', 'security_violation', {
-        clerkId,
-        email: primaryEmail,
-        inviteId: invite.id,
-        tags: { module: 'auth', type: 'security' },
+    // Check if user already exists (idempotency)
+    const existingUser = await UserRepository.findByClerkId(clerkUserId);
+    if (existingUser) {
+      logger.warn('User already exists in database', {
+        clerkUserId,
+        userId: existingUser.id,
       });
-      
-      throw new WebhookError('INVITE_ALREADY_USED', 'Invalid or expired invite', 400);
+      await client.query('COMMIT');
+      return { success: true };
     }
     
-    if (consumeResult.rowCount > 1) {
-      // This should never happen with proper WHERE clause, but safety check
-      await client.query('ROLLBACK');
-      
-      criticalLog('error', 'CRITICAL: Multiple invites updated', 'security_violation', {
-        clerkId,
-        email: primaryEmail,
-        inviteId: invite.id,
-        rowCount: consumeResult.rowCount,
-        tags: { module: 'auth', type: 'security' },
-      });
-      
-      throw new WebhookError('INTERNAL_ERROR', 'Internal server error', 500);
-    }
-    
-    logger.info('Invite consumed successfully', {
-      userId,
-      inviteId: invite.id,
-      tags: { module: 'auth', type: 'webhook', event: 'invite_used' },
+    // Create new user
+    const newUser = await UserRepository.createWithClient(client, {
+      clerk_id: clerkUserId,
+      email: email || '',
+      firstName: firstName || '',
+      lastName: lastName || '',
+      role: 'muslim_unverified' as UserRole,
+      verificationTier: 'basic' as VerificationTier,
+      invitedBy: consumeResult.invitedBy,
+      invitesRemaining: 3, // New users get 3 invites
     });
-    
-    // ========================================================================
-    // STEP 7: Commit transaction
-    // ========================================================================
     
     await client.query('COMMIT');
     
-    // SUCCESS: Full audit log
-    logger.info('User signup completed successfully', {
-      userId,
-      clerkId,
-      email: primaryEmail,
-      invitedBy,
-      inviteId: invite.id,
-      tags: { module: 'auth', type: 'success', event: 'user_created' },
+    // Step 4: Mark Clerk user as validated
+    await markUserAsValidated(clerkUserId, consumeResult.inviteId!);
+    
+    // Publish event
+    eventBus.publish(DomainEvents.USER_REGISTERED, {
+      userId: newUser.id,
+      clerkId: clerkUserId,
+      email,
+      invitedBy: consumeResult.invitedBy,
+    }).catch(() => {});
+    
+    logger.info('User created successfully with invite', {
+      event: 'user_created',
+      clerkUserId,
+      userId: newUser.id,
+      inviteId: consumeResult.inviteId,
+      invitedBy: consumeResult.invitedBy,
     });
     
-    // SENTRY SUCCESS BREADCRUMB
-    Sentry.addBreadcrumb({
-      category: 'invite',
-      message: 'User signup completed successfully',
-      level: 'info',
-      data: { 
-        userId, 
-        clerkId, 
-        email: primaryEmail,
-        inviteId: invite.id,
-      },
-    });
-    
+    return { success: true };
   } catch (error) {
-    // Rollback on ANY error
     await client.query('ROLLBACK');
     
-    // If it's already a WebhookError, just re-throw
-    if (error instanceof WebhookError) {
-      throw error;
-    }
-    
-    // Log unexpected errors
-    logger.error('Transaction failed during user creation', {
+    logger.error('Failed to create internal user', {
+      clerkUserId,
       error: (error as Error).message,
-      stack: (error as Error).stack,
-      clerkId,
-      email: primaryEmail,
-      tags: { module: 'auth', type: 'error' },
     });
     
-    // SENTRY ERROR CAPTURE
-    Sentry.captureException(error, {
-      tags: {
-        module: 'invite',
-        flow: 'signup',
-        stage: 'transaction',
-      },
-      extra: {
-        clerkId,
-        email: primaryEmail,
-        inviteId: invite?.id,
-      },
-    });
+    // Attempt to clean up Clerk user
+    await deleteClerkUser(clerkUserId);
     
-    throw new WebhookError('INTERNAL_ERROR', 'Failed to create user', 500);
+    return { success: false, error: 'Failed to create user record' };
   } finally {
     client.release();
+  }
+};
+
+/**
+ * Handle user.updated event
+ */
+const handleUserUpdated = async (payload: any): Promise<void> => {
+  const clerkUserId = payload.data?.id;
+  const email = payload.data?.email_addresses?.[0]?.email_address;
+  const firstName = payload.data?.first_name;
+  const lastName = payload.data?.last_name;
+  
+  // Update internal user record
+  const user = await UserRepository.findByClerkId(clerkUserId);
+  
+  if (user) {
+    await UserRepository.update(user.id, {
+      email: email || user.email,
+      firstName: firstName || user.firstName,
+      lastName: lastName || user.lastName,
+    });
+    
+    logger.info('User updated', {
+      event: 'user_updated',
+      clerkUserId,
+      userId: user.id,
+    });
+  }
+};
+
+/**
+ * Handle user.deleted event
+ */
+const handleUserDeleted = async (payload: any): Promise<void> => {
+  const clerkUserId = payload.data?.id;
+  
+  const user = await UserRepository.findByClerkId(clerkUserId);
+  
+  if (user) {
+    // Soft delete - mark as inactive
+    await UserRepository.update(user.id, { isActive: false });
+    
+    logger.info('User marked as inactive', {
+      event: 'user_deleted',
+      clerkUserId,
+      userId: user.id,
+    });
   }
 };
 
@@ -447,129 +299,96 @@ const handleUserCreated = async (event: any): Promise<void> => {
 // MAIN WEBHOOK HANDLER
 // ============================================================================
 
+/**
+ * POST /webhooks/clerk
+ * Main Clerk webhook endpoint
+ */
 export const handleClerkWebhook = async (req: Request, res: Response): Promise<void> => {
-  const startTime = Date.now();
-  
   try {
-    // Verify webhook signature
-    const payload = JSON.stringify(req.body);
-    const headers = {
-      'svix-id': req.headers['svix-id'] as string,
-      'svix-timestamp': req.headers['svix-timestamp'] as string,
-      'svix-signature': req.headers['svix-signature'] as string,
-    };
+    // Step 1: Verify webhook signature
+    const verification = verifyWebhook(req);
     
-    let evt: any;
-    try {
-      evt = verifyWebhook(payload, headers);
-    } catch (err) {
-      logger.error('Webhook signature verification failed', {
-        error: (err as Error).message,
-        tags: { module: 'auth', type: 'security' },
+    if (!verification.valid) {
+      logger.warn('Webhook verification failed', {
+        error: verification.error,
+        tags: { module: 'webhooks', type: 'security' },
       });
-      res.status(401).json({ success: false, error: 'Invalid signature' });
+      res.status(401).json({ success: false, error: verification.error });
       return;
     }
     
-    const eventType = evt.type;
+    const payload = verification.payload;
+    const eventType = payload.type;
     
-    logger.info('Received Clerk webhook', {
+    logger.debug('Webhook received', {
       eventType,
-      eventId: evt.id,
-      tags: { module: 'auth', type: 'webhook' },
+      timestamp: new Date().toISOString(),
     });
     
-    // Handle events
+    // Step 2: Route to appropriate handler
     switch (eventType) {
-      case 'user.created':
-        await handleUserCreated(evt);
+      case 'user.created': {
+        const result = await handleUserCreated(payload);
+        if (result.success) {
+          res.json({ success: true, message: 'User processed successfully' });
+        } else {
+          // Return 200 to prevent Clerk retries (user was already deleted)
+          res.status(200).json({ 
+            success: false, 
+            error: result.error,
+            message: 'User rejected and deleted due to invite validation failure'
+          });
+        }
         break;
+      }
         
       case 'user.updated':
-        // Handle updates if needed
+        await handleUserUpdated(payload);
+        res.json({ success: true });
         break;
         
       case 'user.deleted':
-        // Handle deletion if needed
+        await handleUserDeleted(payload);
+        res.json({ success: true });
         break;
         
       default:
-        // Unhandled event
-        break;
+        logger.debug('Unhandled webhook event', { eventType });
+        res.json({ success: true, message: 'Event not handled' });
     }
-    
-    const duration = Date.now() - startTime;
-    
-    res.json({
-      success: true,
-      eventType,
-      durationMs: duration,
-    });
-    
   } catch (error) {
-    const duration = Date.now() - startTime;
-    
-    if (error instanceof WebhookError) {
-      res.status(error.statusCode).json({
-        success: false,
-        error: error.message,
-        code: error.code,
-      });
-    } else {
-      logger.error('Unexpected webhook error', {
-        error: (error as Error).message,
-        stack: (error as Error).stack,
-        tags: { module: 'auth', type: 'error' },
-      });
-      
-      res.status(500).json({
-        success: false,
-        error: 'Internal server error',
-      });
-    }
+    logger.error('Webhook processing error', {
+      error: (error as Error).message,
+      stack: (error as Error).stack,
+    });
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 };
 
 // ============================================================================
-// CUSTOM ERROR CLASS
-// ============================================================================
-
-class WebhookError extends Error {
-  public code: string;
-  public statusCode: number;
-  
-  constructor(code: string, message: string, statusCode: number) {
-    super(message);
-    this.code = code;
-    this.statusCode = statusCode;
-    this.name = 'WebhookError';
-  }
-}
-
-// ============================================================================
-// WEBHOOK ADMIN ENDPOINTS
+// ADMIN ENDPOINTS (for monitoring)
 // ============================================================================
 
 /**
  * GET /admin/webhooks/health
- * Get webhook health status
+ * Webhook health status
  */
 export const getWebhookHealthEndpoint = (req: Request, res: Response): void => {
   res.json({
-    success: true,
     status: 'healthy',
     timestamp: new Date().toISOString(),
+    webhookSecret: env.CLERK_WEBHOOK_SECRET ? 'configured' : 'missing',
   });
 };
 
 /**
  * GET /admin/webhooks/failed
- * Get failed webhook events
+ * Get failed webhook events (placeholder for future queue implementation)
  */
 export const getFailedEventsEndpoint = (req: Request, res: Response): void => {
   res.json({
-    success: true,
-    events: [], // Placeholder - implement if needed
+    failedEvents: [],
+    message: 'Webhook retry queue not yet implemented',
   });
 };
 
@@ -577,11 +396,9 @@ export const getFailedEventsEndpoint = (req: Request, res: Response): void => {
  * POST /admin/webhooks/retry/:eventId
  * Retry a failed webhook event
  */
-export const retryFailedEventEndpoint = async (req: Request, res: Response): Promise<void> => {
-  res.json({
-    success: true,
-    message: 'Retry endpoint - implement if needed',
+export const retryFailedEventEndpoint = (req: Request, res: Response): void => {
+  res.status(501).json({
+    success: false,
+    error: 'Webhook retry not yet implemented',
   });
 };
-
-export default handleClerkWebhook;

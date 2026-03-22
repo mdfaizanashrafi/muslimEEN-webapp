@@ -1,31 +1,36 @@
 /**
- * Hardened Invite Service
+ * Invite Service - PRODUCTION GRADE
  * 
- * SECURITY IMPROVEMENTS:
- * 1. Generic error messages (prevents invite enumeration)
- * 2. Database transactions (atomic operations)
- * 3. Max active invites limit (prevents spam)
- * 4. Conditional updates (prevents race conditions)
- * 5. Signed tokens (prevents token tampering)
+ * SECURITY:
+ * - Generic error messages (prevents invite enumeration)
+ * - Database transactions (atomic operations)
+ * - Conditional updates (prevents race conditions/double-use)
+ * - Signed JWT tokens (tamper-proof, short-lived)
+ * - Rate limiting (prevents brute force)
  * 
- * This service replaces the original InviteService for security-critical operations.
+ * FLOW:
+ * 1. User validates invite code → receives signed JWT (10 min expiry)
+ * 2. User passes JWT to Clerk signup (via metadata)
+ * 3. Clerk webhook verifies JWT and atomically consumes invite
+ * 4. If consumption fails → Clerk user is deleted
+ * 
+ * DATE: 2026-03-20
  */
 
 import { PoolClient } from 'pg';
-import pool, { transaction } from '../../database/pool';
+import pool from '../../database/pool';
 import * as UserRepository from '../../iam/repositories/UserRepository';
 import { eventBus, DomainEvents } from '../../shared/events/EventBus';
 import { logger } from '../../shared/utils/logger';
 import {
-  generateSignedToken,
-  verifySignedToken,
+  generateInviteJWT,
+  verifyInviteJWT,
   generateInviteCode,
   hashInviteCode,
-  compareInviteCode,
   checkRateLimit,
 } from './InviteTokenService';
 
-// Re-export hashInviteCode for backward compatibility
+// Re-export for backward compatibility
 export { hashInviteCode };
 
 // ============================================================================
@@ -46,7 +51,7 @@ export interface CreateInviteResult {
   invite?: {
     id: string;
     code: string;
-    signedToken: string;
+    jwt: string;
     expiresAt: Date;
   };
   error?: string;
@@ -55,20 +60,15 @@ export interface CreateInviteResult {
 
 export interface ValidateInviteResult {
   valid: boolean;
-  signedToken?: string;
+  jwt?: string;
   error?: string;
-  // Internal only - not exposed to frontend
-  _invite?: {
-    id: string;
-    code: string;
-    createdBy: string;
-  };
 }
 
 export interface ConsumeInviteResult {
   success: boolean;
   error?: string;
   invitedBy?: string;
+  inviteId?: string;
 }
 
 export interface InviteQuota {
@@ -79,16 +79,16 @@ export interface InviteQuota {
 }
 
 // ============================================================================
-// CREATE INVITE (HARDENED)
+// CREATE INVITE (ATOMIC)
 // ============================================================================
 
 /**
- * Create a new invite (HARDENED VERSION)
+ * Create a new invite
  * 
  * SECURITY:
  * - Checks max active invites limit
  * - Atomic decrement of user's invite count
- * - Generates signed token for validation
+ * - Generates signed JWT for validation
  */
 export const createInvite = async (
   createdBy: string,
@@ -141,7 +141,7 @@ export const createInvite = async (
     const code = generateInviteCode();
     const codeHash = hashInviteCode(code);
     
-    // Create invite record with BOTH code_hash (for lookup) AND token (for display)
+    // Create invite record
     const inviteRes = await client.query(
       `INSERT INTO invites (code_hash, token, created_by, status, expires_at, created_at)
        VALUES ($1, $2, $3, 'pending', NOW() + INTERVAL '${INVITE_EXPIRY_DAYS} days', NOW())
@@ -153,16 +153,15 @@ export const createInvite = async (
     
     const invite = inviteRes.rows[0];
     
-    // Generate signed token for validation
-    const signedToken = generateSignedToken(code);
+    // Generate signed JWT for validation (10 min expiry)
+    const { token: jwt, expiresAt } = generateInviteJWT(code);
     
-    // AUDIT LOG: Invite created
+    // AUDIT LOG
     logger.info('Invite created', {
       event: 'invite_created',
       inviteId: invite.id,
       createdBy,
       expiresAt: invite.expires_at,
-      tags: { module: 'invites', type: 'audit' },
     });
     
     // Publish event
@@ -176,8 +175,8 @@ export const createInvite = async (
       invite: {
         id: invite.id,
         code, // Return raw code only once (for sharing)
-        signedToken: signedToken.token,
-        expiresAt: new Date(invite.expires_at),
+        jwt,
+        expiresAt,
       },
     };
   } catch (error) {
@@ -186,7 +185,6 @@ export const createInvite = async (
       event: 'invite_failed',
       error: (error as Error).message,
       createdBy,
-      tags: { module: 'invites', type: 'error' },
     });
     return {
       success: false,
@@ -198,32 +196,22 @@ export const createInvite = async (
 };
 
 // ============================================================================
-// VALIDATE INVITE (HARDENED - WITH BACKWARD COMPATIBILITY)
+// VALIDATE INVITE CODE (STEP 1 OF SIGNUP FLOW)
 // ============================================================================
 
 /**
- * BACKWARD COMPATIBILITY NOTE:
- * 
- * Old invites stored raw codes in the 'token' column without 'code_hash'.
- * New invites store hash in 'code_hash' and display code in 'token'.
- * 
- * This function:
- * 1. First tries to find by code_hash (new invites)
- * 2. Falls back to token column (old invites - auto-migrates)
- * 3. Auto-migrates old invites by computing and storing code_hash
- */
-
-/**
- * Validate an invite code (HARDENED VERSION - BACKWARD COMPATIBLE)
+ * Validate invite code and return signed JWT
  * 
  * SECURITY:
  * - Generic error messages (prevents enumeration)
  * - Rate limiting per IP
- * - Returns signed token (not raw code)
- * - Internal logging only
- * - Supports both old (token-only) and new (code_hash) invites
+ * - Returns JWT (not raw code) for next step
+ * 
+ * @param rawCode - The invite code entered by user
+ * @param clientIp - Client IP for rate limiting
+ * @returns Validation result with JWT if valid
  */
-export const validateInvite = async (
+export const validateInviteCode = async (
   rawCode: string,
   clientIp?: string
 ): Promise<ValidateInviteResult> => {
@@ -231,6 +219,10 @@ export const validateInvite = async (
   if (clientIp) {
     const rateLimit = checkRateLimit(`validate:${clientIp}`, 5, 1);
     if (!rateLimit.allowed) {
+      logger.warn('Invite validation rate limit exceeded', {
+        clientIp,
+        tags: { module: 'invites', type: 'security' },
+      });
       return { valid: false, error: 'Too many attempts. Please try again later.' };
     }
   }
@@ -243,21 +235,22 @@ export const validateInvite = async (
   try {
     await client.query('BEGIN');
     
-    // BACKWARD COMPATIBILITY: Try code_hash first, then fall back to token
+    // Find invite by code hash
     const result = await client.query(
-      `SELECT id, code_hash, token, created_by, status, expires_at, used_by
+      `SELECT id, status, expires_at, used_by_clerk_id
        FROM invites
-       WHERE code_hash = $1 OR (code_hash IS NULL AND token = $2)
+       WHERE code_hash = $1
        LIMIT 1`,
-      [codeHash, normalizedCode]
+      [codeHash]
     );
     
-    // SECURITY: Generic error message for all failure cases
+    // SECURITY: Generic error message for ALL failure cases
     const genericError = 'Invalid or expired invite code';
     
     if (result.rows.length === 0) {
       await client.query('ROLLBACK');
       logger.warn('Invite validation failed: not found', {
+        codeHash: `${codeHash.substring(0, 8)}...`,
         tags: { module: 'invites', type: 'security' },
       });
       return { valid: false, error: genericError };
@@ -265,32 +258,18 @@ export const validateInvite = async (
     
     const invite = result.rows[0];
     
-    // BACKWARD COMPATIBILITY: Auto-migrate old invites (no code_hash)
-    if (!invite.code_hash) {
-      await client.query(
-        `UPDATE invites 
-         SET code_hash = $1, 
-             token = $2
-         WHERE id = $3`,
-        [codeHash, normalizedCode, invite.id]
-      );
-      logger.info('Auto-migrated old invite to code_hash', {
-        inviteId: invite.id,
-        tags: { module: 'invites', type: 'migration' },
-      });
-    }
-    
-    // Check status (generic error)
+    // Check status
     if (invite.status !== 'pending') {
       await client.query('ROLLBACK');
       logger.warn('Invite validation failed: status', {
         status: invite.status,
+        inviteId: invite.id,
         tags: { module: 'invites', type: 'security' },
       });
       return { valid: false, error: genericError };
     }
     
-    // Check expiry (generic error)
+    // Check expiry
     if (new Date() > new Date(invite.expires_at)) {
       await client.query('ROLLBACK');
       logger.warn('Invite validation failed: expired', {
@@ -300,8 +279,8 @@ export const validateInvite = async (
       return { valid: false, error: genericError };
     }
     
-    // Check if already used (generic error)
-    if (invite.used_by) {
+    // Check if already used
+    if (invite.used_by_clerk_id) {
       await client.query('ROLLBACK');
       logger.warn('Invite validation failed: already used', {
         inviteId: invite.id,
@@ -312,34 +291,25 @@ export const validateInvite = async (
     
     await client.query('COMMIT');
     
-    // Success - generate signed token
-    const signedToken = generateSignedToken(normalizedCode);
+    // Success - generate signed JWT (10 min expiry for signup)
+    const { token: jwt, expiresAt } = generateInviteJWT(normalizedCode);
     
-    // AUDIT LOG: Invite validated
-    logger.info('Invite validated', {
+    logger.info('Invite code validated', {
       event: 'invite_validated',
       inviteId: invite.id,
-      createdBy: invite.created_by,
       clientIp,
-      tags: { module: 'invites', type: 'audit' },
+      jwtExpiry: expiresAt.toISOString(),
     });
     
     return {
       valid: true,
-      signedToken: signedToken.token,
-      _invite: {
-        id: invite.id,
-        code: normalizedCode,
-        createdBy: invite.created_by,
-      },
+      jwt,
     };
   } catch (error) {
     await client.query('ROLLBACK').catch(() => {});
     logger.error('Invite validation error', {
-      event: 'invite_failed',
       error: (error as Error).message,
       clientIp,
-      tags: { module: 'invites', type: 'error' },
     });
     return { valid: false, error: 'Invalid or expired invite code' };
   } finally {
@@ -348,28 +318,35 @@ export const validateInvite = async (
 };
 
 // ============================================================================
-// CONSUME INVITE (HARDENED - WITH TRANSACTION)
+// CONSUME INVITE (ATOMIC - CALLED FROM WEBHOOK)
 // ============================================================================
 
 /**
- * Consume an invite during signup (HARDENED VERSION)
+ * Consume invite atomically during Clerk webhook
  * 
  * SECURITY:
- * - Verify signed token first
- * - Database transaction (all-or-nothing)
- * - Conditional update (prevents double-use)
- * - Sets invited_by relationship
+ * - Verifies JWT signature first
+ * - Atomic conditional update (prevents double-use)
+ * - Returns success/failure for Clerk user cleanup
+ * 
+ * @param inviteJWT - The signed JWT from Clerk metadata
+ * @param clerkUserId - The Clerk user ID
+ * @returns Consumption result
  */
 export const consumeInvite = async (
-  signedToken: string,
-  newUserId: string,
-  newUserEmail: string
+  inviteJWT: string,
+  clerkUserId: string
 ): Promise<ConsumeInviteResult> => {
-  // Step 1: Verify signed token
-  const tokenVerification = verifySignedToken(signedToken);
+  // Step 1: Verify JWT signature and expiry
+  const tokenVerification = verifyInviteJWT(inviteJWT);
   
   if (!tokenVerification.valid) {
-    return { success: false, error: 'Invalid invite token' };
+    logger.warn('Invite consumption failed: invalid JWT', {
+      clerkUserId,
+      error: tokenVerification.error,
+      tags: { module: 'invites', type: 'security' },
+    });
+    return { success: false, error: tokenVerification.error || 'Invalid invite token' };
   }
   
   const normalizedCode = tokenVerification.code!.toUpperCase();
@@ -380,73 +357,80 @@ export const consumeInvite = async (
   try {
     await client.query('BEGIN');
     
-    // Step 2: Conditional update - only consume if not already used
+    // Step 2: Atomic conditional update
+    // CRITICAL: Only succeeds if invite is pending, not expired, and not used
     const consumeRes = await client.query(
       `UPDATE invites
        SET status = 'used',
-           used_by = $2,
+           used_by_clerk_id = $2,
            used_at = NOW()
        WHERE code_hash = $1
        AND status = 'pending'
        AND expires_at > NOW()
-       AND used_by IS NULL
+       AND used_by_clerk_id IS NULL
        RETURNING id, created_by`,
-      [codeHash, newUserId]
+      [codeHash, clerkUserId]
     );
     
     if (consumeRes.rowCount === 0) {
       await client.query('ROLLBACK');
-      logger.warn('Invite consumption failed: conditional update failed', {
-        codeHash,
-        tags: { module: 'invites', type: 'security' },
-      });
+      
+      // Determine specific failure reason for logging (not exposed)
+      const checkRes = await pool.query(
+        `SELECT status, used_by_clerk_id, expires_at 
+         FROM invites WHERE code_hash = $1`,
+        [codeHash]
+      );
+      
+      if (checkRes.rows.length === 0) {
+        logger.error('Invite consumption failed: invite not found after JWT verify', {
+          clerkUserId,
+          codeHash: `${codeHash.substring(0, 8)}...`,
+          tags: { module: 'invites', type: 'security' },
+        });
+      } else {
+        const row = checkRes.rows[0];
+        logger.warn('Invite consumption failed: race condition or reuse', {
+          clerkUserId,
+          status: row.status,
+          usedBy: row.used_by_clerk_id,
+          expired: new Date(row.expires_at) < new Date(),
+          tags: { module: 'invites', type: 'security' },
+        });
+      }
+      
       return { success: false, error: 'Invite already used or expired' };
     }
     
     const inviteId = consumeRes.rows[0].id;
     const invitedBy = consumeRes.rows[0].created_by;
     
-    // Step 3: Set invited_by relationship
-    await client.query(
-      `UPDATE users
-       SET invited_by = $1
-       WHERE id = $2`,
-      [invitedBy, newUserId]
-    );
-    
-    // Step 4: Award initial invites to new user
-    await client.query(
-      `UPDATE users
-       SET invites_remaining = $1
-       WHERE id = $2`,
-      [DEFAULT_USER_INVITE_LIMIT, newUserId]
-    );
-    
     await client.query('COMMIT');
     
     // Publish event (non-blocking)
     eventBus.publish(DomainEvents.INVITE_USED, {
       inviteId,
-      usedBy: newUserId,
+      usedBy: clerkUserId,
       invitedBy,
     }).catch(() => {});
     
     logger.info('Invite consumed successfully', {
+      event: 'invite_consumed',
       inviteId,
-      newUserId,
+      clerkUserId,
       invitedBy,
-      tags: { module: 'invites', type: 'success' },
     });
     
     return {
       success: true,
       invitedBy,
+      inviteId,
     };
   } catch (error) {
     await client.query('ROLLBACK');
     logger.error('Failed to consume invite', {
       error: (error as Error).message,
-      tags: { module: 'invites', type: 'error' },
+      clerkUserId,
     });
     return { success: false, error: 'Failed to process invite' };
   } finally {
@@ -455,7 +439,7 @@ export const consumeInvite = async (
 };
 
 // ============================================================================
-// GET USER INVITE QUOTA
+// USER INVITE QUOTA
 // ============================================================================
 
 export const getUserInviteQuota = async (userId: string): Promise<InviteQuota> => {
@@ -467,7 +451,6 @@ export const getUserInviteQuota = async (userId: string): Promise<InviteQuota> =
   
   const isUnlimited = isAdmin(user.role);
   
-  // Count used invites
   const usedRes = await pool.query(
     `SELECT COUNT(*) FROM invites WHERE created_by = $1 AND status = 'used'`,
     [userId]
@@ -491,7 +474,7 @@ export const getUserInviteQuota = async (userId: string): Promise<InviteQuota> =
 
 export const getUserInvites = async (userId: string): Promise<any[]> => {
   const result = await pool.query(
-    `SELECT id, code_hash, token, status, expires_at, created_at, used_at, used_by
+    `SELECT id, token, status, expires_at, created_at, used_at, used_by_clerk_id
      FROM invites
      WHERE created_by = $1
      ORDER BY created_at DESC`,
@@ -500,13 +483,12 @@ export const getUserInvites = async (userId: string): Promise<any[]> => {
   
   return result.rows.map(row => ({
     id: row.id,
-    code: row.token, // Return display code (token column)
+    code: row.token, // Return display code
     status: row.status,
     expiresAt: row.expires_at,
     createdAt: row.created_at,
     usedAt: row.used_at,
-    usedBy: row.used_by,
-    // Note: code_hash is never returned (sensitive)
+    usedBy: row.used_by_clerk_id,
   }));
 };
 
@@ -517,7 +499,7 @@ export const getUserInvites = async (userId: string): Promise<any[]> => {
 export const revokeInvite = async (
   inviteId: string,
   userId: string,
-  isAdmin: boolean
+  isAdminUser: boolean
 ): Promise<boolean> => {
   const client = await pool.connect();
   
@@ -537,7 +519,7 @@ export const revokeInvite = async (
     
     const invite = checkRes.rows[0];
     
-    if (!isAdmin && invite.created_by !== userId) {
+    if (!isAdminUser && invite.created_by !== userId) {
       await client.query('ROLLBACK');
       return false;
     }
@@ -553,8 +535,8 @@ export const revokeInvite = async (
       [inviteId]
     );
     
-    // Refund invite credit
-    if (!isAdmin) {
+    // Refund invite credit (non-admins only)
+    if (!isAdminUser) {
       await client.query(
         `UPDATE users SET invites_remaining = invites_remaining + 1 WHERE id = $1`,
         [userId]
@@ -562,6 +544,13 @@ export const revokeInvite = async (
     }
     
     await client.query('COMMIT');
+    
+    logger.info('Invite revoked', {
+      event: 'invite_revoked',
+      inviteId,
+      revokedBy: userId,
+    });
+    
     return true;
   } catch (error) {
     await client.query('ROLLBACK');

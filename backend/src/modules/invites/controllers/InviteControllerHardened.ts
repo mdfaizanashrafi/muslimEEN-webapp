@@ -65,7 +65,7 @@ export const validateInvite = async (
     const clientIp = req.ip || req.socket.remoteAddress;
     
     // Validate invite
-    const result = await InviteService.validateInvite(sanitizedCode, clientIp);
+    const result = await InviteService.validateInviteCode(sanitizedCode, clientIp);
     
     if (!result.valid) {
       // SECURITY: Return generic error regardless of actual reason
@@ -77,11 +77,11 @@ export const validateInvite = async (
       return;
     }
     
-    // Success - return signed token
+    // Success - return JWT (pass to Clerk signup via metadata)
     res.json({
       success: true,
       valid: true,
-      signedToken: result.signedToken,
+      jwt: result.jwt,
     });
     
   } catch (error) {
@@ -146,8 +146,8 @@ export const createInvite = async (
       success: true,
       invite: {
         id: result.invite!.id,
-        code: result.invite!.code, // Only time raw code is returned
-        signedToken: result.invite!.signedToken,
+        code: result.invite!.code, // Only time raw code is returned (for sharing)
+        jwt: result.invite!.jwt,   // Pass to Clerk signup
         expiresAt: result.invite!.expiresAt,
       },
       remainingInvites: quota.remaining,

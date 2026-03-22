@@ -7,7 +7,7 @@ import { Router } from 'express';
 import * as ProfileController from '../profile/controllers/ProfileController';
 import * as TrustScoreController from '../trust/controllers/TrustScoreController';
 import * as VerificationController from '../trust/controllers/VerificationController';
-import { authenticate } from '../iam/middleware/auth';
+import { clerkAuthenticate } from '../iam/middleware/clerkAuth';
 import { userLimiter } from '../shared/middleware/rateLimiter';
 import { csrfValidator } from '../shared/middleware/csrf';
 import { createBodyValidator } from '../shared/middleware/validation';
@@ -17,7 +17,7 @@ import { auditLog, AUDIT_ACTIONS } from '../shared/middleware/auditLogger';
 const router = Router();
 
 // All routes require authentication
-router.use(authenticate);
+router.use(clerkAuthenticate);
 
 // Current user profile
 router.get('/me', userLimiter, ProfileController.getCurrentUserProfile);

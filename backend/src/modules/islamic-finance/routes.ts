@@ -5,7 +5,7 @@
 
 import { Router } from 'express';
 import * as IslamicFinanceController from './controllers/IslamicFinanceController';
-import { authenticate } from '../iam/middleware/auth';
+import { clerkAuthenticate } from '../iam/middleware/clerkAuth';
 import { apiLimiter } from '../shared/middleware/rateLimiter';
 import { csrfValidator } from '../shared/middleware/csrf';
 import { createBodyValidator } from '../shared/middleware/validation';
@@ -13,7 +13,7 @@ import { createBodyValidator } from '../shared/middleware/validation';
 const router = Router();
 
 // All routes require authentication
-router.use(authenticate);
+router.use(clerkAuthenticate);
 
 // Sadaqah campaigns
 router.get('/sadaqah', apiLimiter, IslamicFinanceController.getSadaqahCampaigns);

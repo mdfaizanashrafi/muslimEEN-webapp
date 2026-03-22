@@ -120,60 +120,18 @@ const envSchema = z.object({
     .min(32, 'INVITE_TOKEN_SECRET must be at least 32 characters'),
   
   // ==========================================================================
-  // SECURITY SECRETS (Deprecated - Clerk migration complete)
+  // SECURITY SECRETS (Clerk Authentication)
   // ==========================================================================
+  // NOTE: JWT authentication has been removed - using Clerk exclusively
   
-  // JWT_SECRET: Deprecated - migrated to Clerk authentication
-  // Keeping as optional for backward compatibility during transition
-  JWT_SECRET: z
-    .string()
-    .optional()
-    .refine(
-      secret => {
-        // Skip validation if not provided (Clerk migration complete)
-        if (!secret) return true;
-        // In development, allow shorter secrets for convenience
-        if (process.env.NODE_ENV === 'development') return true;
-        return secret.length >= 32;
-      },
-      {
-        message: 'JWT_SECRET must be at least 32 characters in production',
-      }
-    )
-    .refine(
-      secret => {
-        // Skip validation if not provided (Clerk migration complete)
-        if (!secret) return true;
-        if (process.env.NODE_ENV === 'development') return true;
-        return !isWeakSecret(secret);
-      },
-      {
-        message: 'JWT_SECRET appears to be a weak/default value. Generate a secure secret.',
-      }
-    ),
-  
-  // JWT_EXPIRES_IN: Deprecated - migrated to Clerk authentication
-  JWT_EXPIRES_IN: z
-    .string()
-    .optional()
-    .default('24h'),
-  
+  // COOKIE_SECRET: Optional - Clerk handles session cookies
   COOKIE_SECRET: z
     .string()
-    .min(1, 'COOKIE_SECRET is required')
-    .refine(
-      secret => {
-        if (process.env.NODE_ENV === 'development') return true;
-        return secret.length >= 32;
-      },
-      {
-        message: 'COOKIE_SECRET must be at least 32 characters in production',
-      }
-    ),
+    .optional(),
   
+  // CSRF_SECRET: Optional - Clerk handles CSRF protection
   CSRF_SECRET: z
     .string()
-    .min(32, 'CSRF_SECRET must be at least 32 characters')
     .optional(),
   
   BCRYPT_ROUNDS: z
@@ -416,20 +374,6 @@ export const validateProductionConfig = (): void => {
   if (env.NODE_ENV !== 'production') return;
   
   const warnings: string[] = [];
-  
-  // JWT_SECRET is deprecated - Clerk migration complete
-  // Only validate if still present for backward compatibility
-  if (env.JWT_SECRET && env.JWT_SECRET.length < 64) {
-    warnings.push('JWT_SECRET should be at least 64 characters in production (deprecated, using Clerk)');
-  }
-  
-  if (env.COOKIE_SECRET.length < 64) {
-    warnings.push('COOKIE_SECRET should be at least 64 characters in production');
-  }
-  
-  if (!env.CSRF_SECRET) {
-    warnings.push('CSRF_SECRET is recommended for production');
-  }
   
   if (!env.SENTRY_DSN) {
     warnings.push('SENTRY_DSN is recommended for production error tracking');

@@ -1,19 +1,21 @@
 /**
  * Authentication Service
  * 
- * Core identity and access management business logic
+ * SIMPLIFIED: Clerk handles authentication.
+ * This service now only provides:
+ * - Invitation validation (for pre-signup invite checking)
+ * - User lookup utilities
+ * 
+ * NOTE: Legacy JWT login/register/refresh removed - using Clerk exclusively
+ * DATE: 2026-03-20
  */
 
 import * as UserRepository from '../repositories/UserRepository';
-import * as JwtService from './JwtService';
-import * as PasswordService from './PasswordService';
-import { generateCsrfToken } from '../../shared/utils/security';
-import { eventBus, DomainEvents } from '../../shared/events/EventBus';
 import { logger } from '../../shared/utils/logger';
 import { UserRole, VerificationTier } from '../../shared/types';
 
 // ============================================================================
-// TYPES
+// TYPES (kept for backward compatibility)
 // ============================================================================
 
 export interface LoginCredentials {
@@ -46,179 +48,46 @@ export interface AuthResult {
 }
 
 // ============================================================================
-// LOGIN
+// DEPRECATED: Legacy login - returns error directing to Clerk
 // ============================================================================
 
 /**
- * Authenticate user with credentials
+ * DEPRECATED: Use Clerk authentication instead
  */
-export const login = async (credentials: LoginCredentials): Promise<AuthResult> => {
-  const { email, password } = credentials;
-
-  // Find user by email
-  const user = await UserRepository.findByEmail(email);
-  if (!user) {
-    throw new AuthError('INVALID_CREDENTIALS', 'Invalid email or password');
-  }
-
-  // Verify password
-  const isValidPassword = await PasswordService.verifyPassword(password, user.passwordHash || '');
-  if (!isValidPassword) {
-    throw new AuthError('INVALID_CREDENTIALS', 'Invalid email or password');
-  }
-
-  // Check if account is active
-  if (!user.isActive) {
-    throw new AuthError('ACCOUNT_DISABLED', 'Account has been disabled');
-  }
-
-  // Update last login (fire and forget)
-  UserRepository.updateLastLogin(user.id).catch(() => {});
-
-  // Generate tokens
-  const token = JwtService.generateToken({
-    id: user.id,
-    email: user.email,
-    role: user.role,
-  });
-
-  const csrfToken = generateCsrfToken();
-
-  // Publish event
-  eventBus.publish(DomainEvents.USER_AUTHENTICATED, {
-    userId: user.id,
-    email: user.email,
-    timestamp: new Date(),
-  });
-
-  return {
-    user: {
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      fullName: user.fullName,
-      role: user.role,
-      verificationTier: user.verificationTier,
-      trustScore: user.trustScore,
-      invitesRemaining: user.invitesRemaining,
-    },
-    token,
-    csrfToken,
-  };
+export const login = async (_credentials: LoginCredentials): Promise<never> => {
+  throw new AuthError(
+    'AUTH_METHOD_DEPRECATED',
+    'Direct login is no longer supported. Use Clerk authentication.',
+    501
+  );
 };
 
 // ============================================================================
-// REGISTRATION
+// DEPRECATED: Legacy register - returns error directing to Clerk
 // ============================================================================
 
 /**
- * Register new user with invite token
- * 
- * SECURITY: Wrapped in database transaction for atomicity
- * - User creation and invite usage are atomic
- * - No orphaned users possible
- * - Rollback on any failure
+ * DEPRECATED: Use Clerk SignUp component instead
  */
-export const register = async (data: RegisterData): Promise<AuthResult> => {
-  const { email, password, firstName, lastName, inviteToken } = data;
-
-  // Validate invite token first (outside transaction - validates input)
-  const { validateInviteExternal } = await import('../../invites/services/InviteService');
-  const validationResult = await validateInviteExternal(inviteToken);
-  
-  if (!validationResult.valid) {
-    throw new AuthError('INVALID_INVITE', validationResult.message || 'Invalid invite token');
-  }
-
-  // Check if user already exists (outside transaction - quick check)
-  const existingUser = await UserRepository.findByEmail(email);
-  if (existingUser) {
-    throw new AuthError('USER_EXISTS', 'User already exists with this email');
-  }
-
-  // Hash password (CPU intensive, do outside transaction)
-  const passwordHash = await PasswordService.hashPassword(password);
-
-  // Execute user creation and invite usage in a transaction
-  const user = await UserRepository.transaction(async (client) => {
-    // Create user with default role (within transaction)
-    const newUser = await UserRepository.createWithClient(client, {
-      email,
-      passwordHash,
-      firstName,
-      lastName,
-      role: 'muslim_unverified' as UserRole,
-      verificationTier: 'basic' as VerificationTier,
-    });
-
-    // Use invite within the same transaction
-    const { useInviteWithClient } = await import('../../invites/services/InviteService');
-    const useResult = await useInviteWithClient(
-      client,
-      inviteToken,
-      newUser.id,
-      newUser.email
-    );
-
-    if (!useResult.success) {
-      // This will trigger transaction rollback
-      throw new Error(useResult.message || 'Failed to process invite');
-    }
-
-    return newUser;
-  });
-
-  // Generate tokens (after successful transaction)
-  const token = JwtService.generateToken({
-    id: user.id,
-    email: user.email,
-    role: user.role,
-  });
-
-  const csrfToken = generateCsrfToken();
-
-  // Publish event (outside transaction - best effort)
-  eventBus.publish(DomainEvents.USER_REGISTERED, {
-    userId: user.id,
-    email: user.email,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    invitedBy: validationResult.invite!.createdBy,
-  }).catch(() => {}); // Non-blocking
-
-  logger.info('User registered successfully', {
-    userId: user.id,
-    email: user.email,
-  });
-
-  return {
-    user: {
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      fullName: user.fullName,
-      role: user.role,
-      verificationTier: user.verificationTier,
-      trustScore: user.trustScore,
-      invitesRemaining: 3, // New users get 3 invites
-    },
-    token,
-    csrfToken,
-  };
+export const register = async (_data: RegisterData): Promise<never> => {
+  throw new AuthError(
+    'AUTH_METHOD_DEPRECATED',
+    'Direct registration is no longer supported. Use Clerk SignUp.',
+    501
+  );
 };
 
 // ============================================================================
-// LOGOUT
+// LOGOUT (kept for audit logging purposes)
 // ============================================================================
 
 /**
  * Logout user
+ * Note: Clerk handles token revocation; this is for audit logging only
  */
 export const logout = async (_userId: string): Promise<void> => {
-  // Currently stateless - no server-side action needed
-  // Future: Add token to Redis blacklist
+  // Clerk handles session cleanup on the client side
+  // Server-side: tokens are stateless JWTs that expire naturally
   return Promise.resolve();
 };
 
@@ -238,68 +107,32 @@ export const getCurrentUser = async (userId: string): Promise<any> => {
 };
 
 // ============================================================================
-// TOKEN REFRESH
+// DEPRECATED: Token refresh - Clerk handles this automatically
 // ============================================================================
 
 /**
- * Refresh user session with new tokens
- * Used for silent token refresh before expiration
+ * DEPRECATED: Use Clerk's automatic token refresh
  */
-export const refreshSession = async (userId: string): Promise<AuthResult> => {
-  const user = await UserRepository.findById(userId);
-  
-  if (!user) {
-    throw new AuthError('USER_NOT_FOUND', 'User not found', 404);
-  }
-  
-  if (!user.isActive) {
-    throw new AuthError('ACCOUNT_DISABLED', 'Account has been disabled', 403);
-  }
-
-  // Generate new tokens
-  const token = JwtService.generateToken({
-    id: user.id,
-    email: user.email,
-    role: user.role,
-  });
-
-  const csrfToken = generateCsrfToken();
-
-  // Publish event
-  eventBus.publish(DomainEvents.USER_AUTHENTICATED, {
-    userId: user.id,
-    email: user.email,
-    timestamp: new Date(),
-    type: 'token_refresh',
-  });
-
-  return {
-    user: {
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      fullName: user.fullName,
-      role: user.role,
-      verificationTier: user.verificationTier,
-      trustScore: user.trustScore,
-      invitesRemaining: user.invitesRemaining,
-    },
-    token,
-    csrfToken,
-  };
+export const refreshSession = async (_userId: string): Promise<never> => {
+  throw new AuthError(
+    'AUTH_METHOD_DEPRECATED',
+    'Token refresh is handled automatically by Clerk.',
+    501
+  );
 };
 
 // ============================================================================
-// VALIDATION
+// INVITATION VALIDATION (still used for pre-signup invite checking)
 // ============================================================================
 
 /**
  * Validate invite token (delegated to Invites module)
+ * This is still used by the /auth/validate-invitation endpoint
+ * which is called BEFORE signup (when user doesn't have Clerk session yet)
  */
-export const validateInvitation = async (token: string) => {
-  const { validateInviteExternal } = await import('../../invites/services/InviteService');
-  return validateInviteExternal(token);
+export const validateInvitation = async (code: string) => {
+  const { validateInviteCode } = await import('../../invites/services/InviteService');
+  return validateInviteCode(code);
 };
 
 // ============================================================================
@@ -319,21 +152,21 @@ export class AuthError extends Error {
 }
 
 // ============================================================================
-// RESPONSE FORMATTERS
+// RESPONSE FORMATTERS (kept for backward compatibility)
 // ============================================================================
 
-export const formatLoginResponse = (result: AuthResult): any => ({
-  success: true,
-  message: 'Login successful',
-  token: result.token,
-  csrfToken: result.csrfToken,
-  user: result.user,
+export const formatLoginResponse = (_result: AuthResult): any => ({
+  success: false,
+  error: {
+    code: 'AUTH_METHOD_DEPRECATED',
+    message: 'Direct login is no longer supported. Use Clerk authentication.',
+  },
 });
 
-export const formatRegisterResponse = (result: AuthResult): any => ({
-  success: true,
-  message: 'Registration successful',
-  token: result.token,
-  csrfToken: result.csrfToken,
-  user: result.user,
+export const formatRegisterResponse = (_result: AuthResult): any => ({
+  success: false,
+  error: {
+    code: 'AUTH_METHOD_DEPRECATED',
+    message: 'Direct registration is no longer supported. Use Clerk SignUp.',
+  },
 });

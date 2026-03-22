@@ -1,20 +1,19 @@
 /**
- * Auth Health Controller - ENHANCED
+ * Auth Health Controller
  * 
- * Provides comprehensive health check endpoint for authentication system status.
- * Includes real-time checks for database, Clerk API, and webhook status.
+ * Provides health check endpoint for authentication system status.
+ * Includes real-time checks for database and Clerk API.
  * 
+ * AUTHENTICATION: Clerk only (legacy removed)
  * DATE: 2026-03-20
- * UPDATED: 2026-03-20 (Enhanced with real checks)
  */
 
 import { Request, Response } from 'express';
 import { createClerkClient } from '@clerk/backend';
-import { featureFlags } from '../../../config/featureFlags';
-import { getDetectionStats, isReadyForCleanup } from '../middleware/legacyAuthDetection';
+import { featureFlags, isClerkWebhooksEnabled } from '../../../config/featureFlags';
 import { logger } from '../../shared/utils/logger';
 import pool from '../../database/pool';
-import { metricsTracker, failedEventQueue } from '../services/WebhookRetryService';
+import { metricsTracker } from '../services/WebhookRetryService';
 import { env } from '../../../config/env';
 
 // ============================================================================
@@ -130,6 +129,7 @@ const getWebhookStatus = () => {
   const metrics = metricsTracker.getMetrics();
   
   return {
+    enabled: isClerkWebhooksEnabled(),
     lastReceived: metrics.lastSuccessTimestamp?.toISOString() || null,
     lastFailure: metrics.lastFailureTimestamp?.toISOString() || null,
     totalReceived: metrics.totalReceived,
@@ -141,23 +141,18 @@ const getWebhookStatus = () => {
 };
 
 // ============================================================================
-// MAIN HEALTH ENDPOINT (ENHANCED)
+// MAIN HEALTH ENDPOINT
 // ============================================================================
 
 /**
  * GET /health/auth
  * 
  * Returns comprehensive authentication system health status.
- * Performs real checks on database, Clerk API, and tracks errors.
  */
 export const getAuthHealth = async (req: Request, res: Response): Promise<void> => {
   const startTime = Date.now();
   
   try {
-    // Get legacy detection stats
-    const detectionStats = getDetectionStats();
-    const readyForCleanup = isReadyForCleanup();
-    
     // Perform real health checks (in parallel)
     const [dbStatus, clerkStatus] = await Promise.all([
       checkDatabase(),
@@ -181,8 +176,7 @@ export const getAuthHealth = async (req: Request, res: Response): Promise<void> 
       status: isHealthy ? 'healthy' : 'unhealthy',
       auth: {
         system: 'clerk',
-        legacy_enabled: !featureFlags.isEnabled('DISABLE_LEGACY_AUTH'),
-        detection_enabled: featureFlags.isEnabled('ENABLE_LEGACY_AUTH_DETECTION'),
+        version: 'v1',
       },
       checks: {
         database: {
@@ -202,21 +196,8 @@ export const getAuthHealth = async (req: Request, res: Response): Promise<void> 
         last_5_minutes: errorRate5m,
         total_recent: recentErrors.length,
       },
-      legacy: {
-        detections_24h: {
-          jwt: detectionStats.jwtAttempts,
-          csrf: detectionStats.csrfAttempts,
-          cookies: detectionStats.legacyCookieAttempts,
-        },
-        unique_endpoints: detectionStats.uniqueEndpoints.size,
-        unique_ips: detectionStats.uniqueIps.size,
-        last_detection: detectionStats.lastDetection?.toISOString() || null,
-        ready_for_cleanup: readyForCleanup,
-      },
       flags: {
-        USE_CLERK_AUTH: featureFlags.isEnabled('USE_CLERK_AUTH'),
-        DISABLE_LEGACY_AUTH: featureFlags.isEnabled('DISABLE_LEGACY_AUTH'),
-        ENABLE_LEGACY_AUTH_DETECTION: featureFlags.isEnabled('ENABLE_LEGACY_AUTH_DETECTION'),
+        USE_CLERK_WEBHOOKS: isClerkWebhooksEnabled(),
       },
     };
     
@@ -255,34 +236,31 @@ export const getAuthHealth = async (req: Request, res: Response): Promise<void> 
 /**
  * GET /health/auth/ready
  * 
- * Simple check - returns 200 if ready for cleanup, 503 if not
+ * Simple check - returns 200 if system is ready
  */
 export const getAuthReadyStatus = async (req: Request, res: Response): Promise<void> => {
-  const ready = isReadyForCleanup();
-  
-  // Also check database connectivity
   const dbStatus = await checkDatabase();
   
-  if (ready && dbStatus.healthy) {
+  if (dbStatus.healthy) {
     res.json({
       ready: true,
-      message: 'No legacy auth detected. Safe to proceed with cleanup.',
+      message: 'Authentication system is ready.',
       timestamp: new Date().toISOString(),
       checks: {
         database: 'healthy',
-        legacy_auth: 'none detected',
+        clerk: 'configured',
       },
     });
   } else {
     res.status(503).json({
       ready: false,
-      message: 'System not ready for cleanup.',
+      message: 'System not ready.',
       timestamp: new Date().toISOString(),
       checks: {
         database: dbStatus.healthy ? 'healthy' : 'unhealthy',
-        legacy_auth: ready ? 'none detected' : 'still in use',
+        clerk: 'configured',
       },
-      reason: !dbStatus.healthy ? 'Database connectivity issue' : 'Legacy auth still in use',
+      reason: !dbStatus.healthy ? 'Database connectivity issue' : 'Unknown',
     });
   }
 };

@@ -9,7 +9,7 @@
 
 import { Router } from 'express';
 import * as InviteController from './controllers/InviteControllerHardened';
-import { authenticate, requireAdmin } from '../iam/middleware/auth';
+import { clerkAuthenticate, requireRole } from '../iam/middleware/clerkAuth';
 import {
   inviteValidationLimiter,
   inviteCreationLimiter,
@@ -40,7 +40,7 @@ router.post(
 // PROTECTED ENDPOINTS (Authentication Required)
 // ============================================================================
 
-router.use(authenticate);
+router.use(clerkAuthenticate);
 
 /**
  * GET /invites

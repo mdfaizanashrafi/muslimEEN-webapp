@@ -1,449 +1,455 @@
 /**
- * Invite Service
+ * Invite Service - ELITE PRODUCTION GRADE
  * 
- * Business logic for invitation-based onboarding.
- * This is the core domain layer for the invite system.
+ * FEATURES:
+ * - Atomic invite consumption (no race conditions)
+ * - Full observability (metrics + structured logs)
+ * - Safe failure handling (idempotent)
+ * - Rate limiting (prevents brute force)
+ * 
+ * DATE: 2026-03-21
  */
 
-import * as InviteRepository from '../repositories/InviteRepository';
-import * as UserRepository from '../../iam/repositories/UserRepository';
-import { eventBus, DomainEvents } from '../../shared/events/EventBus';
 import { PoolClient } from 'pg';
+import pool from '../../database/pool';
+import * as UserRepository from '../../iam/repositories/UserRepository';
+import { logger } from '../../shared/utils/logger';
+import { recordMetric, Metrics } from '../../shared/utils/metrics';
 import {
-  Invite,
-  InviteWithInviter,
-  CreateInviteInput,
-  CreateInviteForEmailInput,
-  CreateAdminInviteInput,
-  ValidateInviteResult,
-  UseInviteInput,
-  UseInviteResult,
-  UserInviteQuota,
-  InviteAnalytics,
-  UserInviteAnalytics,
-} from '../types';
+  generateInviteJWT,
+  verifyInviteJWT,
+  generateInviteCode,
+  hashInviteCode,
+  checkRateLimit,
+} from './InviteTokenService';
+
+// Re-exports
+export { hashInviteCode };
 
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
 
 const DEFAULT_USER_INVITE_LIMIT = 3;
+const MAX_ACTIVE_INVITES_PER_USER = 5;
+const INVITE_EXPIRY_DAYS = 7;
 const ADMIN_ROLES = ['admin', 'super_admin'];
 
 // ============================================================================
-// INVITE CREATION
+// TYPES
 // ============================================================================
 
-/**
- * Create a new invite for a regular user
- * Decreases the inviter's remaining invite count
- * 
- * SECURITY FIX: Uses atomic check-and-decrement to prevent race conditions
- */
-export const createInvite = async (input: CreateInviteInput): Promise<Invite> => {
-  const { createdBy, createdByRole, inviterInviteCount = 0 } = input;
+export interface CreateInviteResult {
+  success: boolean;
+  invite?: {
+    id: string;
+    code: string;
+    jwt: string;
+    expiresAt: Date;
+  };
+  error?: string;
+}
 
-  // Skip invite count check for admins
-  if (!isAdmin(createdByRole)) {
-    // SECURITY FIX: Atomic check-and-decrement prevents race conditions
-    // This updates the count and returns true only if user had invites remaining
-    const decremented = await UserRepository.decreaseInviteCount(createdBy);
-    
-    if (!decremented) {
-      throw new InviteError('NO_INVITES_REMAINING', 'You have no invites remaining', 400);
-    }
-  }
+export interface ValidateInviteResult {
+  valid: boolean;
+  jwt?: string;
+  error?: string;
+}
 
+export interface ConsumeInviteResult {
+  success: boolean;
+  error?: string;
+  errorCode?: string;
+  invitedBy?: string;
+  inviteId?: string;
+}
+
+export interface InviteQuota {
+  remaining: number;
+  used: number;
+  total: number;
+  isUnlimited: boolean;
+}
+
+// ============================================================================
+// CREATE INVITE
+// ============================================================================
+
+export const createInvite = async (
+  createdBy: string,
+  createdByRole: string
+): Promise<CreateInviteResult> => {
+  const client = await pool.connect();
+  
   try {
-    // Create the invite
-    const invite = await InviteRepository.create(createdBy);
-
-    // Publish event
-    await eventBus.publish(DomainEvents.INVITE_CREATED, {
+    await client.query('BEGIN');
+    
+    // Check limits for non-admins
+    if (!isAdmin(createdByRole)) {
+      const activeCountRes = await client.query(
+        `SELECT COUNT(*) FROM invites 
+         WHERE created_by = $1 
+         AND status = 'pending' 
+         AND expires_at > NOW()`,
+        [createdBy]
+      );
+      const activeCount = parseInt(activeCountRes.rows[0].count);
+      
+      if (activeCount >= MAX_ACTIVE_INVITES_PER_USER) {
+        await client.query('ROLLBACK');
+        return {
+          success: false,
+          error: 'Maximum active invites reached',
+        };
+      }
+      
+      // Atomic decrement
+      const decrementRes = await client.query(
+        `UPDATE users 
+         SET invites_remaining = invites_remaining - 1
+         WHERE id = $1 AND invites_remaining > 0
+         RETURNING invites_remaining`,
+        [createdBy]
+      );
+      
+      if (decrementRes.rowCount === 0) {
+        await client.query('ROLLBACK');
+        return { success: false, error: 'No invites remaining' };
+      }
+    }
+    
+    // Generate invite
+    const code = generateInviteCode();
+    const codeHash = hashInviteCode(code);
+    
+    const inviteRes = await client.query(
+      `INSERT INTO invites (code_hash, token, created_by, status, expires_at, created_at)
+       VALUES ($1, $2, $3, 'pending', NOW() + INTERVAL '${INVITE_EXPIRY_DAYS} days', NOW())
+       RETURNING id, created_at, expires_at`,
+      [codeHash, code, createdBy]
+    );
+    
+    await client.query('COMMIT');
+    
+    const invite = inviteRes.rows[0];
+    const { token: jwt, expiresAt } = generateInviteJWT(code);
+    
+    logger.info('INVITE_CREATED', {
       inviteId: invite.id,
       createdBy,
-      token: invite.token,
+      codeHash: `${codeHash.substring(0, 8)}...`,
     });
-
-    return invite;
+    
+    await recordMetric(Metrics.INVITE_VALIDATION_SUCCESS);
+    
+    return {
+      success: true,
+      invite: {
+        id: invite.id,
+        code,
+        jwt,
+        expiresAt,
+      },
+    };
   } catch (error) {
-    // If invite creation fails, refund the invite credit (for non-admins)
-    if (!isAdmin(createdByRole)) {
-      await UserRepository.increaseInviteCount(createdBy);
-    }
-    throw error;
+    await client.query('ROLLBACK');
+    logger.error('INVITE_CREATE_FAILED', { error: (error as Error).message, createdBy });
+    return { success: false, error: 'Failed to create invite' };
+  } finally {
+    client.release();
   }
 };
 
-/**
- * Create an invite for a specific email address
- * 
- * SECURITY FIX: Uses atomic check-and-decrement to prevent race conditions
- */
-export const createInviteForEmail = async (
-  input: CreateInviteForEmailInput
-): Promise<Invite> => {
-  const { createdBy, createdByRole, inviteeEmail, inviterInviteCount = 0 } = input;
+// ============================================================================
+// VALIDATE INVITE (STEP 1: Frontend gets JWT)
+// ============================================================================
 
-  // Validate email format
-  if (!isValidEmail(inviteeEmail)) {
-    throw new InviteError('INVALID_EMAIL', 'Invalid email format', 400);
-  }
-
-  // Check if email is already registered
-  const existingUser = await UserRepository.findByEmail(inviteeEmail);
-  if (existingUser) {
-    throw new InviteError('EMAIL_ALREADY_REGISTERED', 'This email is already registered', 400);
-  }
-
-  // Skip invite count check for admins
-  if (!isAdmin(createdByRole)) {
-    // SECURITY FIX: Atomic check-and-decrement prevents race conditions
-    const decremented = await UserRepository.decreaseInviteCount(createdBy);
-    
-    if (!decremented) {
-      throw new InviteError('NO_INVITES_REMAINING', 'You have no invites remaining', 400);
+export const validateInviteCode = async (
+  rawCode: string,
+  clientIp?: string
+): Promise<ValidateInviteResult> => {
+  await recordMetric(Metrics.INVITE_VALIDATION_ATTEMPT, 1, { ip: clientIp || 'unknown' });
+  
+  // Rate limiting
+  if (clientIp) {
+    const rateLimit = checkRateLimit(`validate:${clientIp}`, 5, 1);
+    if (!rateLimit.allowed) {
+      await recordMetric(Metrics.RATE_LIMIT_HIT, 1, { ip: clientIp });
+      logger.warn('RATE_LIMIT_EXCEEDED', { clientIp, type: 'invite_validation' });
+      return { valid: false, error: 'Too many attempts. Please try again later.' };
     }
   }
-
+  
+  const normalizedCode = rawCode.toUpperCase().trim();
+  const codeHash = hashInviteCode(normalizedCode);
+  
+  const client = await pool.connect();
+  
   try {
-    // Create the invite with email
-    const invite = await InviteRepository.createAdminInvite(createdBy, inviteeEmail);
-
-    // Publish event
-    await eventBus.publish(DomainEvents.INVITE_CREATED, {
-      inviteId: invite.id,
-      createdBy,
-      inviteeEmail,
-      token: invite.token,
-    });
-
-    return invite;
-  } catch (error) {
-    // If invite creation fails, refund the invite credit (for non-admins)
-    if (!isAdmin(createdByRole)) {
-      await UserRepository.increaseInviteCount(createdBy);
+    await client.query('BEGIN');
+    
+    const result = await client.query(
+      `SELECT id, status, expires_at, used_by_clerk_id
+       FROM invites
+       WHERE code_hash = $1
+       LIMIT 1`,
+      [codeHash]
+    );
+    
+    const genericError = 'Invalid or expired invite code';
+    
+    if (result.rows.length === 0) {
+      await client.query('ROLLBACK');
+      await recordMetric(Metrics.INVITE_VALIDATION_FAILURE, 1, { reason: 'not_found' });
+      logger.info('INVITE_NOT_FOUND', { codeHash: `${codeHash.substring(0, 8)}...` });
+      return { valid: false, error: genericError };
     }
-    throw error;
+    
+    const invite = result.rows[0];
+    
+    if (invite.status !== 'pending') {
+      await client.query('ROLLBACK');
+      await recordMetric(Metrics.INVITE_VALIDATION_FAILURE, 1, { reason: 'status', status: invite.status });
+      return { valid: false, error: genericError };
+    }
+    
+    if (new Date() > new Date(invite.expires_at)) {
+      await client.query('ROLLBACK');
+      await recordMetric(Metrics.INVITE_VALIDATION_FAILURE, 1, { reason: 'expired' });
+      return { valid: false, error: genericError };
+    }
+    
+    if (invite.used_by_clerk_id) {
+      await client.query('ROLLBACK');
+      await recordMetric(Metrics.INVITE_VALIDATION_FAILURE, 1, { reason: 'already_used' });
+      return { valid: false, error: genericError };
+    }
+    
+    await client.query('COMMIT');
+    
+    const { token: jwt, expiresAt } = generateInviteJWT(normalizedCode);
+    
+    await recordMetric(Metrics.INVITE_VALIDATION_SUCCESS);
+    logger.info('INVITE_VALIDATION_SUCCESS', {
+      inviteId: invite.id,
+      clientIp,
+      jwtExpiry: expiresAt.toISOString(),
+    });
+    
+    return { valid: true, jwt };
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
+    logger.error('INVITE_VALIDATION_ERROR', { error: (error as Error).message, clientIp });
+    return { valid: false, error: 'Invalid or expired invite code' };
+  } finally {
+    client.release();
   }
 };
 
-/**
- * Create an admin invite
- * Admins can create unlimited invites with custom expiry
- */
-export const createAdminInvite = async (
-  input: CreateAdminInviteInput
-): Promise<Invite> => {
-  const { createdBy, inviteeEmail, expiresInDays } = input;
+// ============================================================================
+// CONSUME INVITE (STEP 2: Webhook atomic consumption)
+// ============================================================================
 
-  const invite = await InviteRepository.createAdminInvite(
-    createdBy,
-    inviteeEmail || null,
-    expiresInDays
+export const consumeInvite = async (
+  inviteJWT: string,
+  clerkUserId: string
+): Promise<ConsumeInviteResult> => {
+  // Step 1: Verify JWT
+  const tokenVerification = verifyInviteJWT(inviteJWT);
+  
+  if (!tokenVerification.valid) {
+    await recordMetric(Metrics.INVITE_CONSUMPTION_FAILED, 1, { 
+      reason: tokenVerification.error,
+      clerkUserId: clerkUserId.substring(0, 8) + '...'
+    });
+    logger.warn('INVITE_JWT_INVALID', {
+      clerkUserId,
+      error: tokenVerification.error,
+    });
+    return { 
+      success: false, 
+      error: tokenVerification.error || 'Invalid invite token',
+      errorCode: 'INVALID_TOKEN'
+    };
+  }
+  
+  const normalizedCode = tokenVerification.code!.toUpperCase();
+  const codeHash = hashInviteCode(normalizedCode);
+  
+  const client = await pool.connect();
+  
+  try {
+    await client.query('BEGIN');
+    
+    // Step 2: Atomic consumption using database function
+    const consumeRes = await client.query(
+      `SELECT * FROM consume_invite_elite($1, $2)`,
+      [codeHash, clerkUserId]
+    );
+    
+    const { p_invite_id, p_created_by, p_success, p_error_code } = consumeRes.rows[0];
+    
+    if (!p_success) {
+      await client.query('ROLLBACK');
+      await recordMetric(Metrics.INVITE_CONSUMPTION_FAILED, 1, { 
+        reason: p_error_code,
+        clerkUserId: clerkUserId.substring(0, 8) + '...'
+      });
+      logger.warn('INVITE_CONSUMPTION_FAILED', {
+        clerkUserId,
+        errorCode: p_error_code,
+        codeHash: `${codeHash.substring(0, 8)}...`,
+      });
+      return { 
+        success: false, 
+        error: 'Invite already used or expired',
+        errorCode: p_error_code
+      };
+    }
+    
+    await client.query('COMMIT');
+    
+    await recordMetric(Metrics.INVITE_CONSUMED);
+    logger.info('INVITE_CONSUMED', {
+      inviteId: p_invite_id,
+      clerkUserId,
+      invitedBy: p_created_by,
+    });
+    
+    return {
+      success: true,
+      invitedBy: p_created_by,
+      inviteId: p_invite_id,
+    };
+  } catch (error) {
+    await client.query('ROLLBACK');
+    logger.error('INVITE_CONSUMPTION_ERROR', {
+      error: (error as Error).message,
+      clerkUserId,
+    });
+    return { 
+      success: false, 
+      error: 'Failed to process invite',
+      errorCode: 'SYSTEM_ERROR'
+    };
+  } finally {
+    client.release();
+  }
+};
+
+// ============================================================================
+// GET USER INVITES
+// ============================================================================
+
+export const getUserInvites = async (userId: string): Promise<any[]> => {
+  const result = await pool.query(
+    `SELECT id, token, status, expires_at, created_at, used_at, used_by_clerk_id
+     FROM invites
+     WHERE created_by = $1
+     ORDER BY created_at DESC`,
+    [userId]
   );
-
-  // Publish event
-  await eventBus.publish(DomainEvents.INVITE_CREATED, {
-    inviteId: invite.id,
-    createdBy,
-    inviteeEmail,
-    token: invite.token,
-    isAdmin: true,
-  });
-
-  return invite;
+  
+  return result.rows.map(row => ({
+    id: row.id,
+    code: row.token,
+    status: row.status,
+    expiresAt: row.expires_at,
+    createdAt: row.created_at,
+    usedAt: row.used_at,
+    usedBy: row.used_by_clerk_id,
+  }));
 };
 
 // ============================================================================
-// INVITE VALIDATION
+// GET USER QUOTA
 // ============================================================================
 
-/**
- * Validate an invite token
- * Called during registration to verify the invite is valid
- */
-export const validateInvite = async (token: string): Promise<ValidateInviteResult> => {
-  // Clean the token
-  const cleanToken = token.trim();
-
-  if (!cleanToken) {
-    return { valid: false, message: 'Invite token is required' };
-  }
-
-  // Find invite with inviter details
-  const invite = await InviteRepository.findByTokenWithInviter(cleanToken);
-
-  if (!invite) {
-    return { valid: false, message: 'Invalid invite token' };
-  }
-
-  // Check if already used
-  if (invite.status === 'used') {
-    return { valid: false, message: 'This invite has already been used' };
-  }
-
-  // Check if revoked
-  if (invite.status === 'revoked') {
-    return { valid: false, message: 'This invite has been revoked' };
-  }
-
-  // Check if expired
-  if (new Date() > new Date(invite.expiresAt)) {
-    return { valid: false, message: 'This invite has expired' };
-  }
-
-  return {
-    valid: true,
-    invite,
-  };
-};
-
-// ============================================================================
-// INVITE USAGE
-// ============================================================================
-
-/**
- * Use an invite token
- * Called after successful user registration
- */
-export const useInvite = async (input: UseInviteInput): Promise<UseInviteResult> => {
-  const { token, userId, userEmail } = input;
-
-  // Validate first
-  const validation = await validateInvite(token);
-  if (!validation.valid) {
-    return { success: false, message: validation.message };
-  }
-
-  // Mark invite as used
-  const invite = await InviteRepository.markAsUsed(token, userId);
-
-  if (!invite) {
-    return { success: false, message: 'Failed to use invite. It may have expired.' };
-  }
-
-  // Award invite credits to new user
-  await UserRepository.setInviteCount(userId, DEFAULT_USER_INVITE_LIMIT);
-
-  // Publish event
-  await eventBus.publish(DomainEvents.INVITE_USED, {
-    inviteId: invite.id,
-    usedBy: userId,
-    userEmail,
-    invitedBy: invite.createdBy,
-  });
-
-  return {
-    success: true,
-    invite,
-  };
-};
-
-// ============================================================================
-// INVITE MANAGEMENT
-// ============================================================================
-
-/**
- * Get invites created by a user
- */
-export const getUserInvites = async (userId: string): Promise<Invite[]> => {
-  return InviteRepository.findByCreator(userId);
-};
-
-/**
- * Revoke an invite
- */
-export const revokeInvite = async (
-  inviteId: string,
-  userId: string,
-  isAdmin: boolean = false
-): Promise<Invite> => {
-  let invite: Invite | null;
-
-  if (isAdmin) {
-    invite = await InviteRepository.revokeAsAdmin(inviteId);
-  } else {
-    invite = await InviteRepository.revoke(inviteId, userId);
-  }
-
-  if (!invite) {
-    throw new InviteError('REVOKE_FAILED', 'Invite not found or already processed', 404);
-  }
-
-  // Refund the invite credit if it was pending
-  if (!isAdmin) {
-    await UserRepository.increaseInviteCount(userId);
-  }
-
-  // Publish event
-  await eventBus.publish(DomainEvents.INVITE_REVOKED, {
-    inviteId,
-    revokedBy: userId,
-    isAdmin,
-  });
-
-  return invite;
-};
-
-// ============================================================================
-// USER INVITE QUOTA
-// ============================================================================
-
-/**
- * Get user's invite quota
- */
-export const getUserInviteQuota = async (userId: string): Promise<UserInviteQuota> => {
+export const getUserInviteQuota = async (userId: string): Promise<InviteQuota> => {
   const user = await UserRepository.findById(userId);
-
+  
   if (!user) {
-    throw new InviteError('USER_NOT_FOUND', 'User not found', 404);
+    throw new Error('User not found');
   }
-
+  
   const isUnlimited = isAdmin(user.role);
-  const used = await InviteRepository.countUsedByCreator(userId);
-  const remaining = isUnlimited ? Infinity : (user.invitesRemaining ?? 0);
-  const total = isUnlimited ? Infinity : used + (user.invitesRemaining ?? 0);
-
+  
+  const usedRes = await pool.query(
+    `SELECT COUNT(*) FROM invites WHERE created_by = $1 AND status = 'used'`,
+    [userId]
+  );
+  const used = parseInt(usedRes.rows[0].count);
+  
   return {
-    userId,
-    remaining: isUnlimited ? -1 : remaining,
+    remaining: isUnlimited ? -1 : user.invitesRemaining,
     used,
-    total: isUnlimited ? -1 : total,
+    total: isUnlimited ? -1 : used + user.invitesRemaining,
     isUnlimited,
   };
 };
 
 // ============================================================================
-// ADMIN ANALYTICS
+// REVOKE INVITE
 // ============================================================================
 
-/**
- * Get invite analytics (admin only)
- */
-export const getInviteAnalytics = async (): Promise<InviteAnalytics> => {
-  const stats = await InviteRepository.getAnalytics();
-
-  const conversionRate =
-    stats.total > 0 ? Math.round((stats.used / stats.total) * 100) : 0;
-
-  return {
-    totalInvites: stats.total,
-    usedInvites: stats.used,
-    pendingInvites: stats.pending,
-    expiredInvites: stats.expired,
-    revokedInvites: stats.revoked,
-    conversionRate,
-  };
-};
-
-/**
- * Get user invite analytics (admin only)
- */
-export const getUserInviteAnalytics = async (): Promise<UserInviteAnalytics[]> => {
-  const data = await InviteRepository.getUserAnalytics();
-
-  return data.map(item => ({
-    ...item,
-    conversionRate:
-      item.invitesSent > 0
-        ? Math.round((item.invitesAccepted / item.invitesSent) * 100)
-        : 0,
-  }));
-};
-
-// ============================================================================
-// CLEANUP
-// ============================================================================
-
-/**
- * Clean up expired invites
- */
-export const cleanupExpiredInvites = async (): Promise<number> => {
-  return InviteRepository.markExpired();
-};
-
-// ============================================================================
-// EXTERNAL API (for Auth module)
-// ============================================================================
-
-/**
- * Validate invite token (external API for Auth module)
- */
-export const validateInviteExternal = async (token: string): Promise<ValidateInviteResult> => {
-  return validateInvite(token);
-};
-
-/**
- * Use invite (external API for Auth module)
- */
-export const useInviteExternal = async (
-  token: string,
+export const revokeInvite = async (
+  inviteId: string,
   userId: string,
-  userEmail: string
-): Promise<UseInviteResult> => {
-  return useInvite({ token, userId, userEmail });
-};
-
-/**
- * Use invite within a transaction (external API for Auth module)
- * This version accepts a transaction client for atomic operations
- */
-export const useInviteWithClient = async (
-  client: PoolClient,
-  token: string,
-  userId: string,
-  userEmail: string
-): Promise<UseInviteResult> => {
-  // Mark invite as used using transaction client
-  const invite = await InviteRepository.markAsUsedWithClient(client, token, userId);
-
-  if (!invite) {
-    return { success: false, message: 'Failed to use invite. It may have expired.' };
+  isAdminUser: boolean
+): Promise<boolean> => {
+  const client = await pool.connect();
+  
+  try {
+    await client.query('BEGIN');
+    
+    const checkRes = await client.query(
+      `SELECT created_by, status FROM invites WHERE id = $1`,
+      [inviteId]
+    );
+    
+    if (checkRes.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return false;
+    }
+    
+    const invite = checkRes.rows[0];
+    
+    if (!isAdminUser && invite.created_by !== userId) {
+      await client.query('ROLLBACK');
+      return false;
+    }
+    
+    if (invite.status !== 'pending') {
+      await client.query('ROLLBACK');
+      return false;
+    }
+    
+    await client.query(
+      `UPDATE invites SET status = 'revoked' WHERE id = $1`,
+      [inviteId]
+    );
+    
+    if (!isAdminUser) {
+      await client.query(
+        `UPDATE users SET invites_remaining = invites_remaining + 1 WHERE id = $1`,
+        [userId]
+      );
+    }
+    
+    await client.query('COMMIT');
+    
+    logger.info('INVITE_REVOKED', { inviteId, revokedBy: userId });
+    return true;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
   }
-
-  // Award invite credits to new user using transaction client
-  await UserRepository.setInviteCountWithClient(client, userId, DEFAULT_USER_INVITE_LIMIT);
-
-  // Publish event (outside transaction - best effort)
-  eventBus.publish(DomainEvents.INVITE_USED, {
-    inviteId: invite.id,
-    usedBy: userId,
-    userEmail,
-    invitedBy: invite.createdBy,
-  }).catch(() => {}); // Non-blocking
-
-  return {
-    success: true,
-    invite,
-  };
 };
 
 // ============================================================================
 // HELPERS
 // ============================================================================
 
-const isAdmin = (role: string): boolean => {
-  return ADMIN_ROLES.includes(role);
-};
-
-const isValidEmail = (email: string): boolean => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-};
-
-// ============================================================================
-// CUSTOM ERROR
-// ============================================================================
-
-export class InviteError extends Error {
-  public code: string;
-  public statusCode: number;
-
-  constructor(code: string, message: string, statusCode: number = 400) {
-    super(message);
-    this.code = code;
-    this.statusCode = statusCode;
-    this.name = 'InviteError';
-  }
-}
+const isAdmin = (role: string): boolean => ADMIN_ROLES.includes(role);

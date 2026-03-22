@@ -1,54 +1,77 @@
 /**
- * Invites Module Routes
+ * Invites Module Routes - ELITE PRODUCTION GRADE
+ * 
  * Invitation management endpoints
+ * 
+ * DATE: 2026-03-21
  */
 
 import { Router } from 'express';
-import * as InviteController from './controllers/InviteController';
-import { authenticate, requireAdmin } from '../iam/middleware/auth';
+import * as InviteController from './controllers/InviteControllerHardened';
+import { clerkAuthenticate, requireRole } from '../iam/middleware/clerkAuth';
 import { authLimiter, userLimiter } from '../shared/middleware/rateLimiter';
-import { csrfValidator } from '../shared/middleware/csrf';
 import { preventNoSqlInjection, sanitizeInput } from '../shared/middleware/sanitization';
 import { auditLog, AUDIT_ACTIONS } from '../shared/middleware/auditLogger';
 
 const router = Router();
 
-// Public invite validation
-router.get('/validate/:token', authLimiter, InviteController.validateInvite);
+// ============================================================================
+// PUBLIC ENDPOINTS
+// ============================================================================
 
-// Protected routes - require authentication
-router.use(authenticate);
+/**
+ * POST /invites/validate
+ * Validate invite code and get JWT (for Clerk signup)
+ */
+router.post(
+  '/validate',
+  authLimiter,
+  preventNoSqlInjection,
+  sanitizeInput,
+  InviteController.validateInvite
+);
 
-// User invite management
+// ============================================================================
+// PROTECTED ENDPOINTS
+// ============================================================================
+
+router.use(clerkAuthenticate);
+
+/**
+ * GET /invites
+ * Get user's invites
+ */
 router.get('/', userLimiter, InviteController.getUserInvites);
+
+/**
+ * GET /invites/quota
+ * Get user's invite quota
+ */
 router.get('/quota', userLimiter, InviteController.getUserInviteQuota);
+
+/**
+ * POST /invites
+ * Create new invite
+ */
 router.post(
   '/',
   userLimiter,
-  csrfValidator,
   preventNoSqlInjection,
   sanitizeInput,
   auditLog(AUDIT_ACTIONS.INVITE_CREATE, 'invite'),
   InviteController.createInvite
 );
+
+/**
+ * DELETE /invites/:id
+ * Revoke an invite
+ */
 router.delete(
   '/:id',
   userLimiter,
-  csrfValidator,
   preventNoSqlInjection,
   auditLog(AUDIT_ACTIONS.INVITE_REVOKE, 'invite'),
   InviteController.revokeInvite
 );
-
-// Admin invite management
-router.post(
-  '/admin',
-  userLimiter,
-  csrfValidator,
-  requireAdmin,
-  InviteController.createAdminInvite
-);
-router.get('/admin/analytics', userLimiter, requireAdmin, InviteController.getInviteAnalytics);
-router.get('/admin/users', userLimiter, requireAdmin, InviteController.getUserInviteAnalytics);
 
 export default router;

@@ -5,7 +5,7 @@
 
 import { Router } from 'express';
 import * as MarketplaceController from './controllers/MarketplaceController';
-import { authenticate } from '../iam/middleware/auth';
+import { clerkAuthenticate } from '../iam/middleware/clerkAuth';
 import { marketplaceLimiter } from '../shared/middleware/rateLimiter';
 import { csrfValidator } from '../shared/middleware/csrf';
 import { createBodyValidator, createQueryValidator } from '../shared/middleware/validation';
@@ -13,7 +13,7 @@ import { createBodyValidator, createQueryValidator } from '../shared/middleware/
 const router = Router();
 
 // All routes require authentication
-router.use(authenticate);
+router.use(clerkAuthenticate);
 
 // Marketplace listings by vertical
 router.get('/:vertical', marketplaceLimiter, createQueryValidator('marketplaceFilter'), MarketplaceController.getMarketplaceListings);

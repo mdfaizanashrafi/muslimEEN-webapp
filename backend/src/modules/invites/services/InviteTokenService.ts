@@ -1,14 +1,18 @@
 /**
- * Invite Token Service
+ * Invite Token Service - ELITE PRODUCTION GRADE
  * 
- * SECURITY: Generates and verifies signed invite tokens.
- * Uses HMAC-SHA256 for token signing to prevent tampering.
+ * SECURITY FEATURES:
+ * - JWT with HS256 (HMAC-SHA256) signing
+ * - 10-minute expiry (prevents replay)
+ * - Unique JWT ID (nonce) for traceability
+ * - Constant-time signature verification
+ * - Strict secret validation (no fallbacks)
  * 
- * Token format: base64(payload.signature)
- * Payload: { code: string, exp: number }
+ * DATE: 2026-03-21
  */
 
 import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 import { env } from '../../../config/env';
 import { logger } from '../../shared/utils/logger';
 
@@ -16,180 +20,175 @@ import { logger } from '../../shared/utils/logger';
 // CONFIGURATION
 // ============================================================================
 
-const TOKEN_VERSION = 'v1';
-const TOKEN_EXPIRY_MINUTES = 10; // Signed token valid for 10 minutes
-
-/**
- * Get the token secret from environment - RUNTIME CHECK
- * CRITICAL: This ensures the same secret is used for signing AND verification
- * NO FALLBACK - App will crash if secret is missing (security feature)
- */
-const getTokenSecret = (): string => {
-  if (!env.INVITE_TOKEN_SECRET) {
-    throw new Error(
-      'SECURITY ERROR: INVITE_TOKEN_SECRET is required but not set. ' +
-      'Please set INVITE_TOKEN_SECRET in your environment. ' +
-      'This secret must be identical across all services (API, webhook, workers).'
-    );
-  }
-  
-  // Debug log (temporary) - helps verify secret is available
-  logger.debug('Invite token secret check', {
-    hasSecret: true,
-    length: env.INVITE_TOKEN_SECRET.length,
-    prefix: env.INVITE_TOKEN_SECRET.substring(0, 4) + '...',
-  });
-  
-  return env.INVITE_TOKEN_SECRET;
-};
+const TOKEN_EXPIRY_MINUTES = 10;
+const ALGORITHM = 'HS256';
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
-interface TokenPayload {
+export interface InviteTokenPayload {
   code: string;
-  exp: number; // Unix timestamp
-  v: string;   // Version
+  iat: number;
+  exp: number;
+  jti: string;
 }
 
-interface SignedInviteToken {
+export interface SignedInviteToken {
   token: string;
   expiresAt: Date;
+  jti: string;
 }
 
-interface TokenVerificationResult {
+export interface TokenVerificationResult {
   valid: boolean;
   code?: string;
+  jti?: string;
   error?: string;
 }
 
 // ============================================================================
-// TOKEN GENERATION
+// SECRET MANAGEMENT
 // ============================================================================
 
 /**
- * Generate a signed invite token
- * 
- * SECURITY: The token is signed with HMAC-SHA256 and includes expiry.
- * This prevents:
- * - Token tampering (signature verification fails)
- * - Token replay (expiry time embedded)
- * - Token forgery (requires secret key)
+ * Get invite token secret with strict validation
+ * CRITICAL: No fallback - system fails secure
  */
-export const generateSignedToken = (inviteCode: string): SignedInviteToken => {
-  // CRITICAL: Get secret at runtime - ensures consistency with verification
-  const secret = getTokenSecret();
+const getTokenSecret = (): string => {
+  const secret = env.INVITE_TOKEN_SECRET;
   
+  if (!secret) {
+    throw new Error(
+      'SECURITY CRITICAL: INVITE_TOKEN_SECRET is not configured. ' +
+      'Set a cryptographically secure secret (>= 32 chars).'
+    );
+  }
+  
+  if (secret.length < 32) {
+    throw new Error(
+      `SECURITY CRITICAL: INVITE_TOKEN_SECRET must be >= 32 chars. ` +
+      `Current: ${secret.length}`
+    );
+  }
+  
+  return secret;
+};
+
+// ============================================================================
+// JWT TOKEN OPERATIONS
+// ============================================================================
+
+/**
+ * Generate a cryptographically secure JWT invite token
+ * 
+ * @param inviteCode - The normalized invite code
+ * @returns Signed JWT with expiry and nonce
+ */
+export const generateInviteJWT = (inviteCode: string): SignedInviteToken => {
+  const secret = getTokenSecret();
+  const normalizedCode = inviteCode.toUpperCase().trim();
   const now = Math.floor(Date.now() / 1000);
   const exp = now + (TOKEN_EXPIRY_MINUTES * 60);
+  const jti = crypto.randomBytes(16).toString('hex');
   
-  const payload: TokenPayload = {
-    code: inviteCode,
+  const payload: InviteTokenPayload = {
+    code: normalizedCode,
+    iat: now,
     exp,
-    v: TOKEN_VERSION,
+    jti,
   };
   
-  const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString('base64url');
-  const signature = crypto
-    .createHmac('sha256', secret)
-    .update(payloadBase64)
-    .digest('base64url');
+  const token = jwt.sign(payload, secret, { 
+    algorithm: ALGORITHM,
+    jwtid: jti,
+  });
   
-  const token = `${payloadBase64}.${signature}`;
+  logger.info('INVITE_TOKEN_ISSUED', {
+    code: `${normalizedCode.substring(0, 4)}...`,
+    jti: `${jti.substring(0, 8)}...`,
+    exp: new Date(exp * 1000).toISOString(),
+  });
   
   return {
     token,
     expiresAt: new Date(exp * 1000),
+    jti,
   };
 };
 
-// ============================================================================
-// TOKEN VERIFICATION
-// ============================================================================
-
 /**
- * Verify a signed invite token
+ * Verify a signed JWT invite token
  * 
- * SECURITY: Always verify before trusting token contents.
- * Returns generic error messages to prevent information leakage.
+ * SECURITY:
+ * - Verifies signature (constant-time)
+ * - Checks expiry
+ * - Validates payload structure
+ * - Returns generic errors (no info leakage)
+ * 
+ * @param token - The JWT token string
+ * @returns Verification result
  */
-export const verifySignedToken = (token: string): TokenVerificationResult => {
+export const verifyInviteJWT = (token: string): TokenVerificationResult => {
   try {
-    // CRITICAL: Get secret at runtime - ensures consistency with generation
     const secret = getTokenSecret();
     
-    // Basic format check
-    const parts = token.split('.');
-    if (parts.length !== 2) {
-      return { valid: false, error: 'Invalid token format' };
+    const decoded = jwt.verify(token, secret, {
+      algorithms: [ALGORITHM],
+    }) as InviteTokenPayload;
+    
+    // Validate payload structure
+    if (!decoded.code || typeof decoded.code !== 'string') {
+      logger.warn('JWT missing code', { tags: { module: 'invites', type: 'security' } });
+      return { valid: false, error: 'INVALID_TOKEN' };
     }
     
-    const [payloadBase64, providedSignature] = parts;
-    
-    // Verify signature using SAME secret as generation
-    const expectedSignature = crypto
-      .createHmac('sha256', secret)
-      .update(payloadBase64)
-      .digest('base64url');
-    
-    if (!crypto.timingSafeEqual(
-      Buffer.from(providedSignature),
-      Buffer.from(expectedSignature)
-    )) {
-      logger.warn('Invite token signature mismatch', { 
-        tags: { module: 'invites', type: 'security' } 
-      });
-      return { valid: false, error: 'Invalid token' };
-    }
-    
-    // Parse payload
-    let payload: TokenPayload;
-    try {
-      payload = JSON.parse(Buffer.from(payloadBase64, 'base64url').toString());
-    } catch {
-      return { valid: false, error: 'Invalid token payload' };
-    }
-    
-    // Check version
-    if (payload.v !== TOKEN_VERSION) {
-      return { valid: false, error: 'Invalid token version' };
-    }
-    
-    // Check expiry
-    const now = Math.floor(Date.now() / 1000);
-    if (payload.exp < now) {
-      return { valid: false, error: 'Token expired' };
+    if (!decoded.jti || typeof decoded.jti !== 'string') {
+      logger.warn('JWT missing jti', { tags: { module: 'invites', type: 'security' } });
+      return { valid: false, error: 'INVALID_TOKEN' };
     }
     
     return {
       valid: true,
-      code: payload.code,
+      code: decoded.code,
+      jti: decoded.jti,
     };
   } catch (error) {
-    logger.error('Token verification error', { 
+    if (error instanceof jwt.TokenExpiredError) {
+      logger.info('JWT expired', { tags: { module: 'invites', type: 'security' } });
+      return { valid: false, error: 'TOKEN_EXPIRED' };
+    }
+    
+    if (error instanceof jwt.JsonWebTokenError) {
+      logger.warn('JWT verification failed', { 
+        error: error.message,
+        tags: { module: 'invites', type: 'security' }
+      });
+      return { valid: false, error: 'INVALID_TOKEN' };
+    }
+    
+    logger.error('JWT unexpected error', {
       error: (error as Error).message,
-      tags: { module: 'invites', type: 'security' }
+      tags: { module: 'invites', type: 'error' }
     });
-    return { valid: false, error: 'Invalid token' };
+    return { valid: false, error: 'INVALID_TOKEN' };
   }
 };
 
 // ============================================================================
-// SECURITY UTILITIES
+// CODE GENERATION & HASHING
 // ============================================================================
 
 /**
  * Generate a cryptographically secure invite code
- * Format: MUSLIM-XXXXXX (alphanumeric, uppercase)
+ * Format: MUSLIM-XXXXXX (no ambiguous characters)
  */
 export const generateInviteCode = (): string => {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // No 0, O, 1, I to avoid confusion
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // No 0, O, 1, I
   const length = 8;
-  
   const bytes = crypto.randomBytes(length);
-  let code = '';
   
+  let code = '';
   for (let i = 0; i < length; i++) {
     code += chars[bytes[i] % chars.length];
   }
@@ -198,36 +197,19 @@ export const generateInviteCode = (): string => {
 };
 
 /**
- * Hash an invite code for database storage
- * Used to prevent database leaks from revealing raw codes
- * 
- * CRITICAL: Uses same secret as token signing for consistency
+ * Hash invite code for database storage
+ * Uses HMAC-SHA256 with the invite token secret
  */
 export const hashInviteCode = (code: string): string => {
   const secret = getTokenSecret();
   return crypto
     .createHmac('sha256', secret)
-    .update(code.toUpperCase())
+    .update(code.toUpperCase().trim())
     .digest('hex');
 };
 
-/**
- * Compare invite code with hash (constant-time)
- */
-export const compareInviteCode = (code: string, hash: string): boolean => {
-  try {
-    const computedHash = hashInviteCode(code);
-    return crypto.timingSafeEqual(
-      Buffer.from(computedHash),
-      Buffer.from(hash)
-    );
-  } catch {
-    return false;
-  }
-};
-
 // ============================================================================
-// RATE LIMITING HELPERS
+// RATE LIMITING
 // ============================================================================
 
 interface RateLimitEntry {
@@ -237,11 +219,6 @@ interface RateLimitEntry {
 
 const rateLimitStore = new Map<string, RateLimitEntry>();
 
-/**
- * Check rate limit for an identifier (IP or userId)
- * 
- * SECURITY: Prevents brute force attacks on invite validation
- */
 export const checkRateLimit = (
   identifier: string,
   maxRequests: number = 5,
@@ -249,10 +226,8 @@ export const checkRateLimit = (
 ): { allowed: boolean; remaining: number; resetAt?: number } => {
   const now = Math.floor(Date.now() / 1000);
   const windowSeconds = windowMinutes * 60;
-  
   const entry = rateLimitStore.get(identifier);
   
-  // No entry or expired window
   if (!entry || entry.resetAt < now) {
     rateLimitStore.set(identifier, {
       count: 1,
@@ -261,27 +236,27 @@ export const checkRateLimit = (
     return { allowed: true, remaining: maxRequests - 1, resetAt: now + windowSeconds };
   }
   
-  // Check limit
   if (entry.count >= maxRequests) {
     return { allowed: false, remaining: 0, resetAt: entry.resetAt };
   }
   
-  // Increment and allow
   entry.count++;
   return { allowed: true, remaining: maxRequests - entry.count, resetAt: entry.resetAt };
 };
 
-/**
- * Clean up expired rate limit entries
- */
-export const cleanupRateLimits = (): void => {
+// Cleanup every 5 minutes
+setInterval(() => {
   const now = Math.floor(Date.now() / 1000);
   for (const [key, entry] of rateLimitStore.entries()) {
     if (entry.resetAt < now) {
       rateLimitStore.delete(key);
     }
   }
-};
+}, 5 * 60 * 1000);
 
-// Periodic cleanup every 5 minutes
-setInterval(cleanupRateLimits, 5 * 60 * 1000);
+// ============================================================================
+// BACKWARD COMPATIBILITY
+// ============================================================================
+
+export const generateSignedToken = generateInviteJWT;
+export const verifySignedToken = verifyInviteJWT;

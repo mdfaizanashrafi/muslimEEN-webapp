@@ -1,22 +1,28 @@
 /**
- * Clerk Authentication Middleware
+ * Clerk Authentication Middleware - ELITE PRODUCTION GRADE
  * 
- * Replaces JWT-based authentication with Clerk token verification.
+ * ENFORCEMENT RULES:
+ * 1. Verify Clerk JWT signature
+ * 2. Check internal DB user exists (clerk_id lookup)
+ * 3. Check user is NOT blocked
+ * 4. Reject with specific error codes
  * 
- * MIGRATED: From custom JWT to Clerk JWT verification
- * DATE: 2026-03-20
+ * DATE: 2026-03-21
  */
 
 import { Request, Response, NextFunction } from 'express';
 import { requireAuth } from '@clerk/express';
 import * as UserRepository from '../repositories/UserRepository';
+import * as UserService from '../services/UserService';
 import { User, UserRole } from '../../shared/types';
 import { logger } from '../../shared/utils/logger';
+import { recordMetric, Metrics } from '../../shared/utils/metrics';
 import { setUserContext, clearUserContext } from '../../../config/sentry';
 
-/**
- * Map UserIdentity from repository to User type for request
- */
+// ============================================================================
+// USER MAPPER
+// ============================================================================
+
 const mapToRequestUser = (userIdentity: UserRepository.UserIdentity): User => ({
   id: userIdentity.id,
   email: userIdentity.email,
@@ -42,11 +48,18 @@ const mapToRequestUser = (userIdentity: UserRepository.UserIdentity): User => ({
   passwordHash: userIdentity.passwordHash,
 });
 
+// ============================================================================
+// MAIN AUTHENTICATION MIDDLEWARE
+// ============================================================================
+
 /**
- * Clerk Authentication Middleware
- * Verifies Clerk JWT and attaches user to request
+ * clerkAuthenticate - ELITE VERSION
  * 
- * Usage: app.use(clerkAuthenticate) or router.get('/path', clerkAuthenticate, handler)
+ * ENFORCEMENT:
+ * 1. Verifies Clerk JWT
+ * 2. Requires DB user record (invite-only enforcement)
+ * 3. Checks user not blocked
+ * 4. Logs all rejections for security monitoring
  */
 export const clerkAuthenticate = async (
   req: Request,
@@ -54,14 +67,16 @@ export const clerkAuthenticate = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    // Use Clerk's Express middleware to verify the token
+    // Step 1: Verify Clerk JWT
     requireAuth()(req, res, async (err?: any) => {
       if (err) {
-        // Token verification failed
-        logger.debug('Clerk authentication failed', { 
+        logger.debug('AUTH_JWT_INVALID', { 
           error: err.message,
-          path: req.path 
+          path: req.path,
+          ip: req.ip,
         });
+        
+        await recordMetric(Metrics.AUTH_MIDDLEWARE_REJECT, 1, { reason: 'jwt_invalid' });
         
         res.status(401).json({
           success: false,
@@ -73,10 +88,12 @@ export const clerkAuthenticate = async (
         return;
       }
 
-      // Token is valid, get the Clerk user ID
       const clerkUserId = (req as any).auth?.userId;
 
       if (!clerkUserId) {
+        logger.warn('AUTH_NO_USER_ID', { path: req.path });
+        await recordMetric(Metrics.AUTH_MIDDLEWARE_REJECT, 1, { reason: 'no_user_id' });
+        
         res.status(401).json({
           success: false,
           error: {
@@ -87,40 +104,79 @@ export const clerkAuthenticate = async (
         return;
       }
 
-      // Find user in our database by clerk_id
-      // NOTE: This requires adding a clerk_id column to users table
-      // For now, we'll look up by email as a fallback
-      let userIdentity = await UserRepository.findByClerkId(clerkUserId);
-
-      // If not found by clerk_id, try to find by email from Clerk session
-      // This handles the migration period where existing users may not have clerk_id set
-      if (!userIdentity && (req as any).auth?.sessionClaims?.email) {
-        const email = (req as any).auth.sessionClaims.email;
-        userIdentity = await UserRepository.findByEmail(email);
+      // Step 2: Check if user is blocked in Clerk
+      const blockInfo = await UserService.getUserBlockInfo(clerkUserId);
+      
+      if (blockInfo.blocked) {
+        logger.warn('AUTH_USER_BLOCKED', {
+          clerkUserId,
+          reason: blockInfo.reason,
+          path: req.path,
+        });
         
-        // If found by email, update the clerk_id for future lookups
-        if (userIdentity) {
-          await UserRepository.updateClerkId(userIdentity.id, clerkUserId);
-          logger.info(`Updated clerk_id for user ${userIdentity.id}`, { clerkUserId });
-        }
-      }
-
-      if (!userIdentity) {
-        // User authenticated with Clerk but not in our database
-        // This could be a new user that needs to be created
-        logger.warn('Authenticated user not found in database', { clerkUserId });
+        await recordMetric(Metrics.AUTH_MIDDLEWARE_REJECT, 1, { reason: 'user_blocked' });
         
         res.status(403).json({
           success: false,
           error: {
-            code: 'USER_NOT_FOUND',
-            message: 'User account not found. Please complete registration.',
+            code: 'ACCOUNT_BLOCKED',
+            message: 'Account access denied. Contact support.',
+            reason: blockInfo.reason,
           },
         });
         return;
       }
 
+      // Step 3: Find user in our database
+      let userIdentity = await UserRepository.findByClerkId(clerkUserId);
+
+      // If not found by clerk_id, try email fallback (migration support)
+      if (!userIdentity && (req as any).auth?.sessionClaims?.email) {
+        const email = (req as any).auth.sessionClaims.email;
+        userIdentity = await UserRepository.findByEmail(email);
+        
+        if (userIdentity) {
+          // Update clerk_id for future lookups
+          await UserRepository.updateClerkId(userIdentity.id, clerkUserId);
+          logger.info('AUTH_MIGRATED_USER', {
+            userId: userIdentity.id,
+            clerkUserId,
+          });
+        }
+      }
+
+      // Step 4: ENFORCE invite-only policy
+      if (!userIdentity) {
+        // User exists in Clerk but NOT in our database
+        // This means they bypassed invite validation
+        logger.error('AUTH_INVITE_REQUIRED', {
+          clerkUserId,
+          path: req.path,
+          ip: req.ip,
+          tags: { module: 'auth', type: 'security' },
+        });
+        
+        await recordMetric(Metrics.AUTH_MIDDLEWARE_REJECT, 1, { reason: 'no_db_record' });
+        
+        res.status(403).json({
+          success: false,
+          error: {
+            code: 'INVITE_REQUIRED',
+            message: 'Access denied. Valid invite required. If you just signed up, please wait a moment.',
+          },
+        });
+        return;
+      }
+
+      // Step 5: Check account status
       if (!userIdentity.isActive) {
+        logger.warn('AUTH_ACCOUNT_INACTIVE', {
+          userId: userIdentity.id,
+          clerkUserId,
+        });
+        
+        await recordMetric(Metrics.AUTH_MIDDLEWARE_REJECT, 1, { reason: 'account_inactive' });
+        
         res.status(403).json({
           success: false,
           error: {
@@ -131,19 +187,19 @@ export const clerkAuthenticate = async (
         return;
       }
 
-      // Map to request user and attach
+      // SUCCESS: Attach user to request
       const user = mapToRequestUser(userIdentity);
       (req as any).user = user;
       
-      // Set Sentry user context for error tracking
+      // Set Sentry context
       setUserContext({
         id: user.id,
         email: user.email,
         role: user.role,
       });
       
-      // Log authentication for security monitoring
-      logger.debug('User authenticated via Clerk', {
+      // Log successful auth (debug level - high volume)
+      logger.debug('AUTH_SUCCESS', {
         userId: userIdentity.id,
         clerkId: clerkUserId,
         path: req.path,
@@ -153,7 +209,7 @@ export const clerkAuthenticate = async (
       next();
     });
   } catch (error) {
-    logger.error('Clerk authentication error', {
+    logger.error('AUTH_MIDDLEWARE_ERROR', {
       error: (error as Error).message,
       path: req.path,
     });
@@ -161,8 +217,12 @@ export const clerkAuthenticate = async (
   }
 };
 
+// ============================================================================
+// OPTIONAL AUTHENTICATION
+// ============================================================================
+
 /**
- * Optional authentication - doesn't fail if no token
+ * clerkOptionalAuth - Doesn't fail if no token
  * Used for endpoints that work for both authenticated and anonymous users
  */
 export const clerkOptionalAuth = async (
@@ -171,22 +231,25 @@ export const clerkOptionalAuth = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    // Try to get the auth header
     const authHeader = req.headers.authorization;
     
     if (!authHeader?.startsWith('Bearer ')) {
-      // No token, continue without user
       return next();
     }
 
-    // Use Clerk's middleware
     requireAuth()(req, res, async (err?: any) => {
       if (err || !(req as any).auth?.userId) {
-        // Invalid token, continue without user
         return next();
       }
 
       const clerkUserId = (req as any).auth.userId;
+      
+      // Check block status
+      const blockInfo = await UserService.getUserBlockInfo(clerkUserId);
+      if (blockInfo.blocked) {
+        // Don't attach user if blocked, but don't fail request
+        return next();
+      }
       
       // Try to find user
       let userIdentity = await UserRepository.findByClerkId(clerkUserId);
@@ -207,21 +270,14 @@ export const clerkOptionalAuth = async (
       next();
     });
   } catch {
-    // Continue without user on error
     next();
   }
 };
 
-/**
- * Role-based authorization middleware
- * Must be used AFTER clerkAuthenticate middleware
- * 
- * @param roles - Allowed roles for this route
- * @returns Middleware function
- * 
- * @example
- * router.post('/admin', clerkAuthenticate, requireRole('admin', 'super_admin'), handler);
- */
+// ============================================================================
+// ROLE-BASED AUTHORIZATION
+// ============================================================================
+
 export const requireRole = (...roles: UserRole[]) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     const user = (req as any).user;
@@ -238,7 +294,7 @@ export const requireRole = (...roles: UserRole[]) => {
     }
 
     if (!roles.includes(user.role)) {
-      logger.warn('Role authorization failed', {
+      logger.warn('AUTH_ROLE_REJECTED', {
         userId: user.id,
         requiredRoles: roles,
         userRole: user.role,
@@ -259,13 +315,10 @@ export const requireRole = (...roles: UserRole[]) => {
   };
 };
 
-/**
- * Admin authorization middleware
- * Convenience middleware for admin-only routes
- * 
- * @example
- * router.get('/admin/stats', clerkAuthenticate, requireAdmin, handler);
- */
+// ============================================================================
+// ADMIN AUTHORIZATION
+// ============================================================================
+
 export const requireAdmin = (req: Request, res: Response, next: NextFunction): void => {
   const user = (req as any).user;
   
@@ -294,46 +347,10 @@ export const requireAdmin = (req: Request, res: Response, next: NextFunction): v
   next();
 };
 
-/**
- * Staff authorization middleware
- * For routes that require staff or higher privileges
- * Includes: admin, super_admin
- * 
- * @example
- * router.post('/moderate', clerkAuthenticate, requireStaff, handler);
- */
-export const requireStaff = (req: Request, res: Response, next: NextFunction): void => {
-  const user = (req as any).user;
-  
-  if (!user) {
-    res.status(401).json({
-      success: false,
-      error: {
-        code: 'UNAUTHORIZED',
-        message: 'Authentication required',
-      },
-    });
-    return;
-  }
+// ============================================================================
+// EXPORTS
+// ============================================================================
 
-  const allowedRoles: UserRole[] = ['admin', 'super_admin'];
-  
-  if (!allowedRoles.includes(user.role)) {
-    res.status(403).json({
-      success: false,
-      error: {
-        code: 'FORBIDDEN',
-        message: 'Staff access required',
-      },
-    });
-    return;
-  }
-
-  next();
-};
-
-// Export compatibility alias for old middleware name
 export const authenticate = clerkAuthenticate;
 export { clerkOptionalAuth as optionalAuth };
-
 export default clerkAuthenticate;

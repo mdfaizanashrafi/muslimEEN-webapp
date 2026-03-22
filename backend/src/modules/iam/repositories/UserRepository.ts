@@ -29,11 +29,14 @@ export interface UserIdentity {
 
 export interface CreateUserInput {
   email: string;
-  passwordHash: string;
+  passwordHash?: string;
   firstName: string;
   lastName: string;
   role: UserRole;
   verificationTier: VerificationTier;
+  clerk_id?: string;
+  invitedBy?: string;
+  invitesRemaining?: number;
 }
 
 // ============================================================================
@@ -151,11 +154,24 @@ export const createWithClient = async (
   input: CreateUserInput
 ): Promise<UserIdentity> => {
   const result = await client.query(
-    `INSERT INTO users (email, password_hash, first_name, last_name, role, verification_tier, invites_remaining)
-     VALUES ($1, $2, $3, $4, $5, $6, 0)
+    `INSERT INTO users (
+       email, password_hash, first_name, last_name, role, 
+       verification_tier, invites_remaining, clerk_id, invited_by
+     )
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
      RETURNING id, email, first_name, last_name, role, verification_tier,
                trust_score, is_active, invites_remaining, last_login, created_at`,
-    [input.email.toLowerCase(), input.passwordHash, input.firstName, input.lastName, input.role, input.verificationTier]
+    [
+      input.email.toLowerCase(), 
+      input.passwordHash || null, 
+      input.firstName, 
+      input.lastName, 
+      input.role, 
+      input.verificationTier,
+      input.invitesRemaining || 0,
+      input.clerk_id || null,
+      input.invitedBy || null,
+    ]
   );
   
   return mapToUserIdentity(result.rows[0]);
@@ -245,6 +261,73 @@ export const getInviteCount = async (userId: string): Promise<number> => {
   );
   
   return result.rows.length > 0 ? result.rows[0].invites_remaining : 0;
+};
+
+// ============================================================================
+// UPDATE OPERATIONS
+// ============================================================================
+
+export interface UpdateUserInput {
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  role?: UserRole;
+  isActive?: boolean;
+  invitesRemaining?: number;
+}
+
+/**
+ * Update user fields
+ */
+export const update = async (
+  userId: string, 
+  input: UpdateUserInput
+): Promise<UserIdentity | null> => {
+  const updates: string[] = [];
+  const values: any[] = [];
+  let paramIndex = 1;
+  
+  if (input.email !== undefined) {
+    updates.push(`email = $${paramIndex++}`);
+    values.push(input.email.toLowerCase());
+  }
+  if (input.firstName !== undefined) {
+    updates.push(`first_name = $${paramIndex++}`);
+    values.push(input.firstName);
+  }
+  if (input.lastName !== undefined) {
+    updates.push(`last_name = $${paramIndex++}`);
+    values.push(input.lastName);
+  }
+  if (input.role !== undefined) {
+    updates.push(`role = $${paramIndex++}`);
+    values.push(input.role);
+  }
+  if (input.isActive !== undefined) {
+    updates.push(`is_active = $${paramIndex++}`);
+    values.push(input.isActive);
+  }
+  if (input.invitesRemaining !== undefined) {
+    updates.push(`invites_remaining = $${paramIndex++}`);
+    values.push(input.invitesRemaining);
+  }
+  
+  if (updates.length === 0) {
+    return findById(userId);
+  }
+  
+  values.push(userId);
+  
+  const result = await pool.query(
+    `UPDATE users 
+     SET ${updates.join(', ')}
+     WHERE id = $${paramIndex}
+     RETURNING id, email, first_name, last_name, role, verification_tier,
+               trust_score, is_active, invites_remaining, last_login, created_at`,
+    values
+  );
+  
+  return result.rows.length > 0 ? mapToUserIdentity(result.rows[0]) : null;
 };
 
 // ============================================================================

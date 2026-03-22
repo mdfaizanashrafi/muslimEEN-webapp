@@ -1,13 +1,13 @@
 /**
- * Signup Page - HARDENED VERSION
+ * Signup Page - PRODUCTION VERSION
  * 
- * SECURITY IMPROVEMENTS:
- * 1. Uses signed invite token (not raw code)
- * 2. Validates token expiry (10 minutes)
- * 3. Passes signed token to Clerk via metadata
- * 4. Webhook verifies signature before consuming
+ * SECURITY:
+ * 1. Controlled token state - NEVER null at render
+ * 2. Safe localStorage access in useEffect only
+ * 3. Strict expiry validation with immediate redirect
+ * 4. Blocks render until token is validated
  * 
- * HARD RULE: No token = No signup
+ * PRODUCTION: Debug logs removed - use structured logging only
  */
 
 'use client';
@@ -22,33 +22,33 @@ const TOKEN_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
 
 export default function SignupPage() {
   const router = useRouter();
+  
   const [inviteToken, setInviteToken] = useState<string | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [tokenExpired, setTokenExpired] = useState(false);
-  const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    // Check for signed invite token
     const token = localStorage.getItem('invite_token');
     const validatedAt = localStorage.getItem('invite_validated_at');
 
-    if (!token) {
-      // No token - redirect to invite page
-      router.replace('/invite');
+    if (!token || !validatedAt) {
+      router.push('/invite');
       return;
     }
 
-    // Check token expiry
-    if (validatedAt) {
-      const age = Date.now() - parseInt(validatedAt);
-      if (age > TOKEN_EXPIRY_MS) {
-        setTokenExpired(true);
-        localStorage.removeItem('invite_token');
-        localStorage.removeItem('invite_validated_at');
-      }
+    const now = Date.now();
+    const age = now - parseInt(validatedAt, 10);
+
+    if (age > TOKEN_EXPIRY_MS) {
+      localStorage.removeItem('invite_token');
+      localStorage.removeItem('invite_validated_at');
+      setTokenExpired(true);
+      setIsLoaded(true);
+      return;
     }
 
     setInviteToken(token);
-    setIsChecking(false);
+    setIsLoaded(true);
   }, [router]);
 
   const handleClearToken = () => {
@@ -57,8 +57,7 @@ export default function SignupPage() {
     router.push('/invite');
   };
 
-  // Show loading state while checking
-  if (isChecking) {
+  if (!isLoaded) {
     return (
       <main className="signup-page">
         <div className="signup-loading">
@@ -69,7 +68,6 @@ export default function SignupPage() {
     );
   }
 
-  // Token expired
   if (tokenExpired) {
     return (
       <main className="signup-page">
@@ -84,7 +82,6 @@ export default function SignupPage() {
     );
   }
 
-  // If no invite token, show redirect message
   if (!inviteToken) {
     return (
       <main className="signup-page">
@@ -102,7 +99,6 @@ export default function SignupPage() {
   return (
     <main className="signup-page">
       <div className="signup-container">
-        {/* Header */}
         <div className="signup-header">
           <Link href="/" className="signup-logo">
             <div className="logo-icon">☪</div>
@@ -114,7 +110,6 @@ export default function SignupPage() {
           </p>
         </div>
 
-        {/* Invite Badge */}
         <div className="invite-badge">
           <div className="invite-badge-content">
             <span className="badge-label">✓ Invite Validated</span>
@@ -129,7 +124,6 @@ export default function SignupPage() {
           </button>
         </div>
 
-        {/* Clerk SignUp Component */}
         <div className="clerk-signup-wrapper">
           <SignUp 
             appearance={{
@@ -144,7 +138,7 @@ export default function SignupPage() {
               },
             }}
             unsafeMetadata={{
-              inviteToken: inviteToken, // SIGNED TOKEN (not raw code)
+              inviteToken: inviteToken,
               source: 'web_invite_flow',
             }}
             redirectUrl="/dashboard"
@@ -152,7 +146,6 @@ export default function SignupPage() {
           />
         </div>
 
-        {/* Security Notice */}
         <div className="security-notice">
           <p>
             <strong>🔒 Invite-Only Platform</strong>
@@ -163,7 +156,6 @@ export default function SignupPage() {
           </p>
         </div>
 
-        {/* Footer */}
         <div className="signup-footer">
           <p>
             Already have an account?{' '}

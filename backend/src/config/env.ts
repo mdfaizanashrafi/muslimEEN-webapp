@@ -109,8 +109,7 @@ const envSchema = z.object({
   
   CLERK_WEBHOOK_SECRET: z
     .string()
-    .min(1, 'CLERK_WEBHOOK_SECRET is required for webhook verification')
-    .optional(),
+    .min(1, 'CLERK_WEBHOOK_SECRET is required for webhook verification'),
   
   // ==========================================================================
   // INVITE SYSTEM SECURITY
@@ -118,18 +117,7 @@ const envSchema = z.object({
   
   INVITE_TOKEN_SECRET: z
     .string()
-    .min(32, 'INVITE_TOKEN_SECRET must be at least 32 characters')
-    .optional()
-    .refine(
-      secret => {
-        // Allow empty in development (will fallback to CLERK_SECRET_KEY)
-        if (!secret && process.env.NODE_ENV === 'development') return true;
-        return !!secret;
-      },
-      {
-        message: 'INVITE_TOKEN_SECRET is required in production',
-      }
-    ),
+    .min(32, 'INVITE_TOKEN_SECRET must be at least 32 characters'),
   
   // ==========================================================================
   // SECURITY SECRETS (Deprecated - Clerk migration complete)

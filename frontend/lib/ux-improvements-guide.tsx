@@ -88,7 +88,7 @@ export function ImprovedLoginForm() {
 
       <p className="text-center text-sm text-gray-600">
         Don't have an account?{' '}
-        <a href="/register" className="text-blue-600 hover:underline">
+        <a href="/invite" className="text-blue-600 hover:underline">
           Request an invite
         </a>
       </p>

@@ -55,7 +55,7 @@ export const createInvite = async (
 
     // Build invite link
     const baseUrl = env.FRONTEND_URL;
-    const inviteLink = `${baseUrl}/register?invite_token=${invite.token}`;
+    const inviteLink = `${baseUrl}/invite?code=${invite.token}`;
 
     res.status(201).json({
       success: true,
@@ -227,7 +227,7 @@ export const createAdminInvite = async (
     });
 
     const baseUrl = env.FRONTEND_URL;
-    const inviteLink = `${baseUrl}/register?invite_token=${invite.token}`;
+    const inviteLink = `${baseUrl}/invite?code=${invite.token}`;
 
     res.status(201).json({
       success: true,

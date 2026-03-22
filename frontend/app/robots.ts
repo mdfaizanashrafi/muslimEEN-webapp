@@ -25,7 +25,8 @@ export default function robots(): MetadataRoute.Robots {
     
     // Authentication pages
     '/login',
-    '/register',
+    '/signup',
+    '/invite',
     '/auth/',
     
     // Private/authenticated pages - require login

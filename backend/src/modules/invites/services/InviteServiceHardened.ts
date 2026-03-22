@@ -156,6 +156,15 @@ export const createInvite = async (
     // Generate signed token for validation
     const signedToken = generateSignedToken(code);
     
+    // AUDIT LOG: Invite created
+    logger.info('Invite created', {
+      event: 'invite_created',
+      inviteId: invite.id,
+      createdBy,
+      expiresAt: invite.expires_at,
+      tags: { module: 'invites', type: 'audit' },
+    });
+    
     // Publish event
     eventBus.publish(DomainEvents.INVITE_CREATED, {
       inviteId: invite.id,
@@ -174,7 +183,9 @@ export const createInvite = async (
   } catch (error) {
     await client.query('ROLLBACK');
     logger.error('Failed to create invite', {
+      event: 'invite_failed',
       error: (error as Error).message,
+      createdBy,
       tags: { module: 'invites', type: 'error' },
     });
     return {
@@ -304,6 +315,15 @@ export const validateInvite = async (
     // Success - generate signed token
     const signedToken = generateSignedToken(normalizedCode);
     
+    // AUDIT LOG: Invite validated
+    logger.info('Invite validated', {
+      event: 'invite_validated',
+      inviteId: invite.id,
+      createdBy: invite.created_by,
+      clientIp,
+      tags: { module: 'invites', type: 'audit' },
+    });
+    
     return {
       valid: true,
       signedToken: signedToken.token,
@@ -316,7 +336,9 @@ export const validateInvite = async (
   } catch (error) {
     await client.query('ROLLBACK').catch(() => {});
     logger.error('Invite validation error', {
+      event: 'invite_failed',
       error: (error as Error).message,
+      clientIp,
       tags: { module: 'invites', type: 'error' },
     });
     return { valid: false, error: 'Invalid or expired invite code' };

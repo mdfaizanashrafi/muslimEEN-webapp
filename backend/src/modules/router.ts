@@ -33,13 +33,13 @@ import { legacyAuthDetection, legacyAuthStatsEndpoint } from './iam/middleware/l
 import { conditionalLegacyAuthBlocker } from './iam/middleware/legacyAuthBlocker';
 import { apiLimiter } from './shared/middleware/rateLimiter';
 import { raw } from './shared/middleware/bodyParser';
-import { handleClerkWebhook } from './iam/controllers/ClerkWebhookController';
+import { handleClerkWebhook } from './iam/controllers/ClerkWebhookControllerHardened';
 import { getAuthHealth, getAuthReadyStatus, getAuthSimpleHealth } from './iam/controllers/AuthHealthController';
 import { 
   getWebhookHealthEndpoint, 
   getFailedEventsEndpoint, 
   retryFailedEventEndpoint 
-} from './iam/controllers/ClerkWebhookController';
+} from './iam/controllers/ClerkWebhookControllerHardened';
 import { isClerkWebhooksEnabled, featureFlags } from '../config/featureFlags';
 
 const router = Router();

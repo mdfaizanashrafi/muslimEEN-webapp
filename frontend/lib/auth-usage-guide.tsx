@@ -300,7 +300,8 @@ export function TestSessionExpiry() {
 export function middlewareExample(request: { cookies: { get: (name: string) => { value?: string } | undefined }; url: string; nextUrl: { pathname: string } }) {
   const token = request.cookies.get('access_token')?.value;
   const isAuthPage = request.nextUrl.pathname.startsWith('/login') || 
-                     request.nextUrl.pathname.startsWith('/register');
+                     request.nextUrl.pathname.startsWith('/invite') ||
+                     request.nextUrl.pathname.startsWith('/signup');
   
   // Redirect to login if no token and not on auth page
   if (!token && !isAuthPage) {

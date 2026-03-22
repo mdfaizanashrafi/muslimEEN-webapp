@@ -12,7 +12,6 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 const isPublicRoute = createRouteMatcher([
   "/",
   "/login",
-  "/register",
   "/invite",        // Required for invite-only onboarding flow
   "/signup",        // Required for invite-only onboarding flow
   "/about",

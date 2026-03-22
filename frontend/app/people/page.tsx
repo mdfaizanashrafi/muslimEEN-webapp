@@ -141,8 +141,8 @@ export default async function PeoplePage() {
                 <div className="empty-icon">👥</div>
                 <h3>No profiles yet</h3>
                 <p>Be the first to join MuslimEEN and build your professional profile!</p>
-                <Link href="/register" className="btn btn-primary">
-                  Create Your Profile
+                <Link href="/invite" className="btn btn-primary">
+                  Join MuslimEEN
                 </Link>
               </div>
             ) : (

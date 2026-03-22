@@ -13,7 +13,7 @@
 
 import { Router } from 'express';
 import { raw } from '../modules/shared/middleware/bodyParser';
-import { handleClerkWebhook } from '../modules/iam/controllers/ClerkWebhookController';
+import { handleClerkWebhook } from '../modules/iam/controllers/ClerkWebhookControllerHardened';
 
 const router = Router();
 

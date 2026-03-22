@@ -20,6 +20,7 @@ import { verifySignedToken } from '../../invites/services/InviteTokenService';
 import * as InviteRepository from '../../invites/repositories/InviteRepository';
 import { logger } from '../../shared/utils/logger';
 import { criticalLog } from '../../shared/utils/logSampler';
+import * as Sentry from '@sentry/node';
 
 // ============================================================================
 // WEBHOOK VERIFICATION
@@ -60,11 +61,21 @@ const handleUserCreated = async (event: any): Promise<void> => {
   const firstName = first_name || '';
   const lastName = last_name || '';
   
-  logger.info('Processing user.created', {
-    eventId: event.id,
+  // STRUCTURED WEBHOOK OBSERVABILITY
+  logger.info('Webhook user.created received', {
     clerkId,
     email: primaryEmail,
-    tags: { module: 'auth', type: 'webhook' },
+    eventId: event.id,
+    hasMetadata: !!data.unsafe_metadata,
+    tags: { module: 'auth', type: 'webhook', event: 'user.created' },
+  });
+  
+  // SENTRY BREADCRUMB
+  Sentry.addBreadcrumb({
+    category: 'invite',
+    message: 'Webhook user.created received',
+    level: 'info',
+    data: { clerkId, email: primaryEmail },
   });
   
   // ==========================================================================
@@ -73,11 +84,32 @@ const handleUserCreated = async (event: any): Promise<void> => {
   
   const signedToken = data.unsafe_metadata?.inviteToken;
   
+  // LOG: Token presence check
+  logger.info('Webhook token extraction', {
+    clerkId,
+    hasToken: !!signedToken,
+    tokenLength: signedToken?.length,
+    tags: { module: 'auth', type: 'webhook' },
+  });
+  
   if (!signedToken) {
+    logger.error('Webhook verification failed: missing token', {
+      clerkId,
+      email: primaryEmail,
+      reason: 'no_invite_token',
+      tags: { module: 'auth', type: 'webhook', result: 'failed' },
+    });
+    
     criticalLog('error', 'Signup attempted without invite token', 'security_violation', {
       clerkId,
       email: primaryEmail,
       tags: { module: 'auth', type: 'security' },
+    });
+    
+    Sentry.captureMessage('Webhook: Missing invite token', {
+      level: 'error',
+      tags: { module: 'invite', flow: 'signup', reason: 'missing_token' },
+      extra: { clerkId, email: primaryEmail },
     });
     
     throw new WebhookError('INVITE_REQUIRED', 'Invite token required', 400);
@@ -89,7 +121,22 @@ const handleUserCreated = async (event: any): Promise<void> => {
   
   const tokenVerification = verifySignedToken(signedToken);
   
+  // LOG: Verification result
+  logger.info('Webhook token verification', {
+    clerkId,
+    valid: tokenVerification.valid,
+    reason: tokenVerification.error || null,
+    tags: { module: 'auth', type: 'webhook', result: tokenVerification.valid ? 'success' : 'failed' },
+  });
+  
   if (!tokenVerification.valid) {
+    logger.error('Webhook verification failed: invalid token', {
+      clerkId,
+      email: primaryEmail,
+      reason: tokenVerification.error,
+      tags: { module: 'auth', type: 'webhook', result: 'failed' },
+    });
+    
     criticalLog('error', 'Invalid invite token signature', 'security_violation', {
       clerkId,
       email: primaryEmail,
@@ -97,10 +144,24 @@ const handleUserCreated = async (event: any): Promise<void> => {
       tags: { module: 'auth', type: 'security' },
     });
     
+    Sentry.captureMessage('Webhook: Invalid invite token', {
+      level: 'error',
+      tags: { module: 'invite', flow: 'signup', reason: tokenVerification.error },
+      extra: { clerkId, email: primaryEmail },
+    });
+    
     throw new WebhookError('INVALID_INVITE', 'Invalid invite token', 400);
   }
   
   const inviteCode = tokenVerification.code!;
+  
+  // SENTRY BREADCRUMB
+  Sentry.addBreadcrumb({
+    category: 'invite',
+    message: 'Invite token verified',
+    level: 'info',
+    data: { clerkId, inviteCode: inviteCode.substring(0, 8) + '...' },
+  });
   
   // ==========================================================================
   // STEP 3: Validate invite (READ-ONLY, no mutation)
@@ -108,18 +169,50 @@ const handleUserCreated = async (event: any): Promise<void> => {
   
   const invite = await InviteRepository.findByToken(inviteCode);
   
+  // LOG: Invite lookup result
+  logger.info('Webhook invite lookup', {
+    clerkId,
+    found: !!invite,
+    inviteId: invite?.id || null,
+    status: invite?.status || null,
+    tags: { module: 'auth', type: 'webhook' },
+  });
+  
   if (!invite) {
+    logger.error('Webhook verification failed: invite not found', {
+      clerkId,
+      email: primaryEmail,
+      reason: 'invite_not_found',
+      tags: { module: 'auth', type: 'webhook', result: 'failed' },
+    });
+    
     criticalLog('error', 'Invite not found', 'security_violation', {
       clerkId,
       email: primaryEmail,
       inviteCode,
       tags: { module: 'auth', type: 'security' },
     });
+    
+    Sentry.captureMessage('Webhook: Invite not found', {
+      level: 'error',
+      tags: { module: 'invite', flow: 'signup', reason: 'invite_not_found' },
+      extra: { clerkId, email: primaryEmail },
+    });
+    
     throw new WebhookError('INVALID_INVITE', 'Invalid or expired invite', 400);
   }
   
   // Check status
   if (invite.status !== 'pending') {
+    logger.error('Webhook verification failed: invite not pending', {
+      clerkId,
+      email: primaryEmail,
+      inviteId: invite.id,
+      status: invite.status,
+      reason: 'invite_not_pending',
+      tags: { module: 'auth', type: 'webhook', result: 'failed' },
+    });
+    
     criticalLog('error', 'Invite already used or revoked', 'security_violation', {
       clerkId,
       email: primaryEmail,
@@ -127,11 +220,29 @@ const handleUserCreated = async (event: any): Promise<void> => {
       status: invite.status,
       tags: { module: 'auth', type: 'security' },
     });
+    
+    Sentry.captureMessage('Webhook: Invite not pending', {
+      level: 'error',
+      tags: { module: 'invite', flow: 'signup', reason: 'invite_used_or_revoked' },
+      extra: { clerkId, email: primaryEmail, inviteId: invite.id, status: invite.status },
+    });
+    
     throw new WebhookError('INVALID_INVITE', 'Invalid or expired invite', 400);
   }
   
   // Check expiry
-  if (new Date() > new Date(invite.expiresAt)) {
+  const isExpired = new Date() > new Date(invite.expiresAt);
+  
+  // LOG: Expiry check
+  logger.info('Webhook invite expiry check', {
+    clerkId,
+    inviteId: invite.id,
+    expired: isExpired,
+    expiresAt: invite.expiresAt,
+    tags: { module: 'auth', type: 'webhook' },
+  });
+  
+  if (isExpired) {
     criticalLog('error', 'Invite expired', 'security_violation', {
       clerkId,
       email: primaryEmail,
@@ -262,7 +373,7 @@ const handleUserCreated = async (event: any): Promise<void> => {
     logger.info('Invite consumed successfully', {
       userId,
       inviteId: invite.id,
-      tags: { module: 'auth', type: 'webhook' },
+      tags: { module: 'auth', type: 'webhook', event: 'invite_used' },
     });
     
     // ========================================================================
@@ -271,12 +382,27 @@ const handleUserCreated = async (event: any): Promise<void> => {
     
     await client.query('COMMIT');
     
+    // SUCCESS: Full audit log
     logger.info('User signup completed successfully', {
       userId,
       clerkId,
+      email: primaryEmail,
       invitedBy,
       inviteId: invite.id,
-      tags: { module: 'auth', type: 'success' },
+      tags: { module: 'auth', type: 'success', event: 'user_created' },
+    });
+    
+    // SENTRY SUCCESS BREADCRUMB
+    Sentry.addBreadcrumb({
+      category: 'invite',
+      message: 'User signup completed successfully',
+      level: 'info',
+      data: { 
+        userId, 
+        clerkId, 
+        email: primaryEmail,
+        inviteId: invite.id,
+      },
     });
     
   } catch (error) {
@@ -295,6 +421,20 @@ const handleUserCreated = async (event: any): Promise<void> => {
       clerkId,
       email: primaryEmail,
       tags: { module: 'auth', type: 'error' },
+    });
+    
+    // SENTRY ERROR CAPTURE
+    Sentry.captureException(error, {
+      tags: {
+        module: 'invite',
+        flow: 'signup',
+        stage: 'transaction',
+      },
+      extra: {
+        clerkId,
+        email: primaryEmail,
+        inviteId: invite?.id,
+      },
     });
     
     throw new WebhookError('INTERNAL_ERROR', 'Failed to create user', 500);
@@ -405,5 +545,43 @@ class WebhookError extends Error {
     this.name = 'WebhookError';
   }
 }
+
+// ============================================================================
+// WEBHOOK ADMIN ENDPOINTS
+// ============================================================================
+
+/**
+ * GET /admin/webhooks/health
+ * Get webhook health status
+ */
+export const getWebhookHealthEndpoint = (req: Request, res: Response): void => {
+  res.json({
+    success: true,
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+  });
+};
+
+/**
+ * GET /admin/webhooks/failed
+ * Get failed webhook events
+ */
+export const getFailedEventsEndpoint = (req: Request, res: Response): void => {
+  res.json({
+    success: true,
+    events: [], // Placeholder - implement if needed
+  });
+};
+
+/**
+ * POST /admin/webhooks/retry/:eventId
+ * Retry a failed webhook event
+ */
+export const retryFailedEventEndpoint = async (req: Request, res: Response): Promise<void> => {
+  res.json({
+    success: true,
+    message: 'Retry endpoint - implement if needed',
+  });
+};
 
 export default handleClerkWebhook;

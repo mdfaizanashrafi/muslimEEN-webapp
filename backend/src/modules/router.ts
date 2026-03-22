@@ -126,6 +126,9 @@ router.get('/health/auth/simple', getAuthSimpleHealth);
 // ============================================================================
 // PUBLIC ROUTES - No authentication required
 // ============================================================================
+// CRITICAL ORDER: Auth routes must be mounted BEFORE unifiedAuthenticate
+// The /auth routes include public endpoints like validate-invitation that
+// must work without authentication (called during signup flow)
 
 // Legacy auth detection (logs usage for monitoring)
 // Runs on all routes to catch any legacy auth attempts
@@ -137,6 +140,7 @@ if (featureFlags.isEnabled('ENABLE_LEGACY_AUTH_DETECTION')) {
 // Only enable after full migration confirmed
 router.use(conditionalLegacyAuthBlocker(featureFlags.isEnabled('DISABLE_LEGACY_AUTH')));
 
+// Mount auth routes (includes /validate-invitation which is PUBLIC)
 router.use('/auth', authRoutes);
 
 // Legacy auth stats endpoint (admin only)

@@ -16,7 +16,17 @@ import { auditLog, AUDIT_ACTIONS } from '../shared/middleware/auditLogger';
 
 const router = Router();
 
-// Public auth endpoints
+// ============================================================================
+// PUBLIC AUTH ENDPOINTS (NO AUTHENTICATION REQUIRED)
+// These endpoints must remain accessible without Clerk authentication
+// because they are called during the signup/login flow BEFORE authentication
+// ============================================================================
+
+/**
+ * Validate invitation code
+ * PUBLIC: Called during signup flow to verify invite code
+ * Must NOT have clerkAuthenticate middleware
+ */
 router.post(
   '/validate-invitation',
   authLimiter,

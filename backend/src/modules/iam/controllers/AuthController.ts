@@ -54,6 +54,8 @@ const clearAuthCookies = (res: Response): void => {
 
 /**
  * Validate invitation code
+ * PUBLIC ENDPOINT: Must remain accessible without authentication
+ * This is called during signup flow BEFORE user is authenticated
  */
 export const validateInvitation = async (
   req: Request,
@@ -62,7 +64,20 @@ export const validateInvitation = async (
 ): Promise<void> => {
   try {
     const { invitationCode } = req.body;
+    
+    // Debug logging to help diagnose issues
+    logger.debug('validateInvitation called', {
+      path: req.path,
+      hasAuthHeader: !!req.headers.authorization,
+      invitationCode: invitationCode ? `${invitationCode.substring(0, 4)}...` : 'missing',
+    });
+
     const result = await AuthService.validateInvitation(invitationCode);
+
+    logger.debug('validateInvitation result', {
+      valid: result.valid,
+      hasInvite: !!result.invite,
+    });
 
     res.json({
       success: result.valid,
@@ -70,6 +85,10 @@ export const validateInvitation = async (
       ...(result.invite && { data: { invitation: result.invite } }),
     });
   } catch (error) {
+    logger.error('validateInvitation error', {
+      error: (error as Error).message,
+      stack: (error as Error).stack,
+    });
     next(error);
   }
 };

@@ -90,7 +90,7 @@ jobs:
         run: npm run test:integration
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-report
           path: ${{ env.BACKEND_DIR }}/coverage/
@@ -130,7 +130,7 @@ jobs:
           cat audit-frontend.json
 
       - name: Upload audit reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: audit-reports
           path: |

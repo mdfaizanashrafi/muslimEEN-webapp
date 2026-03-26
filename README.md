@@ -409,7 +409,7 @@ See [LICENSE](LICENSE) for full details.
 ## 📞 Contact & Support
 
 - **Website**: https://muslimeen.space
-- **Email**: mdfaizanashrafi13032001@gmail.com
+- **Email**: mdfaizanashrafi@muslimeen.space  || admin@muslimeen.space
 - **GitHub Issues**: For bug reports and feature requests
 - **Discord Community**: [Join our server](https://discord.gg/muslimeen)
 

@@ -9,7 +9,6 @@ MuslimEEN is a full-stack LinkedIn-equivalent professional networking platform b
 ### Core Platform Immutables
 
 - ✅ No advertising or user data sales
-- ✅ Open source forever (AGPL-3.0) with data portability
 - ✅ Non-discrimination by sect or ethnicity
 - ✅ No interest-based finance (riba-free operations)
 - ✅ Complete transparency in governance, finances, and code

@@ -71,6 +71,14 @@ export default function LandingPage() {
               Join the Network
               <ArrowRightIcon />
             </Link>
+            <a
+              href="https://docs.google.com/forms/d/1pS1Y7o9ray7onuUr3_rGFsEhDTSPfhaS1UF-noVbhSY/viewform?chromeless=1&edit_requested=true"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-outline btn-lg"
+            >
+              Get Early Access
+            </a>
             <Link href="#pillars" className="btn btn-outline btn-lg">
               Explore Ecosystem
             </Link>

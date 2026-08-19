@@ -1,0 +1,2258 @@
+============================================================
+MUSLIMEEN CODEBASE MAP
+Generated: Wed Aug 19 05:24:48 PM IST 2026
+============================================================
+
+============================================================
+1. DIRECTORY STRUCTURE
+============================================================
+
+.
+├── audit
+├── backend
+│   ├── database
+│   │   └── migrations
+│   │       ├── 001_initial_schema.sql
+│   │       └── migrate.js
+│   ├── docs
+│   │   ├── IDEMPOTENT_CLEANUP_SCRIPTS.md
+│   │   ├── OBSERVABILITY_OPTIMIZATION.md
+│   │   └── READ_ONLY_MODE.md
+│   ├── .husky
+│   │   ├── commit-msg
+│   │   └── pre-commit
+│   ├── scripts
+│   │   ├── database
+│   │   │   ├── create-database.js
+│   │   │   ├── create-user.js
+│   │   │   ├── enable-extensions.js
+│   │   │   ├── run-migrations.js
+│   │   │   ├── setup-schema.js
+│   │   │   └── verify-tables.js
+│   │   ├── migration
+│   │   │   ├── config.js
+│   │   │   ├── env-manager.js
+│   │   │   ├── status-reporter.js
+│   │   │   └── test-runner.js
+│   │   ├── setup
+│   │   │   └── generate-env.js
+│   │   ├── utils
+│   │   │   ├── colors.js
+│   │   │   └── logger.js
+│   │   ├── create-api-key.ts
+│   │   ├── init-database.js
+│   │   ├── migrate-users-to-clerk.ts
+│   │   ├── migration-phased-rollout.js
+│   │   ├── test-connection.js
+│   │   └── verify-cleanup.ts
+│   ├── src
+│   │   ├── config
+│   │   │   ├── cors.ts
+│   │   │   ├── env.ts
+│   │   │   ├── featureFlags.ts
+│   │   │   ├── README.md
+│   │   │   ├── security.ts
+│   │   │   ├── sentry.ts
+│   │   │   └── shutdown.ts
+│   │   ├── modules
+│   │   │   ├── analytics
+│   │   │   │   └── routes.ts
+│   │   │   ├── auth
+│   │   │   │   └── routes.ts
+│   │   │   ├── connections
+│   │   │   │   └── routes.ts
+│   │   │   ├── database
+│   │   │   │   └── pool.ts
+│   │   │   ├── feedback
+│   │   │   │   └── routes.ts
+│   │   │   ├── iam
+│   │   │   │   ├── controllers
+│   │   │   │   │   ├── AuthController.ts
+│   │   │   │   │   ├── AuthHealthController.ts
+│   │   │   │   │   ├── ClerkWebhookControllerHardened.ts
+│   │   │   │   │   └── ClerkWebhookController.ts
+│   │   │   │   ├── middleware
+│   │   │   │   │   ├── clerkAuth.ts
+│   │   │   │   │   └── unifiedAuth.ts
+│   │   │   │   ├── repositories
+│   │   │   │   │   └── UserRepository.ts
+│   │   │   │   ├── services
+│   │   │   │   │   ├── AccountLockoutService.ts
+│   │   │   │   │   ├── AuthService.ts
+│   │   │   │   │   ├── PasswordService.ts
+│   │   │   │   │   ├── UserService.ts
+│   │   │   │   │   ├── WebhookRetryService.ts
+│   │   │   │   │   └── WebhookService.ts
+│   │   │   │   └── index.ts
+│   │   │   ├── internal
+│   │   │   │   ├── client.ts
+│   │   │   │   └── routes.ts
+│   │   │   ├── invites
+│   │   │   │   ├── controllers
+│   │   │   │   │   └── InviteControllerHardened.ts
+│   │   │   │   ├── repositories
+│   │   │   │   │   └── InviteRepository.ts
+│   │   │   │   ├── services
+│   │   │   │   │   ├── InviteServiceHardened.ts
+│   │   │   │   │   ├── InviteService.ts
+│   │   │   │   │   └── InviteTokenService.ts
+│   │   │   │   ├── index.ts
+│   │   │   │   ├── routesHardened.ts
+│   │   │   │   ├── routes.ts
+│   │   │   │   └── types.ts
+│   │   │   ├── islamic-finance
+│   │   │   │   ├── controllers
+│   │   │   │   │   └── IslamicFinanceController.ts
+│   │   │   │   ├── repositories
+│   │   │   │   │   └── IslamicFinanceRepository.ts
+│   │   │   │   ├── services
+│   │   │   │   │   └── IslamicFinanceService.ts
+│   │   │   │   ├── index.ts
+│   │   │   │   └── routes.ts
+│   │   │   ├── marketplace
+│   │   │   │   ├── controllers
+│   │   │   │   │   └── MarketplaceController.ts
+│   │   │   │   ├── repositories
+│   │   │   │   │   └── MarketplaceRepository.ts
+│   │   │   │   ├── services
+│   │   │   │   │   └── MarketplaceService.ts
+│   │   │   │   ├── index.ts
+│   │   │   │   └── routes.ts
+│   │   │   ├── network
+│   │   │   │   ├── controllers
+│   │   │   │   │   └── ConnectionController.ts
+│   │   │   │   ├── repositories
+│   │   │   │   │   └── ConnectionRepository.ts
+│   │   │   │   ├── services
+│   │   │   │   │   └── ConnectionService.ts
+│   │   │   │   └── index.ts
+│   │   │   ├── profile
+│   │   │   │   ├── controllers
+│   │   │   │   │   └── ProfileController.ts
+│   │   │   │   ├── repositories
+│   │   │   │   │   └── ProfileRepository.ts
+│   │   │   │   ├── services
+│   │   │   │   │   └── ProfileService.ts
+│   │   │   │   └── index.ts
+│   │   │   ├── shared
+│   │   │   │   ├── auth
+│   │   │   │   │   └── InternalApiAuth.ts
+│   │   │   │   ├── config
+│   │   │   │   │   └── featureFlags.ts
+│   │   │   │   ├── events
+│   │   │   │   │   └── EventBus.ts
+│   │   │   │   ├── middleware
+│   │   │   │   │   ├── auditLogger.ts
+│   │   │   │   │   ├── bodyParser.ts
+│   │   │   │   │   ├── csrf.ts
+│   │   │   │   │   ├── deprecation.ts
+│   │   │   │   │   ├── errorHandler.ts
+│   │   │   │   │   ├── idempotency.ts
+│   │   │   │   │   ├── performance.ts
+│   │   │   │   │   ├── rateLimiter.ts
+│   │   │   │   │   ├── readOnlyMode.ts
+│   │   │   │   │   ├── sanitization.ts
+│   │   │   │   │   ├── secureResponse.ts
+│   │   │   │   │   ├── securityAudit.ts
+│   │   │   │   │   └── validation.ts
+│   │   │   │   ├── types
+│   │   │   │   │   └── index.ts
+│   │   │   │   └── utils
+│   │   │   │       ├── encoding.ts
+│   │   │   │       ├── formatters.ts
+│   │   │   │       ├── logger.ts
+│   │   │   │       ├── logSampler.ts
+│   │   │   │       ├── metrics.ts
+│   │   │   │       ├── response.ts
+│   │   │   │       └── security.ts
+│   │   │   ├── trust
+│   │   │   │   ├── controllers
+│   │   │   │   │   ├── TrustScoreController.ts
+│   │   │   │   │   └── VerificationController.ts
+│   │   │   │   ├── repositories
+│   │   │   │   │   ├── TrustScoreRepository.ts
+│   │   │   │   │   └── VerificationRepository.ts
+│   │   │   │   ├── services
+│   │   │   │   │   ├── TrustScoreService.ts
+│   │   │   │   │   └── VerificationService.ts
+│   │   │   │   └── index.ts
+│   │   │   ├── users
+│   │   │   │   └── routes.ts
+│   │   │   ├── verification
+│   │   │   │   └── routes.ts
+│   │   │   ├── index.ts
+│   │   │   └── router.ts
+│   │   ├── routes
+│   │   │   ├── health.ts
+│   │   │   └── webhooks.ts
+│   │   ├── __tests__
+│   │   │   ├── attacks
+│   │   │   │   └── security-bypass.test.ts
+│   │   │   ├── chaos
+│   │   │   │   ├── concurrent-operations.test.ts
+│   │   │   │   ├── failure-modes.test.ts
+│   │   │   │   └── rapid-actions.test.ts
+│   │   │   ├── contract
+│   │   │   │   └── api-contract.test.ts
+│   │   │   ├── critical
+│   │   │   │   ├── auth.flow.test.ts
+│   │   │   │   └── invite.race.test.ts
+│   │   │   ├── integration
+│   │   │   │   └── auth.test.ts
+│   │   │   ├── security
+│   │   │   │   └── security.test.ts
+│   │   │   ├── helpers.ts
+│   │   │   └── setup.ts
+│   │   ├── types
+│   │   │   ├── index.ts
+│   │   │   └── models.d.ts
+│   │   ├── openapi.yaml
+│   │   └── server.ts
+│   ├── tests
+│   │   ├── integration
+│   │   │   ├── migration
+│   │   │   │   └── api-endpoints.test.ts
+│   │   │   ├── auth.test.ts
+│   │   │   ├── connections.test.ts
+│   │   │   ├── marketplace.test.ts
+│   │   │   ├── profile.test.ts
+│   │   │   └── setup.ts
+│   │   ├── mocks
+│   │   │   ├── connection.mock.ts
+│   │   │   ├── index.ts
+│   │   │   ├── invitation.mock.ts
+│   │   │   ├── islamic-finance.mock.ts
+│   │   │   ├── models.ts
+│   │   │   ├── notification.mock.ts
+│   │   │   ├── trust-score.mock.ts
+│   │   │   └── user.mock.ts
+│   │   ├── modules
+│   │   │   ├── iam.parity.test.ts
+│   │   │   ├── invitations.parity.test.ts
+│   │   │   ├── marketplace.parity.test.ts
+│   │   │   └── notifications.parity.test.ts
+│   │   ├── unit
+│   │   │   ├── services
+│   │   │   │   ├── auth
+│   │   │   │   │   ├── errors.test.ts
+│   │   │   │   │   ├── formatters.test.ts
+│   │   │   │   │   ├── getCurrentUser.test.ts
+│   │   │   │   │   ├── index.ts
+│   │   │   │   │   ├── login.test.ts
+│   │   │   │   │   ├── logout.test.ts
+│   │   │   │   │   ├── register.test.ts
+│   │   │   │   │   └── validateInvitation.test.ts
+│   │   │   │   ├── AuthService.test.ts
+│   │   │   │   ├── ConnectionService.test.ts
+│   │   │   │   ├── InvitationService.test.ts
+│   │   │   │   ├── IslamicFinanceService.test.ts
+│   │   │   │   ├── JwtService.test.ts
+│   │   │   │   ├── NotificationService.test.ts
+│   │   │   │   ├── PasswordService.test.ts
+│   │   │   │   ├── TrustScoreService.test.ts
+│   │   │   │   ├── UserService.test.ts
+│   │   │   │   └── VerificationService.test.ts
+│   │   │   └── utils
+│   │   │       ├── formatters.test.ts
+│   │   │       └── security.test.ts
+│   │   ├── utils
+│   │   │   ├── migrationVerifier.ts
+│   │   │   ├── moduleTester.ts
+│   │   │   └── test-helpers.ts
+│   │   ├── MIGRATION_TESTING_GUIDE.md
+│   │   ├── README.md
+│   │   ├── run-migration-tests.js
+│   │   ├── setup.migration.ts
+│   │   ├── setup.ts
+│   │   └── TEST_ENVIRONMENT_SUMMARY.md
+│   ├── .commitlintrc.json
+│   ├── Dockerfile.dev
+│   ├── .env.example
+│   ├── .env.production.example
+│   ├── .env.test.modular
+│   ├── .eslintrc.json
+│   ├── jest.config.js
+│   ├── jest.config.migration.js
+│   ├── .lintstagedrc.json
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── render.Dockerfile
+│   ├── tsconfig.build.json
+│   ├── tsconfig.json
+│   └── tsconfig.tsbuildinfo
+├── docs
+│   ├── architecture
+│   │   ├── decisions
+│   │   │   ├── ADR-001-modular-architecture.md
+│   │   │   ├── ADR-002-typescript-strict.md
+│   │   │   ├── ADR-003-postgresql.md
+│   │   │   ├── ADR-004-jwt-authentication.md
+│   │   │   ├── ADR-005-repository-pattern.md
+│   │   │   └── README.md
+│   │   └── diagrams
+│   │       ├── authentication-flow.md
+│   │       ├── database-schema.md
+│   │       ├── module-structure.md
+│   │       ├── README.md
+│   │       └── system-overview.md
+│   ├── AUTH_SYSTEM_GUIDE.md
+│   ├── BETA_GUIDE.md
+│   ├── COMMIT_CONVENTIONS.md
+│   ├── LOCALHOST_SETUP.md
+│   ├── OBSERVABILITY.md
+│   ├── QA_FIXES_SUMMARY.md
+│   ├── TESTING.md
+│   └── UX_IMPROVEMENTS.md
+├── e2e
+│   ├── tests
+│   │   ├── auth.spec.ts
+│   │   ├── critical-auth.spec.ts
+│   │   ├── dashboard.spec.ts
+│   │   ├── islamic-finance.spec.ts
+│   │   ├── marketplace.spec.ts
+│   │   └── profile.spec.ts
+│   ├── auth.spec.ts
+│   ├── playwright.config.ts
+│   └── README.md
+├── frontend
+│   ├── app
+│   │   ├── blog
+│   │   │   ├── [slug]
+│   │   │   │   └── page.tsx
+│   │   │   ├── blog.css
+│   │   │   └── page.tsx
+│   │   ├── connections
+│   │   │   ├── ConnectionsClient.tsx
+│   │   │   └── page.tsx
+│   │   ├── (dashboard)
+│   │   │   └── admin
+│   │   │       └── beta
+│   │   │           └── page.tsx
+│   │   ├── dashboard
+│   │   │   ├── components
+│   │   │   │   ├── InvitesWidget.css
+│   │   │   │   └── InvitesWidget.tsx
+│   │   │   └── page.tsx
+│   │   ├── invite
+│   │   │   ├── invite.css
+│   │   │   └── page.tsx
+│   │   ├── invites
+│   │   │   └── page.tsx
+│   │   ├── islamic-finance
+│   │   │   ├── IslamicFinanceClient.tsx
+│   │   │   └── page.tsx
+│   │   ├── login
+│   │   │   └── page.tsx
+│   │   ├── (marketing)
+│   │   │   ├── about
+│   │   │   │   └── page.tsx
+│   │   │   ├── layout.tsx
+│   │   │   └── page.tsx
+│   │   ├── marketplace
+│   │   │   ├── earn
+│   │   │   │   └── [slug]
+│   │   │   │       ├── opengraph-image.tsx
+│   │   │   │       └── page.tsx
+│   │   │   └── [vertical]
+│   │   │       ├── client.tsx
+│   │   │       ├── opengraph-image.tsx
+│   │   │       └── page.tsx
+│   │   ├── messages
+│   │   │   ├── MessagesClient.tsx
+│   │   │   └── page.tsx
+│   │   ├── people
+│   │   │   ├── [slug]
+│   │   │   │   ├── loading.tsx
+│   │   │   │   ├── not-found.tsx
+│   │   │   │   ├── opengraph-image.tsx
+│   │   │   │   └── page.tsx
+│   │   │   ├── page.tsx
+│   │   │   └── people.css
+│   │   ├── profile
+│   │   │   └── page.tsx
+│   │   ├── settings
+│   │   │   ├── account
+│   │   │   │   └── page.tsx
+│   │   │   ├── notifications
+│   │   │   │   └── page.tsx
+│   │   │   ├── privacy
+│   │   │   │   └── page.tsx
+│   │   │   ├── security
+│   │   │   │   └── page.tsx
+│   │   │   ├── visibility
+│   │   │   │   └── page.tsx
+│   │   │   ├── layout.tsx
+│   │   │   └── page.tsx
+│   │   ├── signup
+│   │   │   ├── page.tsx
+│   │   │   └── signup.css
+│   │   ├── trust-score
+│   │   │   └── page.tsx
+│   │   ├── verification
+│   │   │   ├── business
+│   │   │   │   └── page.tsx
+│   │   │   ├── institutional
+│   │   │   │   └── page.tsx
+│   │   │   └── page.tsx
+│   │   ├── waitlist
+│   │   │   ├── page.tsx
+│   │   │   └── waitlist.css
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   ├── loading.tsx
+│   │   ├── manifest.ts
+│   │   ├── opengraph-image.tsx
+│   │   ├── robots.ts
+│   │   ├── sitemap.ts
+│   │   └── twitter-image.tsx
+│   ├── .clerk
+│   │   └── .tmp
+│   │       ├── keyless.json
+│   │       └── README.md
+│   ├── components
+│   │   ├── feedback
+│   │   │   └── FeedbackWidget.tsx
+│   │   ├── icons
+│   │   │   ├── ConnectionIcons.tsx
+│   │   │   ├── IslamicFinanceIcons.tsx
+│   │   │   ├── LandingIcons.tsx
+│   │   │   └── LayoutIcons.tsx
+│   │   ├── layout
+│   │   │   ├── AppLayout.tsx
+│   │   │   ├── index.ts
+│   │   │   └── NavLink.tsx
+│   │   ├── seo
+│   │   │   ├── schemas
+│   │   │   │   ├── ArticleSchema.tsx
+│   │   │   │   ├── BreadcrumbSchema.tsx
+│   │   │   │   ├── EventSchema.tsx
+│   │   │   │   ├── FAQSchema.tsx
+│   │   │   │   ├── HowToSchema.tsx
+│   │   │   │   ├── JobPostingSchema.tsx
+│   │   │   │   ├── LocalBusinessSchema.tsx
+│   │   │   │   ├── OrganizationSchema.tsx
+│   │   │   │   ├── PersonSchema.tsx
+│   │   │   │   └── VideoSchema.tsx
+│   │   │   ├── Analytics.tsx
+│   │   │   ├── index.ts
+│   │   │   └── SchemaInjector.tsx
+│   │   ├── AnalyticsProvider.tsx
+│   │   ├── auth-provider-wrapper.tsx
+│   │   ├── ErrorBoundary.tsx
+│   │   ├── LoadingButton.tsx
+│   │   ├── NetworkStatus.tsx
+│   │   ├── ProtectedRoute.tsx
+│   │   ├── SessionExpired.tsx
+│   │   └── Toast.tsx
+│   ├── .husky
+│   │   └── pre-commit
+│   ├── lib
+│   │   ├── seo
+│   │   │   └── metadata.ts
+│   │   ├── analytics.ts
+│   │   ├── api-examples.tsx
+│   │   ├── api-retry.ts
+│   │   ├── api.ts
+│   │   ├── api-usage-guide.tsx
+│   │   ├── auth-context.tsx
+│   │   ├── auth-final-guide.tsx
+│   │   ├── auth-usage-guide.tsx
+│   │   ├── error-messages.ts
+│   │   ├── index.ts
+│   │   ├── performance.ts
+│   │   ├── sentry.ts
+│   │   ├── useApi.ts
+│   │   ├── useForm.ts
+│   │   └── ux-improvements-guide.tsx
+│   ├── public
+│   │   ├── icons
+│   │   │   ├── apple-touch-icon.png
+│   │   │   ├── icon-192x192.png
+│   │   │   └── icon-512x512.png
+│   │   ├── favicon.png
+│   │   ├── manifest.json
+│   │   └── og-default.png
+│   ├── scripts
+│   │   └── seo-audit.js
+│   ├── styles
+│   │   ├── connections.css
+│   │   ├── dashboard.css
+│   │   ├── invites.css
+│   │   ├── islamic-finance.css
+│   │   ├── landing.css
+│   │   ├── login.css
+│   │   ├── marketplace.css
+│   │   ├── messages.css
+│   │   ├── profile.css
+│   │   ├── settings.css
+│   │   ├── trust-score.css
+│   │   └── verification.css
+│   ├── .commitlintrc.json
+│   ├── Dockerfile.dev
+│   ├── .env.example
+│   ├── .env.production.example
+│   ├── .gitignore
+│   ├── jsconfig.json
+│   ├── .lintstagedrc.json
+│   ├── middleware.ts
+│   ├── next.config.js
+│   ├── next-env.d.ts
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── tsconfig.json
+│   ├── tsconfig.tsbuildinfo
+│   └── vercel.json
+├── .github
+│   ├── workflows
+│   │   ├── ci-cd.yml
+│   │   ├── deploy.yml
+│   │   ├── nightly.yml
+│   │   └── pr-check.yml
+│   └── dependabot.yml
+├── scripts
+│   ├── analyze-logs.sh
+│   ├── cleanup-legacy-auth.sh
+│   ├── curl-format.txt
+│   ├── deploy-backend.ts
+│   ├── deploy-frontend.sh
+│   ├── deploy.sh
+│   ├── generate-stability-report.ts
+│   ├── health-check.sh
+│   ├── long-term-monitor.ts
+│   ├── monitor-dashboard.ts
+│   ├── monitor-deployment.ts
+│   ├── pre-deployment-check.ts
+│   ├── production-cleanup.sh
+│   ├── production-validation.ts
+│   ├── system-validation.ts
+│   ├── verify-deployment.sh
+│   └── verify-frontend.sh
+├── AGENTS.md
+├── CONTRIBUTING.md
+├── docker-compose.yml
+├── .env.example
+├── .gitignore
+├── muslimeen-codebase-map.txt
+├── package.json
+├── package-lock.json
+├── .prettierignore
+├── .prettierrc
+├── README.md
+├── render.yaml
+└── vercel.json
+
+138 directories, 395 files
+
+============================================================
+2. FILE LIST
+============================================================
+
+./AGENTS.md
+./backend/.commitlintrc.json
+./backend/database/migrations/001_initial_schema.sql
+./backend/database/migrations/migrate.js
+./backend/Dockerfile.dev
+./backend/docs/IDEMPOTENT_CLEANUP_SCRIPTS.md
+./backend/docs/OBSERVABILITY_OPTIMIZATION.md
+./backend/docs/READ_ONLY_MODE.md
+./backend/.env.example
+./backend/.env.production.example
+./backend/.env.test.modular
+./backend/.eslintrc.json
+./backend/.husky/commit-msg
+./backend/.husky/pre-commit
+./backend/jest.config.js
+./backend/jest.config.migration.js
+./backend/.lintstagedrc.json
+./backend/package.json
+./backend/package-lock.json
+./backend/render.Dockerfile
+./backend/scripts/create-api-key.ts
+./backend/scripts/database/create-database.js
+./backend/scripts/database/create-user.js
+./backend/scripts/database/enable-extensions.js
+./backend/scripts/database/run-migrations.js
+./backend/scripts/database/setup-schema.js
+./backend/scripts/database/verify-tables.js
+./backend/scripts/init-database.js
+./backend/scripts/migrate-users-to-clerk.ts
+./backend/scripts/migration/config.js
+./backend/scripts/migration/env-manager.js
+./backend/scripts/migration-phased-rollout.js
+./backend/scripts/migration/status-reporter.js
+./backend/scripts/migration/test-runner.js
+./backend/scripts/setup/generate-env.js
+./backend/scripts/test-connection.js
+./backend/scripts/utils/colors.js
+./backend/scripts/utils/logger.js
+./backend/scripts/verify-cleanup.ts
+./backend/src/config/cors.ts
+./backend/src/config/env.ts
+./backend/src/config/featureFlags.ts
+./backend/src/config/README.md
+./backend/src/config/security.ts
+./backend/src/config/sentry.ts
+./backend/src/config/shutdown.ts
+./backend/src/modules/analytics/routes.ts
+./backend/src/modules/auth/routes.ts
+./backend/src/modules/connections/routes.ts
+./backend/src/modules/database/pool.ts
+./backend/src/modules/feedback/routes.ts
+./backend/src/modules/iam/controllers/AuthController.ts
+./backend/src/modules/iam/controllers/AuthHealthController.ts
+./backend/src/modules/iam/controllers/ClerkWebhookControllerHardened.ts
+./backend/src/modules/iam/controllers/ClerkWebhookController.ts
+./backend/src/modules/iam/index.ts
+./backend/src/modules/iam/middleware/clerkAuth.ts
+./backend/src/modules/iam/middleware/unifiedAuth.ts
+./backend/src/modules/iam/repositories/UserRepository.ts
+./backend/src/modules/iam/services/AccountLockoutService.ts
+./backend/src/modules/iam/services/AuthService.ts
+./backend/src/modules/iam/services/PasswordService.ts
+./backend/src/modules/iam/services/UserService.ts
+./backend/src/modules/iam/services/WebhookRetryService.ts
+./backend/src/modules/iam/services/WebhookService.ts
+./backend/src/modules/index.ts
+./backend/src/modules/internal/client.ts
+./backend/src/modules/internal/routes.ts
+./backend/src/modules/invites/controllers/InviteControllerHardened.ts
+./backend/src/modules/invites/index.ts
+./backend/src/modules/invites/repositories/InviteRepository.ts
+./backend/src/modules/invites/routesHardened.ts
+./backend/src/modules/invites/routes.ts
+./backend/src/modules/invites/services/InviteServiceHardened.ts
+./backend/src/modules/invites/services/InviteService.ts
+./backend/src/modules/invites/services/InviteTokenService.ts
+./backend/src/modules/invites/types.ts
+./backend/src/modules/islamic-finance/controllers/IslamicFinanceController.ts
+./backend/src/modules/islamic-finance/index.ts
+./backend/src/modules/islamic-finance/repositories/IslamicFinanceRepository.ts
+./backend/src/modules/islamic-finance/routes.ts
+./backend/src/modules/islamic-finance/services/IslamicFinanceService.ts
+./backend/src/modules/marketplace/controllers/MarketplaceController.ts
+./backend/src/modules/marketplace/index.ts
+./backend/src/modules/marketplace/repositories/MarketplaceRepository.ts
+./backend/src/modules/marketplace/routes.ts
+./backend/src/modules/marketplace/services/MarketplaceService.ts
+./backend/src/modules/network/controllers/ConnectionController.ts
+./backend/src/modules/network/index.ts
+./backend/src/modules/network/repositories/ConnectionRepository.ts
+./backend/src/modules/network/services/ConnectionService.ts
+./backend/src/modules/profile/controllers/ProfileController.ts
+./backend/src/modules/profile/index.ts
+./backend/src/modules/profile/repositories/ProfileRepository.ts
+./backend/src/modules/profile/services/ProfileService.ts
+./backend/src/modules/router.ts
+./backend/src/modules/shared/auth/InternalApiAuth.ts
+./backend/src/modules/shared/config/featureFlags.ts
+./backend/src/modules/shared/events/EventBus.ts
+./backend/src/modules/shared/middleware/auditLogger.ts
+./backend/src/modules/shared/middleware/bodyParser.ts
+./backend/src/modules/shared/middleware/csrf.ts
+./backend/src/modules/shared/middleware/deprecation.ts
+./backend/src/modules/shared/middleware/errorHandler.ts
+./backend/src/modules/shared/middleware/idempotency.ts
+./backend/src/modules/shared/middleware/performance.ts
+./backend/src/modules/shared/middleware/rateLimiter.ts
+./backend/src/modules/shared/middleware/readOnlyMode.ts
+./backend/src/modules/shared/middleware/sanitization.ts
+./backend/src/modules/shared/middleware/secureResponse.ts
+./backend/src/modules/shared/middleware/securityAudit.ts
+./backend/src/modules/shared/middleware/validation.ts
+./backend/src/modules/shared/types/index.ts
+./backend/src/modules/shared/utils/encoding.ts
+./backend/src/modules/shared/utils/formatters.ts
+./backend/src/modules/shared/utils/logger.ts
+./backend/src/modules/shared/utils/logSampler.ts
+./backend/src/modules/shared/utils/metrics.ts
+./backend/src/modules/shared/utils/response.ts
+./backend/src/modules/shared/utils/security.ts
+./backend/src/modules/trust/controllers/TrustScoreController.ts
+./backend/src/modules/trust/controllers/VerificationController.ts
+./backend/src/modules/trust/index.ts
+./backend/src/modules/trust/repositories/TrustScoreRepository.ts
+./backend/src/modules/trust/repositories/VerificationRepository.ts
+./backend/src/modules/trust/services/TrustScoreService.ts
+./backend/src/modules/trust/services/VerificationService.ts
+./backend/src/modules/users/routes.ts
+./backend/src/modules/verification/routes.ts
+./backend/src/openapi.yaml
+./backend/src/routes/health.ts
+./backend/src/routes/webhooks.ts
+./backend/src/server.ts
+./backend/src/__tests__/attacks/security-bypass.test.ts
+./backend/src/__tests__/chaos/concurrent-operations.test.ts
+./backend/src/__tests__/chaos/failure-modes.test.ts
+./backend/src/__tests__/chaos/rapid-actions.test.ts
+./backend/src/__tests__/contract/api-contract.test.ts
+./backend/src/__tests__/critical/auth.flow.test.ts
+./backend/src/__tests__/critical/invite.race.test.ts
+./backend/src/__tests__/helpers.ts
+./backend/src/__tests__/integration/auth.test.ts
+./backend/src/__tests__/security/security.test.ts
+./backend/src/__tests__/setup.ts
+./backend/src/types/index.ts
+./backend/src/types/models.d.ts
+./backend/tests/integration/auth.test.ts
+./backend/tests/integration/connections.test.ts
+./backend/tests/integration/marketplace.test.ts
+./backend/tests/integration/migration/api-endpoints.test.ts
+./backend/tests/integration/profile.test.ts
+./backend/tests/integration/setup.ts
+./backend/tests/MIGRATION_TESTING_GUIDE.md
+./backend/tests/mocks/connection.mock.ts
+./backend/tests/mocks/index.ts
+./backend/tests/mocks/invitation.mock.ts
+./backend/tests/mocks/islamic-finance.mock.ts
+./backend/tests/mocks/models.ts
+./backend/tests/mocks/notification.mock.ts
+./backend/tests/mocks/trust-score.mock.ts
+./backend/tests/mocks/user.mock.ts
+./backend/tests/modules/iam.parity.test.ts
+./backend/tests/modules/invitations.parity.test.ts
+./backend/tests/modules/marketplace.parity.test.ts
+./backend/tests/modules/notifications.parity.test.ts
+./backend/tests/README.md
+./backend/tests/run-migration-tests.js
+./backend/tests/setup.migration.ts
+./backend/tests/setup.ts
+./backend/tests/TEST_ENVIRONMENT_SUMMARY.md
+./backend/tests/unit/services/auth/errors.test.ts
+./backend/tests/unit/services/auth/formatters.test.ts
+./backend/tests/unit/services/auth/getCurrentUser.test.ts
+./backend/tests/unit/services/auth/index.ts
+./backend/tests/unit/services/auth/login.test.ts
+./backend/tests/unit/services/auth/logout.test.ts
+./backend/tests/unit/services/auth/register.test.ts
+./backend/tests/unit/services/AuthService.test.ts
+./backend/tests/unit/services/auth/validateInvitation.test.ts
+./backend/tests/unit/services/ConnectionService.test.ts
+./backend/tests/unit/services/InvitationService.test.ts
+./backend/tests/unit/services/IslamicFinanceService.test.ts
+./backend/tests/unit/services/JwtService.test.ts
+./backend/tests/unit/services/NotificationService.test.ts
+./backend/tests/unit/services/PasswordService.test.ts
+./backend/tests/unit/services/TrustScoreService.test.ts
+./backend/tests/unit/services/UserService.test.ts
+./backend/tests/unit/services/VerificationService.test.ts
+./backend/tests/unit/utils/formatters.test.ts
+./backend/tests/unit/utils/security.test.ts
+./backend/tests/utils/migrationVerifier.ts
+./backend/tests/utils/moduleTester.ts
+./backend/tests/utils/test-helpers.ts
+./backend/tsconfig.build.json
+./backend/tsconfig.json
+./backend/tsconfig.tsbuildinfo
+./CONTRIBUTING.md
+./docker-compose.yml
+./docs/architecture/decisions/ADR-001-modular-architecture.md
+./docs/architecture/decisions/ADR-002-typescript-strict.md
+./docs/architecture/decisions/ADR-003-postgresql.md
+./docs/architecture/decisions/ADR-004-jwt-authentication.md
+./docs/architecture/decisions/ADR-005-repository-pattern.md
+./docs/architecture/decisions/README.md
+./docs/architecture/diagrams/authentication-flow.md
+./docs/architecture/diagrams/database-schema.md
+./docs/architecture/diagrams/module-structure.md
+./docs/architecture/diagrams/README.md
+./docs/architecture/diagrams/system-overview.md
+./docs/AUTH_SYSTEM_GUIDE.md
+./docs/BETA_GUIDE.md
+./docs/COMMIT_CONVENTIONS.md
+./docs/LOCALHOST_SETUP.md
+./docs/OBSERVABILITY.md
+./docs/QA_FIXES_SUMMARY.md
+./docs/TESTING.md
+./docs/UX_IMPROVEMENTS.md
+./e2e/auth.spec.ts
+./e2e/playwright.config.ts
+./e2e/README.md
+./e2e/tests/auth.spec.ts
+./e2e/tests/critical-auth.spec.ts
+./e2e/tests/dashboard.spec.ts
+./e2e/tests/islamic-finance.spec.ts
+./e2e/tests/marketplace.spec.ts
+./e2e/tests/profile.spec.ts
+./.env.example
+./frontend/app/blog/blog.css
+./frontend/app/blog/page.tsx
+./frontend/app/blog/[slug]/page.tsx
+./frontend/app/connections/ConnectionsClient.tsx
+./frontend/app/connections/page.tsx
+./frontend/app/(dashboard)/admin/beta/page.tsx
+./frontend/app/dashboard/components/InvitesWidget.css
+./frontend/app/dashboard/components/InvitesWidget.tsx
+./frontend/app/dashboard/page.tsx
+./frontend/app/globals.css
+./frontend/app/invite/invite.css
+./frontend/app/invite/page.tsx
+./frontend/app/invites/page.tsx
+./frontend/app/islamic-finance/IslamicFinanceClient.tsx
+./frontend/app/islamic-finance/page.tsx
+./frontend/app/layout.tsx
+./frontend/app/loading.tsx
+./frontend/app/login/page.tsx
+./frontend/app/manifest.ts
+./frontend/app/(marketing)/about/page.tsx
+./frontend/app/(marketing)/layout.tsx
+./frontend/app/(marketing)/page.tsx
+./frontend/app/marketplace/earn/[slug]/opengraph-image.tsx
+./frontend/app/marketplace/earn/[slug]/page.tsx
+./frontend/app/marketplace/[vertical]/client.tsx
+./frontend/app/marketplace/[vertical]/opengraph-image.tsx
+./frontend/app/marketplace/[vertical]/page.tsx
+./frontend/app/messages/MessagesClient.tsx
+./frontend/app/messages/page.tsx
+./frontend/app/opengraph-image.tsx
+./frontend/app/people/page.tsx
+./frontend/app/people/people.css
+./frontend/app/people/[slug]/loading.tsx
+./frontend/app/people/[slug]/not-found.tsx
+./frontend/app/people/[slug]/opengraph-image.tsx
+./frontend/app/people/[slug]/page.tsx
+./frontend/app/profile/page.tsx
+./frontend/app/robots.ts
+./frontend/app/settings/account/page.tsx
+./frontend/app/settings/layout.tsx
+./frontend/app/settings/notifications/page.tsx
+./frontend/app/settings/page.tsx
+./frontend/app/settings/privacy/page.tsx
+./frontend/app/settings/security/page.tsx
+./frontend/app/settings/visibility/page.tsx
+./frontend/app/signup/page.tsx
+./frontend/app/signup/signup.css
+./frontend/app/sitemap.ts
+./frontend/app/trust-score/page.tsx
+./frontend/app/twitter-image.tsx
+./frontend/app/verification/business/page.tsx
+./frontend/app/verification/institutional/page.tsx
+./frontend/app/verification/page.tsx
+./frontend/app/waitlist/page.tsx
+./frontend/app/waitlist/waitlist.css
+./frontend/.clerk/.tmp/keyless.json
+./frontend/.clerk/.tmp/README.md
+./frontend/.commitlintrc.json
+./frontend/components/AnalyticsProvider.tsx
+./frontend/components/auth-provider-wrapper.tsx
+./frontend/components/ErrorBoundary.tsx
+./frontend/components/feedback/FeedbackWidget.tsx
+./frontend/components/icons/ConnectionIcons.tsx
+./frontend/components/icons/IslamicFinanceIcons.tsx
+./frontend/components/icons/LandingIcons.tsx
+./frontend/components/icons/LayoutIcons.tsx
+./frontend/components/layout/AppLayout.tsx
+./frontend/components/layout/index.ts
+./frontend/components/layout/NavLink.tsx
+./frontend/components/LoadingButton.tsx
+./frontend/components/NetworkStatus.tsx
+./frontend/components/ProtectedRoute.tsx
+./frontend/components/seo/Analytics.tsx
+./frontend/components/seo/index.ts
+./frontend/components/seo/SchemaInjector.tsx
+./frontend/components/seo/schemas/ArticleSchema.tsx
+./frontend/components/seo/schemas/BreadcrumbSchema.tsx
+./frontend/components/seo/schemas/EventSchema.tsx
+./frontend/components/seo/schemas/FAQSchema.tsx
+./frontend/components/seo/schemas/HowToSchema.tsx
+./frontend/components/seo/schemas/JobPostingSchema.tsx
+./frontend/components/seo/schemas/LocalBusinessSchema.tsx
+./frontend/components/seo/schemas/OrganizationSchema.tsx
+./frontend/components/seo/schemas/PersonSchema.tsx
+./frontend/components/seo/schemas/VideoSchema.tsx
+./frontend/components/SessionExpired.tsx
+./frontend/components/Toast.tsx
+./frontend/Dockerfile.dev
+./frontend/.env.example
+./frontend/.env.production.example
+./frontend/.gitignore
+./frontend/.husky/pre-commit
+./frontend/jsconfig.json
+./frontend/lib/analytics.ts
+./frontend/lib/api-examples.tsx
+./frontend/lib/api-retry.ts
+./frontend/lib/api.ts
+./frontend/lib/api-usage-guide.tsx
+./frontend/lib/auth-context.tsx
+./frontend/lib/auth-final-guide.tsx
+./frontend/lib/auth-usage-guide.tsx
+./frontend/lib/error-messages.ts
+./frontend/lib/index.ts
+./frontend/lib/performance.ts
+./frontend/lib/sentry.ts
+./frontend/lib/seo/metadata.ts
+./frontend/lib/useApi.ts
+./frontend/lib/useForm.ts
+./frontend/lib/ux-improvements-guide.tsx
+./frontend/.lintstagedrc.json
+./frontend/middleware.ts
+./frontend/next.config.js
+./frontend/next-env.d.ts
+./frontend/package.json
+./frontend/package-lock.json
+./frontend/public/favicon.png
+./frontend/public/icons/apple-touch-icon.png
+./frontend/public/icons/icon-192x192.png
+./frontend/public/icons/icon-512x512.png
+./frontend/public/manifest.json
+./frontend/public/og-default.png
+./frontend/scripts/seo-audit.js
+./frontend/styles/connections.css
+./frontend/styles/dashboard.css
+./frontend/styles/invites.css
+./frontend/styles/islamic-finance.css
+./frontend/styles/landing.css
+./frontend/styles/login.css
+./frontend/styles/marketplace.css
+./frontend/styles/messages.css
+./frontend/styles/profile.css
+./frontend/styles/settings.css
+./frontend/styles/trust-score.css
+./frontend/styles/verification.css
+./frontend/tsconfig.json
+./frontend/tsconfig.tsbuildinfo
+./frontend/vercel.json
+./.github/dependabot.yml
+./.github/workflows/ci-cd.yml
+./.github/workflows/deploy.yml
+./.github/workflows/nightly.yml
+./.github/workflows/pr-check.yml
+./.gitignore
+./muslimeen-codebase-map.txt
+./package.json
+./package-lock.json
+./.prettierignore
+./.prettierrc
+./README.md
+./render.yaml
+./scripts/analyze-logs.sh
+./scripts/cleanup-legacy-auth.sh
+./scripts/curl-format.txt
+./scripts/deploy-backend.ts
+./scripts/deploy-frontend.sh
+./scripts/deploy.sh
+./scripts/generate-stability-report.ts
+./scripts/health-check.sh
+./scripts/long-term-monitor.ts
+./scripts/monitor-dashboard.ts
+./scripts/monitor-deployment.ts
+./scripts/pre-deployment-check.ts
+./scripts/production-cleanup.sh
+./scripts/production-validation.ts
+./scripts/system-validation.ts
+./scripts/verify-deployment.sh
+./scripts/verify-frontend.sh
+./vercel.json
+
+============================================================
+3. ROOT PACKAGE.JSON
+============================================================
+{
+  "name": "muslimeen-webapp",
+  "version": "1.0.0",
+  "description": "LinkedIn for the Muslim Community - An invitation-only professional networking platform with Shariah-compliant financial tools.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "dev": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:all": "concurrently \"npm run dev:backend\" \"npm run dev\"",
+    "build": "cd frontend && npm run build",
+    "build:backend": "cd backend && npm run build",
+    "start": "cd frontend && npm start",
+    "start:backend": "cd backend && npm start",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "cd backend && npm run test:unit",
+    "test:integration": "cd backend && npm run test:integration",
+    "test:watch": "cd backend && npm run test -- --watch",
+    "test:coverage": "cd backend && npm run test -- --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:headless": "playwright test --headed",
+    "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e",
+    "lint": "cd frontend && npm run lint && cd ../backend && npm run lint",
+    "format": "cd frontend && npm run format && cd ../backend && npm run format",
+    "setup:test-db": "cd backend && npm run migrate && npm run seed"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mdfaizanashrafi/muslimEEN-webapp.git"
+  },
+  "keywords": [
+    "muslim",
+    "professional",
+    "networking",
+    "islamic-finance",
+    "shariah-compliant"
+  ],
+  "author": "MuslimEEN Team",
+  "license": "AGPL-3.0",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/mdfaizanashrafi/muslimEEN-webapp/issues"
+  },
+  "homepage": "https://github.com/mdfaizanashrafi/muslimEEN-webapp#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "concurrently": "^8.2.2"
+  }
+}
+
+============================================================
+4. FRONTEND PACKAGE.JSON
+============================================================
+{
+  "name": "muslimeen-next",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 8080",
+    "build": "next build",
+    "start": "next start -p 8080",
+    "lint": "next lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "seo:audit": "node scripts/seo-audit.js",
+    "analyze": "cross-env ANALYZE=true next build"
+  },
+  "dependencies": {
+    "@clerk/nextjs": "^6.12.0",
+    "@sentry/nextjs": "^10.45.0",
+    "next": "^14.2.35",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^20.4.3",
+    "@commitlint/config-conventional": "^20.4.3",
+    "@types/node": "^20.14.9",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "eslint": "^8.56.0",
+    "husky": "^9.0.0",
+    "lint-staged": "^15.0.0",
+    "prettier": "^3.2.0",
+    "typescript": "^5.5.2"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.json": [
+      "prettier --write"
+    ]
+  }
+}
+
+============================================================
+5. BACKEND PACKAGE.JSON
+============================================================
+{
+  "name": "muslimeen-backend",
+  "version": "1.0.0",
+  "description": "MuslimEEN - Muslim Economic Empowerment Network Backend",
+  "main": "dist/server.js",
+  "scripts": {
+    "start": "node dist/server.js",
+    "dev": "nodemon -r tsconfig-paths/register src/server.ts",
+    "build": "tsc --project tsconfig.build.json && tsc-alias -p tsconfig.build.json",
+    "build:prod": "tsc --project tsconfig.build.json && tsc-alias -p tsconfig.build.json",
+    "build:watch": "tsc --watch",
+    "type-check": "tsc --noEmit",
+    "test": "jest",
+    "test:unit": "jest --testPathPattern=__tests__/unit --verbose",
+    "test:integration": "jest --testPathPattern=__tests__/integration --verbose --runInBand",
+    "test:coverage": "jest --coverage",
+    "migrate": "node database/migrations/migrate.js",
+    "migrate:users-to-clerk": "ts-node -r tsconfig-paths/register scripts/migrate-users-to-clerk.ts",
+    "verify:cleanup": "ts-node -r tsconfig-paths/register scripts/verify-cleanup.ts",
+    "cleanup:production": "bash ../scripts/production-cleanup.sh",
+    "create:api-key": "ts-node -r tsconfig-paths/register scripts/create-api-key.ts",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "ci": "npm run lint && npm run type-check && npm run test:unit && npm run build"
+  },
+  "keywords": [
+    "muslim",
+    "economic",
+    "empowerment",
+    "islamic",
+    "finance",
+    "shariah"
+  ],
+  "author": "MuslimEEN Team",
+  "license": "AGPL-3.0",
+  "dependencies": {
+    "@clerk/backend": "^1.25.0",
+    "@clerk/express": "^1.3.53",
+    "@sentry/node": "^7.100.0",
+    "@sentry/tracing": "^7.100.0",
+    "bcrypt": "^5.1.1",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^7.1.0",
+    "ioredis": "^5.10.1",
+    "joi": "^17.11.0",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.11.3",
+    "redis": "^4.7.1",
+    "svix": "^1.89.0",
+    "swagger-ui-express": "^5.0.0",
+    "tsconfig-paths": "^4.2.0",
+    "uuid": "^9.0.1",
+    "winston": "^3.11.0",
+    "yamljs": "^0.3.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^20.4.3",
+    "@commitlint/config-conventional": "^20.4.3",
+    "@types/bcrypt": "^5.0.2",
+    "@types/cookie-parser": "^1.4.6",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jest": "^29.5.11",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/node": "^20.10.6",
+    "@types/pg": "^8.10.9",
+    "@types/redis": "^4.0.10",
+    "@types/supertest": "^7.2.0",
+    "@types/swagger-ui-express": "^4.1.6",
+    "@types/uuid": "^9.0.7",
+    "@types/yamljs": "^0.2.34",
+    "eslint": "^8.56.0",
+    "husky": "^9.0.0",
+    "jest": "^29.7.0",
+    "lint-staged": "^15.0.0",
+    "nodemon": "^3.1.14",
+    "prettier": "^3.2.0",
+    "supertest": "^6.3.3",
+    "ts-jest": "^29.1.1",
+    "ts-node": "^10.9.2",
+    "tsc-alias": "^1.8.16",
+    "typescript": "^5.9.3"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.json": [
+      "prettier --write"
+    ]
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+
+============================================================
+6. FRONTEND CONFIG FILES
+============================================================
+
+---------------- frontend/tsconfig.json ----------------
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "dist/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
+
+---------------- frontend/next.config.js ----------------
+/** @type {import('next').NextConfig} */
+
+// CACHE BUST: 2026-03-21-v1
+// CSP is defined in root vercel.json at edge level
+
+const nextConfig = {
+  images: {
+    unoptimized: false,
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**.muslimeen.space',
+      },
+    ],
+  },
+  trailingSlash: true,
+  eslint: {
+    ignoreDuringBuilds: process.env.NODE_ENV === 'development',
+  },
+  typescript: {
+    ignoreBuildErrors: process.env.NODE_ENV === 'development',
+  },
+  // Headers removed - CSP handled at Vercel edge level
+};
+
+module.exports = nextConfig;
+
+============================================================
+7. BACKEND CONFIG FILES
+============================================================
+
+---------------- backend/tsconfig.json ----------------
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "lib": ["ES2020"],
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "moduleResolution": "node",
+    "sourceMap": true,
+    "declaration": false,
+    "allowJs": true,
+    "checkJs": false,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+    "noImplicitReturns": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": ["src/modules/shared/*"],
+      "@iam/*": ["src/modules/iam/*"],
+      "@profile/*": ["src/modules/profile/*"],
+      "@trust/*": ["src/modules/trust/*"],
+      "@network/*": ["src/modules/network/*"],
+      "@marketplace/*": ["src/modules/marketplace/*"],
+      "@islamic-finance/*": ["src/modules/islamic-finance/*"],
+      "@invites/*": ["src/modules/invites/*"],
+      "@database": ["src/modules/database/pool"],
+      "@types": ["src/modules/shared/types"],
+      "@config/*": ["src/config/*"],
+      "@root-types": ["src/types"]
+    }
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "tests"
+  ]
+}
+
+---------------- backend/jest.config.js ----------------
+/**
+ * Jest Configuration for MuslimEEN Backend
+ * 
+ * Supports:
+ * - TypeScript via ts-jest
+ * - Module path mapping for all aliases (@shared, @iam, etc.)
+ * - Coverage collection from src/
+ * - Coverage thresholds (70% minimum)
+ * - Test timeout: 30s
+ * 
+ * @type {import('jest').Config}
+ */
+module.exports = {
+  // Use ts-jest for TypeScript support
+  preset: 'ts-jest',
+  
+  // Node environment for backend
+  testEnvironment: 'node',
+  
+  // Look for tests in these locations
+  roots: ['<rootDir>/src'],
+  
+  // Test file patterns
+  testMatch: [
+    '**/__tests__/**/*.test.ts',
+    '**/tests/**/*.test.ts',
+    '**/?(*.)+(spec|test).ts'
+  ],
+  
+  // Ignore these paths
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/dist/',
+    '/coverage/'
+  ],
+  
+  // File extensions to consider
+  moduleFileExtensions: ['ts', 'js', 'json', 'node'],
+  
+  // Transform TypeScript files
+  transform: {
+    '^.+\\.ts$': 'ts-jest'
+  },
+  
+  // Module path mapping (must match tsconfig.json paths)
+  moduleNameMapper: {
+    '^@shared/(.*)$': '<rootDir>/src/modules/shared/$1',
+    '^@iam/(.*)$': '<rootDir>/src/modules/iam/$1',
+    '^@profile/(.*)$': '<rootDir>/src/modules/profile/$1',
+    '^@trust/(.*)$': '<rootDir>/src/modules/trust/$1',
+    '^@network/(.*)$': '<rootDir>/src/modules/network/$1',
+    '^@marketplace/(.*)$': '<rootDir>/src/modules/marketplace/$1',
+    '^@islamic-finance/(.*)$': '<rootDir>/src/modules/islamic-finance/$1',
+    '^@invites/(.*)$': '<rootDir>/src/modules/invites/$1',
+    '^@database$': '<rootDir>/src/modules/database/pool',
+    '^@types$': '<rootDir>/src/modules/shared/types',
+    '^@config/(.*)$': '<rootDir>/src/config/$1',
+  },
+  
+  // Setup file to run after jest is initialized
+  setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'],
+  
+  // Coverage thresholds - 70% minimum
+  coverageThreshold: {
+    global: {
+      branches: 70,
+      functions: 70,
+      lines: 70,
+      statements: 70,
+    },
+  },
+  
+  // Coverage configuration
+  collectCoverageFrom: [
+    'src/**/*.ts',
+    '!src/**/*.d.ts',
+    '!src/**/index.ts',
+    '!src/**/types.ts',
+    '!src/**/routes.ts',
+    '!src/server.ts',
+    '!src/__tests__/**',
+    '!src/**/__mocks__/**'
+  ],
+  coverageDirectory: 'coverage',
+  coverageReporters: ['text', 'lcov', 'html'],
+  
+  // Test timeout: 30 seconds
+  testTimeout: 30000,
+  
+  // Mock clearing between tests
+  clearMocks: true,
+  restoreMocks: true,
+  
+  // Verbose output
+  verbose: true,
+  
+  // Fail on console errors during tests
+  errorOnDeprecated: true
+};
+
+---------------- backend/.eslintrc.json ----------------
+{
+  "env": {
+    "node": true,
+    "es2020": true,
+    "jest": true
+  },
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": 2020,
+    "sourceType": "module",
+    "project": "./tsconfig.json"
+  },
+  "plugins": [
+    "@typescript-eslint"
+  ],
+  "rules": {
+    "@typescript-eslint/explicit-function-return-type": "off",
+    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
+      }
+    ],
+    "no-console": "warn",
+    "prefer-const": "error"
+  },
+  "ignorePatterns": [
+    "dist/",
+    "node_modules/",
+    "tests/",
+    "*.js"
+  ]
+}
+
+============================================================
+8. ROOT CONFIGURATION
+============================================================
+
+---------------- .prettierrc ----------------
+{
+  "semi": true,
+  "trailingComma": "es5",
+  "singleQuote": true,
+  "printWidth": 100,
+  "tabWidth": 2,
+  "useTabs": false,
+  "bracketSpacing": true,
+  "arrowParens": "avoid",
+  "endOfLine": "lf"
+}
+
+---------------- .prettierignore ----------------
+node_modules/
+dist/
+build/
+.next/
+coverage/
+*.log
+
+---------------- .gitignore ----------------
+# ============================================================================
+# MuslimEEN - Centralized Git Ignore
+# ============================================================================
+# This single .gitignore file handles all subdirectories
+# Place project-specific patterns in the appropriate sections below
+# ============================================================================
+
+# ============================================================================
+# OS Generated Files
+# ============================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# ============================================================================
+# IDEs and Editors
+# ============================================================================
+# VS Code
+.vscode/
+*.code-workspace
+.history/
+
+# JetBrains (WebStorm, PyCharm, IntelliJ)
+.idea/
+*.iml
+*.iws
+out/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# ============================================================================
+# Environment and Secrets (ALL DIRECTORIES)
+# ============================================================================
+.env
+.env.local
+.env.*.local
+.env.development
+.env.test
+.env.production
+!.env.example
+
+# Secret keys and certificates
+*.pem
+*.key
+*.crt
+*.csr
+secrets/
+credentials/
+
+# ============================================================================
+# Node.js / JavaScript (Frontend, Backend, Root)
+# ============================================================================
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Build outputs
+dist/
+build/
+.next/
+.nuxt/
+.cache/
+.parcel-cache/
+
+# Coverage reports
+coverage/
+.nyc_output/
+
+# Lock files (comment out if you want to track lock files)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# ============================================================================
+# Backend Specific (Node.js/Express)
+# ============================================================================
+backend/node_modules/
+backend/dist/
+backend/build/
+backend/.env
+backend/.env.*
+backend/coverage/
+backend/logs/
+backend/*.log
+backend/tmp/
+backend/temp/
+
+# ============================================================================
+# Frontend Specific (Next.js)
+# ============================================================================
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/dist/
+frontend/build/
+frontend/.env
+frontend/.env.*
+frontend/coverage/
+
+# Next.js specific
+frontend/next-env.d.ts
+frontend/*.tsbuildinfo
+
+# ============================================================================
+# Python (if any scripts use Python)
+# ============================================================================
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Distribution / packaging
+develop-eggs/
+eggs/
+.eggs/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Test/coverage
+.pytest_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.hypothesis/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# mypy
+.mypy_cache/
+
+# ============================================================================
+# Logs (All directories)
+# ============================================================================
+logs/
+*.log
+log/
+*.log.*
+
+# ============================================================================
+# Databases
+# ============================================================================
+*.sqlite
+*.sqlite3
+*.db
+*.sql
+
+# ============================================================================
+# Temporary Files
+# ============================================================================
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# ============================================================================
+# Docker
+# ============================================================================
+.dockerignore
+docker-compose.override.yml
+
+# ============================================================================
+# Deployment Platforms
+# ============================================================================
+.vercel
+.netlify
+.firebase/
+.aws/
+.terraform/
+*.tfstate
+*.tfstate.*
+
+# ============================================================================
+# E2E Testing (Playwright)
+# ============================================================================
+e2e/test-results/
+e2e/playwright-report/
+e2e/test-results.xml
+e2e/playwright/.cache/
+
+# Screenshots and videos on failure
+e2e/*.png
+e2e/*.webm
+e2e/*.zip
+e2e/*.trace
+
+# ============================================================================
+# Misc
+# ============================================================================
+*.pid
+*.seed
+*.pid.lock
+.lock-wscript
+.node_repl_history
+*.tgz
+.eslintcache
+.stylelintcache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# ============================================================================
+# Project Specific - MuslimEEN
+# ============================================================================
+# Large binary files that shouldn't be tracked
+*.mp4
+*.mov
+*.avi
+*.wmv
+
+# Local development scripts with personal configs
+*.local.ps1
+*.local.sh
+
+# Generated documentation that should be rebuilt
+docs/generated/
+
+# Database backups
+backups/
+*.backup.sql
+*.dump
+.env*.local
+
+---------------- docker-compose.yml ----------------
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:14-alpine
+    container_name: muslimeen-postgres
+    environment:
+      POSTGRES_USER: muslimeen
+      POSTGRES_PASSWORD: localdev
+      POSTGRES_DB: muslimeen
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/database/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U muslimeen"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: muslimeen-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API (Development)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: muslimeen-backend
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: muslimeen
+      DB_USER: muslimeen
+      DB_PASSWORD: localdev
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: local-development-secret-do-not-use-in-production
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: npm run dev
+
+  # Frontend (Development)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: muslimeen-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3001/api
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    command: npm run dev
+
+volumes:
+  postgres_data:
+  redis_data:
+
+---------------- vercel.json ----------------
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "cd frontend && npm install && npm run build",
+  "outputDirectory": "frontend/.next",
+  "framework": "nextjs",
+  "installCommand": "cd frontend && npm install",
+  "regions": ["iad1"],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.accounts.dev https://*.clerk.com https://clerk.com https://cdn.jsdelivr.net https://unpkg.com; script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.accounts.dev https://*.clerk.com https://clerk.com https://cdn.jsdelivr.net https://unpkg.com; script-src-attr 'self' 'unsafe-inline'; connect-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://clerk.com; frame-src 'self' https://*.clerk.accounts.dev https://*.clerk.com; img-src 'self' data: https://*.clerk.accounts.dev https://*.clerk.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:;"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=()"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "${NEXT_PUBLIC_API_URL}/$1"
+    }
+  ],
+  "env": {
+    "NEXT_TELEMETRY_DISABLED": "1",
+    "CACHE_BUST": "2026-03-21-v1"
+  }
+}
+
+---------------- render.yaml ----------------
+services:
+  - type: web
+    name: muslimeen-api
+    runtime: node
+    repo: https://github.com/your-org/muslimeen
+    branch: main
+    buildCommand: cd backend && npm install && npm run build
+    startCommand: cd backend && npm start
+    envVars:
+      # Core Configuration
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      
+      # Database (PostgreSQL)
+      - key: DB_HOST
+        fromDatabase:
+          name: muslimeen-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: muslimeen-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: muslimeen-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: muslimeen-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: muslimeen-db
+          property: password
+      - key: DATABASE_URL
+        fromDatabase:
+          name: muslimeen-db
+          property: connectionString
+      
+      # Clerk Authentication (REQUIRED)
+      - key: CLERK_SECRET_KEY
+        sync: false  # Set manually in Render dashboard
+      - key: CLERK_PUBLISHABLE_KEY
+        sync: false  # Set manually in Render dashboard
+      - key: CLERK_WEBHOOK_SECRET
+        sync: false  # Set manually in Render dashboard
+      
+      # Legacy Auth (Deprecated but kept for compatibility)
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 24h
+      - key: CSRF_SECRET
+        generateValue: true
+      - key: COOKIE_SECRET
+        generateValue: true
+      - key: BCRYPT_ROUNDS
+        value: '12'
+      
+      # Frontend CORS
+      - key: FRONTEND_URL
+        value: https://muslimeen.vercel.app
+      - key: FRONTEND_URLS
+        value: https://muslimeen.vercel.app,https://www.muslimeen.org
+      
+      # Internal API
+      - key: INTERNAL_API_URL
+        value: https://muslimeen-api.onrender.com/api/internal
+      - key: INTERNAL_API_KEY
+        sync: false  # Generate with create-api-key script
+      
+      # Monitoring & Logging
+      - key: SENTRY_DSN
+        sync: false  # Set manually
+      - key: LOG_LEVEL
+        value: info
+      
+      # Redis (Optional - for session caching)
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: muslimeen-redis
+          property: connectionString
+      
+      # Feature Flags (Clerk Migration)
+      - key: USE_CLERK_AUTH
+        value: 'true'
+      - key: DISABLE_LEGACY_AUTH
+        value: 'true'
+      - key: ENABLE_LEGACY_AUTH_DETECTION
+        value: 'true'
+      - key: SYSTEM_READ_ONLY
+        value: 'false'
+      
+      # Security
+      - key: TRUSTED_PROXIES
+        value: '10.0.0.0/8,172.16.0.0/12,192.168.0.0/16'
+    
+    healthCheckPath: /api/health
+    autoDeploy: false  # Manual deploy for safety
+    
+    # Zero-downtime deployment settings
+    numInstances: 1
+    plan: standard
+    
+    # Health check configuration
+    healthCheckTimeout: 100
+    
+    # Deploy hooks (optional)
+    # preDeployCommand: echo "Starting deployment..."
+    # postDeployCommand: echo "Deployment complete!"
+
+databases:
+  - name: muslimeen-db
+    databaseName: muslimeen
+    user: muslimeen
+    plan: standard
+    # Enable backups for production
+    # backupRetention: 7
+
+redis:
+  - name: muslimeen-redis
+    plan: standard
+    maxmemoryPolicy: allkeys-lru
+
+# Environment Groups (for sharing config across services)
+# envVarGroups:
+#   - name: muslimeen-secrets
+#     envVars:
+#       - key: CLERK_SECRET_KEY
+#         sync: false
+
+============================================================
+9. FRONTEND APP STRUCTURE
+============================================================
+frontend/app/blog/blog.css
+frontend/app/blog/page.tsx
+frontend/app/blog/[slug]/page.tsx
+frontend/app/connections/ConnectionsClient.tsx
+frontend/app/connections/page.tsx
+frontend/app/(dashboard)/admin/beta/page.tsx
+frontend/app/dashboard/components/InvitesWidget.css
+frontend/app/dashboard/components/InvitesWidget.tsx
+frontend/app/dashboard/page.tsx
+frontend/app/globals.css
+frontend/app/invite/invite.css
+frontend/app/invite/page.tsx
+frontend/app/invites/page.tsx
+frontend/app/islamic-finance/IslamicFinanceClient.tsx
+frontend/app/islamic-finance/page.tsx
+frontend/app/layout.tsx
+frontend/app/loading.tsx
+frontend/app/login/page.tsx
+frontend/app/manifest.ts
+frontend/app/(marketing)/about/page.tsx
+frontend/app/(marketing)/layout.tsx
+frontend/app/(marketing)/page.tsx
+frontend/app/marketplace/earn/[slug]/opengraph-image.tsx
+frontend/app/marketplace/earn/[slug]/page.tsx
+frontend/app/marketplace/[vertical]/client.tsx
+frontend/app/marketplace/[vertical]/opengraph-image.tsx
+frontend/app/marketplace/[vertical]/page.tsx
+frontend/app/messages/MessagesClient.tsx
+frontend/app/messages/page.tsx
+frontend/app/opengraph-image.tsx
+frontend/app/people/page.tsx
+frontend/app/people/people.css
+frontend/app/people/[slug]/loading.tsx
+frontend/app/people/[slug]/not-found.tsx
+frontend/app/people/[slug]/opengraph-image.tsx
+frontend/app/people/[slug]/page.tsx
+frontend/app/profile/page.tsx
+frontend/app/robots.ts
+frontend/app/settings/account/page.tsx
+frontend/app/settings/layout.tsx
+frontend/app/settings/notifications/page.tsx
+frontend/app/settings/page.tsx
+frontend/app/settings/privacy/page.tsx
+frontend/app/settings/security/page.tsx
+frontend/app/settings/visibility/page.tsx
+frontend/app/signup/page.tsx
+frontend/app/signup/signup.css
+frontend/app/sitemap.ts
+frontend/app/trust-score/page.tsx
+frontend/app/twitter-image.tsx
+frontend/app/verification/business/page.tsx
+frontend/app/verification/institutional/page.tsx
+frontend/app/verification/page.tsx
+frontend/app/waitlist/page.tsx
+frontend/app/waitlist/waitlist.css
+
+============================================================
+10. FRONTEND COMPONENTS
+============================================================
+frontend/components/AnalyticsProvider.tsx
+frontend/components/auth-provider-wrapper.tsx
+frontend/components/ErrorBoundary.tsx
+frontend/components/feedback/FeedbackWidget.tsx
+frontend/components/icons/ConnectionIcons.tsx
+frontend/components/icons/IslamicFinanceIcons.tsx
+frontend/components/icons/LandingIcons.tsx
+frontend/components/icons/LayoutIcons.tsx
+frontend/components/layout/AppLayout.tsx
+frontend/components/layout/index.ts
+frontend/components/layout/NavLink.tsx
+frontend/components/LoadingButton.tsx
+frontend/components/NetworkStatus.tsx
+frontend/components/ProtectedRoute.tsx
+frontend/components/seo/Analytics.tsx
+frontend/components/seo/index.ts
+frontend/components/seo/SchemaInjector.tsx
+frontend/components/seo/schemas/ArticleSchema.tsx
+frontend/components/seo/schemas/BreadcrumbSchema.tsx
+frontend/components/seo/schemas/EventSchema.tsx
+frontend/components/seo/schemas/FAQSchema.tsx
+frontend/components/seo/schemas/HowToSchema.tsx
+frontend/components/seo/schemas/JobPostingSchema.tsx
+frontend/components/seo/schemas/LocalBusinessSchema.tsx
+frontend/components/seo/schemas/OrganizationSchema.tsx
+frontend/components/seo/schemas/PersonSchema.tsx
+frontend/components/seo/schemas/VideoSchema.tsx
+frontend/components/SessionExpired.tsx
+frontend/components/Toast.tsx
+
+============================================================
+11. FRONTEND LIB
+============================================================
+frontend/lib/analytics.ts
+frontend/lib/api-examples.tsx
+frontend/lib/api-retry.ts
+frontend/lib/api.ts
+frontend/lib/api-usage-guide.tsx
+frontend/lib/auth-context.tsx
+frontend/lib/auth-final-guide.tsx
+frontend/lib/auth-usage-guide.tsx
+frontend/lib/error-messages.ts
+frontend/lib/index.ts
+frontend/lib/performance.ts
+frontend/lib/sentry.ts
+frontend/lib/seo/metadata.ts
+frontend/lib/useApi.ts
+frontend/lib/useForm.ts
+frontend/lib/ux-improvements-guide.tsx
+
+============================================================
+12. FRONTEND STYLES
+============================================================
+frontend/styles/connections.css
+frontend/styles/dashboard.css
+frontend/styles/invites.css
+frontend/styles/islamic-finance.css
+frontend/styles/landing.css
+frontend/styles/login.css
+frontend/styles/marketplace.css
+frontend/styles/messages.css
+frontend/styles/profile.css
+frontend/styles/settings.css
+frontend/styles/trust-score.css
+frontend/styles/verification.css
+
+============================================================
+13. BACKEND SOURCE STRUCTURE
+============================================================
+backend/src/config/cors.ts
+backend/src/config/env.ts
+backend/src/config/featureFlags.ts
+backend/src/config/README.md
+backend/src/config/security.ts
+backend/src/config/sentry.ts
+backend/src/config/shutdown.ts
+backend/src/modules/analytics/routes.ts
+backend/src/modules/auth/routes.ts
+backend/src/modules/connections/routes.ts
+backend/src/modules/database/pool.ts
+backend/src/modules/feedback/routes.ts
+backend/src/modules/iam/controllers/AuthController.ts
+backend/src/modules/iam/controllers/AuthHealthController.ts
+backend/src/modules/iam/controllers/ClerkWebhookControllerHardened.ts
+backend/src/modules/iam/controllers/ClerkWebhookController.ts
+backend/src/modules/iam/index.ts
+backend/src/modules/iam/middleware/clerkAuth.ts
+backend/src/modules/iam/middleware/unifiedAuth.ts
+backend/src/modules/iam/repositories/UserRepository.ts
+backend/src/modules/iam/services/AccountLockoutService.ts
+backend/src/modules/iam/services/AuthService.ts
+backend/src/modules/iam/services/PasswordService.ts
+backend/src/modules/iam/services/UserService.ts
+backend/src/modules/iam/services/WebhookRetryService.ts
+backend/src/modules/iam/services/WebhookService.ts
+backend/src/modules/index.ts
+backend/src/modules/internal/client.ts
+backend/src/modules/internal/routes.ts
+backend/src/modules/invites/controllers/InviteControllerHardened.ts
+backend/src/modules/invites/index.ts
+backend/src/modules/invites/repositories/InviteRepository.ts
+backend/src/modules/invites/routesHardened.ts
+backend/src/modules/invites/routes.ts
+backend/src/modules/invites/services/InviteServiceHardened.ts
+backend/src/modules/invites/services/InviteService.ts
+backend/src/modules/invites/services/InviteTokenService.ts
+backend/src/modules/invites/types.ts
+backend/src/modules/islamic-finance/controllers/IslamicFinanceController.ts
+backend/src/modules/islamic-finance/index.ts
+backend/src/modules/islamic-finance/repositories/IslamicFinanceRepository.ts
+backend/src/modules/islamic-finance/routes.ts
+backend/src/modules/islamic-finance/services/IslamicFinanceService.ts
+backend/src/modules/marketplace/controllers/MarketplaceController.ts
+backend/src/modules/marketplace/index.ts
+backend/src/modules/marketplace/repositories/MarketplaceRepository.ts
+backend/src/modules/marketplace/routes.ts
+backend/src/modules/marketplace/services/MarketplaceService.ts
+backend/src/modules/network/controllers/ConnectionController.ts
+backend/src/modules/network/index.ts
+backend/src/modules/network/repositories/ConnectionRepository.ts
+backend/src/modules/network/services/ConnectionService.ts
+backend/src/modules/profile/controllers/ProfileController.ts
+backend/src/modules/profile/index.ts
+backend/src/modules/profile/repositories/ProfileRepository.ts
+backend/src/modules/profile/services/ProfileService.ts
+backend/src/modules/router.ts
+backend/src/modules/shared/auth/InternalApiAuth.ts
+backend/src/modules/shared/config/featureFlags.ts
+backend/src/modules/shared/events/EventBus.ts
+backend/src/modules/shared/middleware/auditLogger.ts
+backend/src/modules/shared/middleware/bodyParser.ts
+backend/src/modules/shared/middleware/csrf.ts
+backend/src/modules/shared/middleware/deprecation.ts
+backend/src/modules/shared/middleware/errorHandler.ts
+backend/src/modules/shared/middleware/idempotency.ts
+backend/src/modules/shared/middleware/performance.ts
+backend/src/modules/shared/middleware/rateLimiter.ts
+backend/src/modules/shared/middleware/readOnlyMode.ts
+backend/src/modules/shared/middleware/sanitization.ts
+backend/src/modules/shared/middleware/secureResponse.ts
+backend/src/modules/shared/middleware/securityAudit.ts
+backend/src/modules/shared/middleware/validation.ts
+backend/src/modules/shared/types/index.ts
+backend/src/modules/shared/utils/encoding.ts
+backend/src/modules/shared/utils/formatters.ts
+backend/src/modules/shared/utils/logger.ts
+backend/src/modules/shared/utils/logSampler.ts
+backend/src/modules/shared/utils/metrics.ts
+backend/src/modules/shared/utils/response.ts
+backend/src/modules/shared/utils/security.ts
+backend/src/modules/trust/controllers/TrustScoreController.ts
+backend/src/modules/trust/controllers/VerificationController.ts
+backend/src/modules/trust/index.ts
+backend/src/modules/trust/repositories/TrustScoreRepository.ts
+backend/src/modules/trust/repositories/VerificationRepository.ts
+backend/src/modules/trust/services/TrustScoreService.ts
+backend/src/modules/trust/services/VerificationService.ts
+backend/src/modules/users/routes.ts
+backend/src/modules/verification/routes.ts
+backend/src/openapi.yaml
+backend/src/routes/health.ts
+backend/src/routes/webhooks.ts
+backend/src/server.ts
+backend/src/__tests__/attacks/security-bypass.test.ts
+backend/src/__tests__/chaos/concurrent-operations.test.ts
+backend/src/__tests__/chaos/failure-modes.test.ts
+backend/src/__tests__/chaos/rapid-actions.test.ts
+backend/src/__tests__/contract/api-contract.test.ts
+backend/src/__tests__/critical/auth.flow.test.ts
+backend/src/__tests__/critical/invite.race.test.ts
+backend/src/__tests__/helpers.ts
+backend/src/__tests__/integration/auth.test.ts
+backend/src/__tests__/security/security.test.ts
+backend/src/__tests__/setup.ts
+backend/src/types/index.ts
+backend/src/types/models.d.ts
+
+============================================================
+14. DATABASE STRUCTURE
+============================================================
+backend/database/migrations/001_initial_schema.sql
+backend/database/migrations/migrate.js
+
+============================================================
+15. E2E TEST STRUCTURE
+============================================================
+e2e/auth.spec.ts
+e2e/playwright.config.ts
+e2e/README.md
+e2e/tests/auth.spec.ts
+e2e/tests/critical-auth.spec.ts
+e2e/tests/dashboard.spec.ts
+e2e/tests/islamic-finance.spec.ts
+e2e/tests/marketplace.spec.ts
+e2e/tests/profile.spec.ts
+
+============================================================
+END
+============================================================

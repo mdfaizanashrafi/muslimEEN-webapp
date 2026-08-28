@@ -129,7 +129,7 @@ jobs:
     steps:
       - name: Post success comment
         if: needs.backend-pr-check.result == 'success' && needs.frontend-pr-check.result == 'success'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             github.rest.issues.createComment({
@@ -141,7 +141,7 @@ jobs:
 
       - name: Post failure comment
         if: needs.backend-pr-check.result == 'failure' || needs.frontend-pr-check.result == 'failure'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             github.rest.issues.createComment({
